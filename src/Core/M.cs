@@ -53,4 +53,24 @@ public static class M
         return a + (b - a) * u;
     }
     public static T Pick<T>(T[] a) => a[RandI(0, a.Length - 1)];
+
+    /// <summary>Deterministyczny hash liczb całkowitych → [0,1).</summary>
+    public static float Hash2(int x, int y, int seed)
+    {
+        unchecked
+        {
+            uint h = (uint)x * 374761393u + (uint)y * 668265263u + (uint)seed * 2246822519u;
+            h = (h ^ (h >> 13)) * 1274126177u; h ^= h >> 16;
+            return (h & 0xFFFFFF) / 16777216f;
+        }
+    }
+    /// <summary>Gładki szum wartości 2D w [0,1] (biomy, rozkłady).</summary>
+    public static float Noise2(float x, float y, int seed)
+    {
+        int ix = (int)MathF.Floor(x), iy = (int)MathF.Floor(y);
+        float fx = x - ix, fy = y - iy, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+        float a = Hash2(ix, iy, seed), b = Hash2(ix + 1, iy, seed), c = Hash2(ix, iy + 1, seed), d = Hash2(ix + 1, iy + 1, seed);
+        return Lerp(Lerp(a, b, u), Lerp(c, d, u), v);
+    }
+    public static int FloorDiv(float v, float s) => (int)MathF.Floor(v / s);
 }

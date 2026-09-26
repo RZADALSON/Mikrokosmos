@@ -194,6 +194,13 @@ public partial class Main : Node
         if (_hudT > 0 || _world == null) return;
         _hudT = 0.12f;
         var rows = _sc.Hud(_world);
+        if (_world.Infinite && _world.Player != null)
+        {
+            var pl = _world.Player;
+            rows.Insert(0, ("Strefa", _sc.BiomeName(_world.ChunkAt(pl.X, pl.Y).Biome)));
+            float dist = Hypot(pl.X, pl.Y);
+            rows.Insert(1, ("Od startu", dist >= 1000 ? $"{dist / 1000:0.00} mm" : dist >= 1 ? $"{dist:0} µm" : $"{dist * 1000:0} nm"));
+        }
         while (_statRows.Count < rows.Count)
         {
             var k = Ui.L("", 14, Ui.Dim); var val = Ui.L("", 14, null, true, HorizontalAlignment.Right);
@@ -317,12 +324,10 @@ public partial class Main : Node
         if (_demo != null) return;
         var sc = Scenario.All.First(s => s.Id == "bdello");
         var w = sc.Create();
-        w.Nutri = new Field(w.W, w.H, 32);
-        for (int i = 0; i < 34; i++) { var (x, y) = Scenario.FreeSpot(w, 2); w.Add(new EColi(w, x, y, Rand(0, TAU))); }
-        for (int i = 0; i < 6; i++) { var (x, y) = Scenario.FreeSpot(w, 2); w.Add(new Bdello(w, x, y, Rand(0, TAU))); }
-        for (int i = 0; i < 12; i++) w.Add(new PhageT4(w, Rand(2, w.W - 2), Rand(2, w.H - 2), Rand(0, TAU)));
+        sc.Init(w);
+        w.Player = null;
         _demo = w;
-        _camX = w.W / 2; _camY = w.H / 2; _tz = _zoom = 1;
+        _camX = w.CamX; _camY = w.CamY; _tz = _zoom = 1;
     }
 
     // ================================================================ dialogi
@@ -431,6 +436,7 @@ public partial class Main : Node
         _world.Input = _input;
         _world.OnLog = Log; _world.OnBanner = Banner; _world.OnGameOver = OnGameOver;
         _world.OnSfx = (k, v) => _audio.Play(k, v);
+        _world.OnEnterBiome = c => { if (_world.T > 1) Toast("Strefa: " + _sc.BiomeName(c.Biome)); };
         _world.OnGoal = g =>
         {
             Banner("Cel osiągnięty!", g.Text);
@@ -543,10 +549,13 @@ public partial class Main : Node
         float s = _s0 * _zoom;
         var t = w.CamTarget();
         float tx = t != null ? t.X : _camX, ty = t != null ? t.Y : _camY;
-        if (t == null && _mode == Mode.Menu) { tx = w.W / 2 + MathF.Cos(w.T * 0.05f) * w.W * 0.2f; ty = w.H / 2 + MathF.Sin(w.T * 0.07f) * w.H * 0.2f; }
+        if (t == null && _mode == Mode.Menu) { tx = w.T * 1.2f; ty = MathF.Sin(w.T * 0.07f) * 25; }
         float hw = ss.X / 2 / s, hh = ss.Y / 2 / s;
-        tx = w.W > hw * 2 ? Clamp(tx, hw * 0.6f, w.W - hw * 0.6f) : w.W / 2;
-        ty = w.H > hh * 2 ? Clamp(ty, hh * 0.6f, w.H - hh * 0.6f) : w.H / 2;
+        if (!w.Infinite)
+        {
+            tx = w.W > hw * 2 ? Clamp(tx, hw * 0.6f, w.W - hw * 0.6f) : w.W / 2;
+            ty = w.H > hh * 2 ? Clamp(ty, hh * 0.6f, w.H - hh * 0.6f) : w.H / 2;
+        }
         float k = Damp(_mode == Mode.Menu ? 0.8f : 6, fdt);
         _camX += (tx - _camX) * k; _camY += (ty - _camY) * k;
         w.CamX = _camX; w.CamY = _camY;
@@ -615,9 +624,11 @@ public partial class Main : Node
                 if (World.Prof)
                 {
                     foreach (var kv in World.ProfT.OrderByDescending(k => k.Value).Take(8)) GD.Print($"      {kv.Key,-28} {kv.Value / frames:0.000} ms/kl");
-                    World.ProfT.Clear();
+                    foreach (var kv in World.VertT.OrderByDescending(k => k.Value).Take(5)) GD.Print($"      {kv.Key,-28} {kv.Value / Math.Max(1, builds):0} wierzch./kl");
+                    World.ProfT.Clear(); World.VertT.Clear();
                 }
                 string stats = string.Join(", ", _world.Stats.Where(kv => !kv.Key.StartsWith("amp")).Select(kv => $"{kv.Key}={kv.Value:0.#}"));
+                GD.Print("      typy: " + string.Join(", ", _world.Ents.GroupBy(e => e.GetType().Name + (e is PhageT4 q ? ":" + q.State : "")).OrderByDescending(g => g.Count()).Take(6).Select(g => $"{g.Key}={g.Count()}")) + $" · chunki={_world.ChunkCount}");
                 GD.Print($"[autotest] {sc.Id,-9} OK  update {upd / frames:0.000} ms/kl · geometria {build / Math.Max(1, builds):0.000} ms · max {maxV} wierzch. · encje {_world.Ents.Count} · t={_world.T:0}s · {stats}");
             }
             catch (Exception ex)
@@ -683,11 +694,34 @@ public partial class Main : Node
             Ok(_world.Stat("rotifers") >= 1, "wrotek strawiony (statystyka)");
 
             // 6. wirczyk kurczy się przy dotyku
-            Start(S("para")); var vt = _world.Ents.OfType<Vorticella>().First();
+            Start(S("para")); var vt = _world.Ents.OfType<Vorticella>().FirstOrDefault() ?? _world.Add(new Vorticella(_world, _world.Player.X + 500, _world.Player.Y, 0, 30));
+            _world.Update(1f / 60);
             float bx0 = vt.BellX, by0 = vt.BellY;
             var chl = _world.Add(new Chlamy(_world, vt.BellX, vt.BellY, 0));
             Run(3);
             Ok(Hypot(vt.BellX - bx0, vt.BellY - by0) > 30, "Vorticella zwija trzonek po dotknięciu");
+
+            // 7. chunki: zamrażanie i odmrażanie przy oddaleniu i powrocie
+            Start(S("para")); var pl = _world.Player;
+            var marker = _world.Ents.FirstOrDefault(e => e.Fixed && e != pl) ?? _world.Ents.First(e => e != pl);
+            float sx = pl.X, sy = pl.Y;
+            int chunks0 = _world.ChunkCount;
+            pl.X += _world.CS * 12; Run(20);
+            Ok(marker.ParkedIn != null && !_world.Ents.Contains(marker), "oddalenie zamraża chunki startowe (organizmy zaparkowane)");
+            Ok(_world.ChunkCount > chunks0, $"nowe chunki generowane w locie ({chunks0} → {_world.ChunkCount})");
+            pl.X = sx; pl.Y = sy; Run(20);
+            Ok(marker.ParkedIn == null && _world.Ents.Contains(marker), "powrót odmraża ten sam organizm (stan zachowany)");
+
+            // 8. różnorodność biomów
+            var biomes = new HashSet<int>();
+            for (int cx = -20; cx <= 20; cx += 2) for (int cy = -20; cy <= 20; cy += 2) biomes.Add(_world.Sc.BiomeAt(_world, cx, cy));
+            Ok(biomes.Count >= 3, $"biomy są zróżnicowane ({biomes.Count} typów w próbce)");
+
+            // 9. daleka podróż – brak błędów i stała liczba aktywnych encji
+            Start(S("bdello")); var bp = _world.Player;
+            int maxEnts = 0;
+            for (int i = 0; i < 40; i++) { bp.X += _world.CS * 1.1f; bp.Y += _world.CS * 0.4f; Run(10); maxEnts = Math.Max(maxEnts, _world.Ents.Count); }
+            Ok(maxEnts < 900, $"liczba aktywnych encji ograniczona podczas podróży (maks. {maxEnts}, chunków: {_world.ChunkCount})");
         }
         catch (Exception ex) { fails++; GD.PrintErr("[check] WYJĄTEK " + ex); }
         GD.Print(fails == 0 ? "[check] WSZYSTKO OK" : $"[check] BŁĘDÓW: {fails}");
@@ -712,9 +746,9 @@ public partial class Main : Node
                 {
                     string sid = id switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => id };
                     Start(Scenario.All.First(s => s.Id == sid));
-                    if (id == "vort") _world.Focus = _world.Ents.OfType<Vorticella>().First();
-                    if (id == "spiro") _world.Focus = _world.Ents.OfType<SpiroCell>().First();
-                    if (id == "rotifer") _world.Focus = _world.Ents.OfType<Rotifer>().First();
+                    if (id == "vort") _world.Focus = _world.Ents.OfType<Vorticella>().FirstOrDefault();
+                    if (id == "spiro") _world.Focus = _world.Ents.OfType<SpiroCell>().FirstOrDefault();
+                    if (id == "rotifer") _world.Focus = _world.Ents.OfType<Rotifer>().FirstOrDefault();
                     if (id == "net") { _input.ActionHeld = true; for (int f = 0; f < 110; f++) _world.Update(1f / 60); _input.ActionHeld = false; _world.Focus = _world.Ents.OfType<Net>().First(); }
                     _modeIdx = mode % _sc.Modes.Length; ApplyMode();
                     _testInput = true;

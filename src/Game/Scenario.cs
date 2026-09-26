@@ -26,6 +26,18 @@ public abstract class Scenario
     public float GridCell = 20;
     public string ScoreLabel = "wynik";
 
+    // ------------------------------------------------ świat nieskończony (chunki)
+    /// <summary>Bok chunka (µm); 0 = świat skończony Wd × Ht.</summary>
+    public float ChunkSize;
+    /// <summary>Promień aktywności w chunkach (2 → 5 × 5 aktywnych chunków).</summary>
+    public int ActiveR = 2;
+    /// <summary>Maks. liczba zamrożonych (nie należących do gracza) organizmów na chunk.</summary>
+    public int ParkCap = 60;
+    public string[] BiomeNames = { "Strefa" };
+    public Color[] BiomeColors = { new(0.5f, 0.5f, 0.5f) };
+    /// <summary>Skala biomów w chunkach (większa = większe obszary).</summary>
+    public float BiomeScale = 3.2f;
+
     public sealed class Goal
     {
         public string Text; public Func<World, float> Val; public float Target;
@@ -41,6 +53,24 @@ public abstract class Scenario
     public static readonly ScopeMode[] EmModes = { new("TEM – koloryzowany", 0), new("TEM – oryginał (skala szarości)", 3), new("Negatyw (barwienie negatywne)", 4) };
 
     public abstract void Init(World w);
+
+    /// <summary>Biom chunka – deterministyczny (szum 2D z ziarnem świata). Okolica startu = biom 0.</summary>
+    public virtual int BiomeAt(World w, int cx, int cy)
+    {
+        if (Math.Abs(cx) <= 1 && Math.Abs(cy) <= 1) return 0;
+        int nb = BiomeNames.Length, best = 0; float bv = -1;
+        for (int k = 0; k < nb; k++)
+        {
+            float v = Noise2(cx / BiomeScale + k * 17.3f, cy / BiomeScale - k * 9.1f, w.Seed + k * 101) + (k == 0 ? 0.08f : 0);
+            if (v > bv) { bv = v; best = k; }
+        }
+        return best;
+    }
+    /// <summary>Zawartość chunka przy pierwszym odwiedzeniu.</summary>
+    public virtual void GenerateChunk(World w, Chunk c) { }
+    public virtual void OnChunkActivated(World w, Chunk c) { }
+    public virtual void OnChunkDeactivated(World w, Chunk c) { }
+
     public virtual void Update(World w, float dt, float gdt) { }
     public virtual void DrawUnder(World w, Painter p, View v) { }
     public abstract List<(string, string)> Hud(World w);
@@ -78,9 +108,46 @@ public abstract class Scenario
     public World Create(bool preview = false)
     {
         var w = new World(this, preview);
-        if (!preview && DebrisN > 0) w.MakeDebris(DebrisN, DebrisS0, DebrisS1, DebrisD);
+        if (!preview && DebrisN > 0)
+        {
+            if (w.Infinite)
+            {
+                w.DebrisTile = ViewW * 1.7f;
+                int n = (int)Math.Max(40, DebrisN * w.DebrisTile * w.DebrisTile / (Wd * Ht));
+                w.MakeDebris(n, DebrisS0, DebrisS1, DebrisD);
+            }
+            else w.MakeDebris(DebrisN, DebrisS0, DebrisS1, DebrisD);
+        }
         return w;
     }
+
+    /// <summary>Wolne miejsce w chunku (sprawdza encje dodane w tym chunku i aktywne w pobliżu).</summary>
+    public static (float, float) Spot(World w, Chunk c, float r, List<Ent> local, float margin = 0, int tries = 30)
+    {
+        float x = 0, y = 0;
+        for (int i = 0; i < tries; i++)
+        {
+            x = c.X0 + Rand(margin, c.S - margin); y = c.Y0 + Rand(margin, c.S - margin);
+            bool ok = true;
+            foreach (var e in local) if (e.Solid && Hypot(e.X - x, e.Y - y) < e.R + r) { ok = false; break; }
+            if (ok && w.Near(x, y, r + c.S * 0.25f, e => e.Solid && Hypot(e.X - x, e.Y - y) < e.R + r) != null) ok = false;
+            if (ok) return (x, y);
+        }
+        return (x, y);
+    }
+    public static T0 Put<T0>(World w, List<Ent> local, T0 e) where T0 : Ent { w.Add(e); local.Add(e); return e; }
+    /// <summary>Losowe miejsce w oknie aktywności, poza widokiem gracza (napływ nowych organizmów).</summary>
+    public (float, float) SpawnAway(World w, float r)
+    {
+        float cx = w.CamX, cy = w.CamY, minD = ViewW * 0.9f;
+        for (int i = 0; i < 20; i++)
+        {
+            float x = w.WinX0 + Rand(r, w.WinW - r), y = w.WinY0 + Rand(r, w.WinH - r);
+            if (Hypot(x - cx, y - cy) > minD) return (x, y);
+        }
+        return (w.WinX0 + r, w.WinY0 + r);
+    }
+    public string BiomeName(int b) => BiomeNames[Math.Clamp(b, 0, BiomeNames.Length - 1)];
 
     // ------------------------------------------------ pomocnicze
     public static (float, float) EdgePos(World w, float m)

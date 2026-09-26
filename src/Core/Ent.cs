@@ -36,6 +36,10 @@ public abstract class Ent
     public float FlowK = 1;
     /// <summary>Zdrowie / żywotność 0..1 (używane przez część organizmów).</summary>
     public float Hp = 1;
+    /// <summary>Encja, w której/na której ta się znajduje (pożeracz, gospodarz) – zamrażane razem.</summary>
+    public Ent Holder;
+    /// <summary>Chunk, w którym encja jest zamrożona (null = aktywna).</summary>
+    public Chunk ParkedIn;
     public string Name = "pokarm";
 
     /// <summary>Promień "ofiary" (jak o.r w wersji web).</summary>

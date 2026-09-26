@@ -327,13 +327,13 @@ public sealed class Amoeba : Ent
         W.Fx.Lyse(Mem, new FX.LyseOpt { Pieces = 7, Speed = 20, Life = 8, Lw = 1.3f, C = Rgb(40, 46, 40, 0.6f), Halo = Rgb(255, 255, 240, 0.2f), HasHalo = true, Curl = 0.4f, D = 2 });
         W.Sfx("pop", X, Y);
         if (IsPlayer) W.Log("Ameba zagłodzona – komórka skurczyła się i rozpadła.", "bad");
-        foreach (var f in Meals) if (f.O.Alive) { f.O.State = St.Free; f.O.Solid = true; }
+        foreach (var f in Meals) if (f.O.Alive) { f.O.State = St.Free; f.O.Solid = true; f.O.Holder = null; }
         Alive = false;
     }
     void Engulf(Ent o, float lx, float ly)
     {
         W.Sfx("gulp", X, Y, 0.7f);
-        o.State = St.Cup; o.Solid = false;
+        o.State = St.Cup; o.Solid = false; o.Holder = this;
         float ang = MathF.Atan2(ly, lx), rin = Rb * Rand(0.25f, 0.45f);
         Meals.Add(new Meal { O = o, Sx = lx, Sy = ly, Lx = lx, Ly = ly, Tx = MathF.Cos(ang) * rin, Ty = MathF.Sin(ang) * rin });
         if (IsPlayer) W.Log("Pseudopodia otaczają ofiarę (miseczka pokarmowa)...", "info");

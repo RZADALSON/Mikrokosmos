@@ -31,6 +31,8 @@ public sealed class Painter
     public float Px = 1f;
     /// <summary>Globalny mnożnik przezroczystości.</summary>
     public float Alpha = 1f;
+    /// <summary>Punkt odniesienia wierzchołków (odejmowany) – utrzymuje małe liczby w buforze GPU.</summary>
+    public float OX, OY;
 
     // macierz: x' = a*x + c*y + e ; y' = b*x + d*y + f
     float _a = 1, _b, _c, _d = 1, _e, _f, _sc = 1;
@@ -117,7 +119,7 @@ public sealed class Painter
     int Vx(float x, float y, Color col)
     {
         int i = _ch.Nv++;
-        _ch.P[i] = new Vector2(_a * x + _c * y + _e, _b * x + _d * y + _f);
+        _ch.P[i] = new Vector2(_a * x + _c * y + _e - OX, _b * x + _d * y + _f - OY);
         col.A *= Alpha;
         _ch.C[i] = col;
         return i;
@@ -380,6 +382,24 @@ public sealed class Painter
             _nrm[i] = new Vector2(mx, my);
             _mit[i] = 1f / Math.Max(dot, 0.4f);
         }
+    }
+    /// <summary>Cienka polilinia bez frędzli (2 wierzchołki na punkt) – włókna, DNA, rzęski.</summary>
+    public void Thin(ReadOnlySpan<Vector2> pts, bool closed, float w, Color col)
+    {
+        int n = pts.Length; if (n < 2) return;
+        float pl = PxL;
+        if (w < pl) { col.A *= w / pl; w = pl; }
+        float hw = w * 0.5f;
+        ComputeMiters(pts, closed);
+        Reserve(n * 2 + 2, n * 6 + 6);
+        int b = _ch.Nv;
+        for (int i = 0; i < n; i++)
+        {
+            float mx = _nrm[i].X * _mit[i] * hw, my = _nrm[i].Y * _mit[i] * hw;
+            Vx(pts[i].X + mx, pts[i].Y + my, col); Vx(pts[i].X - mx, pts[i].Y - my, col);
+        }
+        int segs = closed ? n : n - 1;
+        for (int i = 0; i < segs; i++) { int r0 = b + i * 2, r1 = b + ((i + 1) % n) * 2; Quad(r0, r1, r1 + 1, r0 + 1); }
     }
     public void Line(float x1, float y1, float x2, float y2, float w, Color col, bool round = false)
     {

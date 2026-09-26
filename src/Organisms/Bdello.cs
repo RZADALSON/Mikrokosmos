@@ -66,7 +66,7 @@ public sealed class Bdello : Ent
             return;
         }
         var P = Prey;
-        if (P == null || !P.Alive) { State = St.Swim; Prey = null; Solid = true; return; }
+        if (P == null || !P.Alive) { State = St.Swim; Prey = null; Solid = true; Holder = null; return; }
         Vx = Vy = 0;
         St0 += bdt;
         if (State == St.Attach)
@@ -123,7 +123,7 @@ public sealed class Bdello : Ent
         e.ToLocal(r.Cx, r.Cy, out _alx, out _aly);
         float c = MathF.Cos(-e.A), s = MathF.Sin(-e.A);
         _anx = r.Nx * c - r.Ny * s; _any = r.Nx * s + r.Ny * c;
-        Prey = e; e.Invader = this; State = St.Attach; St0 = 0; Solid = false; Hunger = 0;
+        Prey = e; e.Invader = this; State = St.Attach; St0 = 0; Solid = false; Hunger = 0; Holder = e;
         W.Sfx("tick", X, Y);
         if (IsPlayer) W.Log("Przyczepienie do ofiary! Bdellovibrio \"wierci\" otwór w błonie zewnętrznej (obrót ~100 Hz, enzymy).", "good");
         if (e.IsPlayer) W.Log("Bdellovibrio przyczepił się! Koziołkuj (Spacja), żeby go strząsnąć!", "bad");
@@ -131,7 +131,7 @@ public sealed class Bdello : Ent
     public void Detach()
     {
         if (Prey != null) Prey.Invader = null;
-        Prey = null; State = St.Swim; Solid = true; St0 = 0; A += PI;
+        Prey = null; State = St.Swim; Solid = true; St0 = 0; A += PI; Holder = null;
         W.Log("Bdellovibrio odczepiony!", "good");
     }
     void Burst()

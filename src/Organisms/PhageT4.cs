@@ -115,7 +115,7 @@ public sealed class PhageT4 : Ent
 
     void Bind(EColi e, PHit r)
     {
-        Host = e; State = St.Bind; St0 = 0;
+        Host = e; Holder = e; State = St.Bind; St0 = 0; e.Bound++;
         e.ToLocal(r.Cx, r.Cy, out _lx, out _ly);
         float c = MathF.Cos(-e.A), s = MathF.Sin(-e.A);
         _nlx = r.Nx * c - r.Ny * s; _nly = r.Nx * s + r.Ny * c;
@@ -125,7 +125,8 @@ public sealed class PhageT4 : Ent
     /// <summary>Mutant bez receptora (OmpC⁻ / zmieniony LPS): wiązanie tylko odwracalne – fag odpada.</summary>
     void Reject(EColi h)
     {
-        State = St.Free; Host = null; Fib = 0; Surf = 0.06f; _cool = 2; D = 3.0f; Dr = 120;
+        h.Bound--;
+        State = St.Free; Host = null; Holder = null; Fib = 0; Surf = 0.06f; _cool = 2; D = 3.0f; Dr = 120;
         float ox = -MathF.Cos(A), oy = -MathF.Sin(A); Kx = ox * 0.8f; Ky = oy * 0.8f;
         if (IsPlayer || Lineage) h.KnownResistant = true;
         if (IsPlayer) W.Log("Brak receptora (mutant OmpC⁻ / zmieniony LPS) – wiązanie odwracalne, wirion odpada. Ta komórka jest odporna.", "bad");
@@ -133,7 +134,8 @@ public sealed class PhageT4 : Ent
     public void Release()
     {
         if (State == St.Free || State == St.Debris) return;
-        State = St.Debris; Host = null; D = 1.0f; Dr = 40; Fade = 1;
+        if (Host != null) Host.Bound--;
+        State = St.Debris; Host = null; Holder = null; D = 1.0f; Dr = 40; Fade = 1;
     }
 
     public override void Draw(Painter p, View v)
@@ -141,9 +143,11 @@ public sealed class PhageT4 : Ent
         var pal = W.Em ? PhagePal.Em : PhagePal.Ph;
         p.Local(X, Y, A);
         float lw = Math.Max(0.004f, v.Px * 1.1f);
-        if (State == St.Free) { DrawT4(p, pal, 0, 0, 0, null, lw, 1); return; }
+        bool crowd = v.Px > 0 && W.PhagesVisible > 90;
+        if (State == St.Free) { DrawT4(p, pal, 0, 0, 0, null, lw, 1, IsPlayer ? 0 : crowd ? 2 : 1); return; }
         float al = State == St.Debris ? Fade : 1;
-        DrawT4(p, pal, Contract, Empty, Fib, Surf, lw, al);
+        int lod = IsPlayer || State == St.Bind || State == St.Contract || State == St.Inject ? 0 : 2;
+        DrawT4(p, pal, Contract, Empty, Fib, Surf, lw, al, lod);
         if (State == St.Inject && W.Em)
         {
             Span<Vector2> s = stackalloc Vector2[] { new(-0.01f, 0), new(0.15f, 0) };
@@ -163,14 +167,15 @@ public sealed class PhageT4 : Ent
     }
 
     /// <summary>Pełny rysunek T4 w układzie lokalnym (oś +x: od główki do płytki; (0,0) = szyjka).</summary>
-    public static void DrawT4(Painter p, PhagePal P, float c, float e, float fib, float? surf, float lw, float alpha)
+    public static void DrawT4(Painter p, PhagePal P, float c, float e, float fib, float? surf, float lw, float alpha, int lod = 0)
     {
         float oldA = p.Alpha; p.Alpha *= alpha;
         float hs = c * 0.05f;
-        // długie włókna (3 na stronę, różna głębia)
+        // długie włókna (3 na stronę, różna głębia; przy niższym LOD mniej)
         Span<Vector2> f = stackalloc Vector2[3];
+        int kmax = lod == 0 ? 2 : lod == 1 ? 1 : -1;
         for (int side = -1; side <= 1; side += 2)
-            for (int k = 2; k >= 0; k--)
+            for (int k = kmax; k >= 0; k--)
             {
                 float bx = 0.104f, by = side * (0.02f + k * 0.004f);
                 float t1 = Lerp(2.7f, 1.85f, fib) + k * 0.12f;
@@ -191,7 +196,7 @@ public sealed class PhageT4 : Ent
         p.Rect(x0, -hw, x1 - x0, hw * 2, P.Sheath);
         Span<Vector2> box = stackalloc Vector2[] { new(x0, -hw), new(x1, -hw), new(x1, hw), new(x0, hw) };
         p.Stroke(box, true, lw, P.Line);
-        const int ns = 12;
+        int ns = lod == 0 ? 12 : lod == 1 ? 5 : 0;
         for (int i = 1; i < ns; i++) { float x = x0 + (x1 - x0) * i / ns; p.Seg(x, -hw, x, hw, lw * 0.6f, P.Stripe); }
         // płytka podstawowa
         float pw = Lerp(0.03f, 0.046f, c);
@@ -206,8 +211,11 @@ public sealed class PhageT4 : Ent
         }
         // kołnierz + wąsy (fibrytyna)
         p.Rect(hs - 0.002f, -0.019f, 0.011f, 0.038f, P.Plate);
-        p.Seg(hs + 0.003f, -0.019f, hs - 0.028f, -0.047f, lw * 0.8f, P.Fiber);
-        p.Seg(hs + 0.003f, 0.019f, hs - 0.028f, 0.047f, lw * 0.8f, P.Fiber);
+        if (lod == 0)
+        {
+            p.Seg(hs + 0.003f, -0.019f, hs - 0.028f, -0.047f, lw * 0.8f, P.Fiber);
+            p.Seg(hs + 0.003f, 0.019f, hs - 0.028f, 0.047f, lw * 0.8f, P.Fiber);
+        }
         // główka
         Span<Vector2> h = stackalloc Vector2[6];
         for (int i = 0; i < 6; i++) h[i] = new Vector2(HeadPts[i].X + hs, HeadPts[i].Y);
@@ -216,6 +224,7 @@ public sealed class PhageT4 : Ent
         p.FillRadial(h, -0.075f + hs, -0.015f, ts, cs);
         if (e > 0) p.FillFan(h, -0.0625f + hs, 0, P.Empty);
         p.Stroke(h, true, lw * 1.2f, P.Line);
+        if (lod > 0) { p.Alpha = oldA; return; }
         var fl = Mul(P.Line, 0.55f); float lf = lw * 0.6f;
         p.Seg(-0.103f + hs, -0.043f, -0.085f + hs, 0, lf, fl); p.Seg(-0.085f + hs, 0, -0.103f + hs, 0.043f, lf, fl);
         p.Seg(-0.022f + hs, -0.043f, -0.04f + hs, 0, lf, fl); p.Seg(-0.04f + hs, 0, -0.022f + hs, 0.043f, lf, fl);

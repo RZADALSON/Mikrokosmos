@@ -221,7 +221,7 @@ public sealed class Acanth : Ent
                 if (!ok) continue;
                 float lx = o.X - X, ly = o.Y - Y, d = Hypot(lx, ly);
                 if (d > RadialUtil.Interp(_rr, NN, MathF.Atan2(ly, lx)) + 0.6f) continue;
-                o.State = St.Cup; o.Solid = false;
+                o.State = St.Cup; o.Solid = false; o.Holder = this;
                 float ang = MathF.Atan2(ly, lx), rin = Rb * Rand(0.2f, 0.5f);
                 _vac.Add(new Vac { O = o, Sx = lx, Sy = ly, Lx = lx, Ly = ly, Tx = MathF.Cos(ang) * rin, Ty = MathF.Sin(ang) * rin });
                 W.Sfx("gulp", X, Y, 0.5f);

@@ -1,6 +1,9 @@
 namespace Mikro;
 
-/// <summary>Chmury bakterii (pokarm orzęsków i wrotków) – system cząstek z siatką przestrzenną i prądem wody.</summary>
+/// <summary>
+/// Chmury bakterii (pokarm orzęsków i wrotków) – cząstki w oknie aktywności wokół gracza.
+/// Cząstki opuszczające okno trafiają do zapasu (Bact) swojego chunka i wracają przy jego aktywacji.
+/// </summary>
 public sealed class BactField
 {
     readonly World _w;
@@ -8,38 +11,60 @@ public sealed class BactField
     public readonly float[] X, Y; readonly byte[] _o, _dead;
     const float CELL = 100;
     readonly int _nx, _ny; readonly int[] _head, _next;
-    int _phase; bool _anyDead;
+    float _ox, _oy, _wx0, _wy0, _wx1, _wy1;
+    int _phase, _added; bool _anyDead;
     public BactField(World w, int max)
     {
         _w = w; Max = max; X = new float[max]; Y = new float[max]; _o = new byte[max]; _dead = new byte[max]; _next = new int[max];
-        _nx = Math.Max(1, (int)MathF.Ceiling(w.W / CELL)); _ny = Math.Max(1, (int)MathF.Ceiling(w.H / CELL)); _head = new int[_nx * _ny];
+        _nx = (int)MathF.Ceiling(w.WinW / CELL) + 2; _ny = (int)MathF.Ceiling(w.WinH / CELL) + 2; _head = new int[_nx * _ny];
+        SetBounds(w.WinX0, w.WinY0);
         Rebuild();
+    }
+    void SetBounds(float x0, float y0)
+    {
+        _wx0 = x0; _wy0 = y0; _wx1 = x0 + _w.WinW; _wy1 = y0 + _w.WinH;
+        _ox = x0 - CELL; _oy = y0 - CELL;
+    }
+    bool Inside(float x, float y) => x >= _wx0 && x < _wx1 && y >= _wy0 && y < _wy1;
+    void Absorb(int i)
+    {
+        _dead[i] = 1; _anyDead = true;
+        if (_w.Infinite) _w.ChunkAt(X[i], Y[i]).Bact += 1;
+    }
+    /// <summary>Przesunięcie okna: cząstki spoza nowego okna trafiają do zapasów chunków.</summary>
+    public void SetWindow(float x0, float y0)
+    {
+        SetBounds(x0, y0);
+        for (int i = 0; i < N; i++) if (_dead[i] == 0 && !Inside(X[i], Y[i])) Absorb(i);
+        Compact(); Rebuild();
     }
     public void Cloud(float cx, float cy, float r, int k)
     {
-        for (int i = 0; i < k && N < Max; i++)
+        for (int i = 0; i < k; i++)
         {
             float a = Rand(0, TAU), d = MathF.Abs(RandN()) * r * 0.6f;
-            X[N] = Clamp(cx + MathF.Cos(a) * d, 5, _w.W - 5); Y[N] = Clamp(cy + MathF.Sin(a) * d, 5, _w.H - 5); _o[N] = (byte)RandI(0, 3); _dead[N] = 0;
-            _next[N] = -1; N++; _added++;
+            float x = cx + MathF.Cos(a) * d, y = cy + MathF.Sin(a) * d;
+            if (!Inside(x, y) || N >= Max) { if (_w.Infinite) _w.ChunkAt(x, y).Bact += 1; continue; }
+            X[N] = x; Y[N] = y; _o[N] = (byte)RandI(0, 3); _dead[N] = 0; _next[N] = -1; N++; _added++;
         }
     }
-    int CellI(float v, int n) { int i = (int)(v / CELL); return i < 0 ? 0 : i >= n ? n - 1 : i; }
+    int CellI(float v, float o, int n) { int i = (int)MathF.Floor((v - o) / CELL); return i < 0 ? 0 : i >= n ? n - 1 : i; }
     void Rebuild()
     {
         Array.Fill(_head, -1);
-        for (int i = 0; i < N; i++) { int c = CellI(Y[i], _ny) * _nx + CellI(X[i], _nx); _next[i] = _head[c]; _head[c] = i; }
+        for (int i = 0; i < N; i++) { int c = CellI(Y[i], _oy, _ny) * _nx + CellI(X[i], _ox, _nx); _next[i] = _head[c]; _head[c] = i; }
     }
-    int _added;
+    void Compact()
+    {
+        if (!_anyDead) return;
+        int w = 0;
+        for (int i = 0; i < N; i++) if (_dead[i] == 0) { X[w] = X[i]; Y[w] = Y[i]; _o[w] = _o[i]; _dead[w] = 0; w++; }
+        N = w; _anyDead = false;
+    }
     public void Update(float dt, float gdt)
     {
-        bool rebuild = false;
-        if (_anyDead)
-        {
-            int w = 0;
-            for (int i = 0; i < N; i++) if (_dead[i] == 0) { X[w] = X[i]; Y[w] = Y[i]; _o[w] = _o[i]; _dead[w] = 0; w++; }
-            N = w; _anyDead = false; rebuild = true;
-        }
+        bool rebuild = _anyDead;
+        Compact();
         // co klatkę porusza się 1/6 cząstek (krok ×6) – ruch Browna i prąd są statystycznie takie same
         const int STRIDE = 6;
         float s = MathF.Sqrt(gdt * STRIDE) * 3, d4 = dt * STRIDE;
@@ -47,7 +72,8 @@ public sealed class BactField
         for (int i = _phase; i < N; i += STRIDE)
         {
             _w.FlowAt(X[i], Y[i], out float fx, out float fy);
-            X[i] = Clamp(X[i] + RandN() * s + fx * d4, 2, _w.W - 2); Y[i] = Clamp(Y[i] + RandN() * s + fy * d4, 2, _w.H - 2);
+            X[i] += RandN() * s + fx * d4; Y[i] += RandN() * s + fy * d4;
+            if (!Inside(X[i], Y[i])) { if (_w.Infinite) Absorb(i); else { X[i] = Clamp(X[i], _wx0 + 2, _wx1 - 2); Y[i] = Clamp(Y[i], _wy0 + 2, _wy1 - 2); } }
         }
         if (rebuild || _phase == 0 || _added > 0) { Rebuild(); _added = 0; }
     }
@@ -55,7 +81,7 @@ public sealed class BactField
     public int Feed(float mx, float my, float R, float eatR, float pull, Func<bool> canEat)
     {
         int eaten = 0; float R2 = R * R;
-        int i0 = CellI(mx - R, _nx), i1 = CellI(mx + R, _nx), j0 = CellI(my - R, _ny), j1 = CellI(my + R, _ny);
+        int i0 = CellI(mx - R, _ox, _nx), i1 = CellI(mx + R, _ox, _nx), j0 = CellI(my - R, _oy, _ny), j1 = CellI(my + R, _oy, _ny);
         for (int j = j0; j <= j1; j++)
             for (int ci = i0; ci <= i1; ci++)
                 for (int k = _head[j * _nx + ci]; k >= 0; k = _next[k])
@@ -70,10 +96,10 @@ public sealed class BactField
                 }
         return eaten;
     }
-    /// <summary>Liczba bakterii w pobliżu (zmysł chemiczny – wskaźnik kierunku).</summary>
+    /// <summary>Liczba bakterii w pobliżu.</summary>
     public int Density(float x, float y, float r)
     {
-        int n = 0; int i0 = CellI(x - r, _nx), i1 = CellI(x + r, _nx), j0 = CellI(y - r, _ny), j1 = CellI(y + r, _ny);
+        int n = 0; int i0 = CellI(x - r, _ox, _nx), i1 = CellI(x + r, _ox, _nx), j0 = CellI(y - r, _oy, _ny), j1 = CellI(y + r, _oy, _ny);
         for (int j = j0; j <= j1; j++) for (int ci = i0; ci <= i1; ci++) for (int k = _head[j * _nx + ci]; k >= 0; k = _next[k]) if (_dead[k] == 0) n++;
         return n;
     }
@@ -81,12 +107,12 @@ public sealed class BactField
     public bool Densest(float x, float y, float r, out float bx, out float by)
     {
         bx = by = 0; int best = 0;
-        int i0 = CellI(x - r, _nx), i1 = CellI(x + r, _nx), j0 = CellI(y - r, _ny), j1 = CellI(y + r, _ny);
+        int i0 = CellI(x - r, _ox, _nx), i1 = CellI(x + r, _ox, _nx), j0 = CellI(y - r, _oy, _ny), j1 = CellI(y + r, _oy, _ny);
         for (int j = j0; j <= j1; j++)
             for (int ci = i0; ci <= i1; ci++)
             {
                 int n = 0; for (int k = _head[j * _nx + ci]; k >= 0; k = _next[k]) if (_dead[k] == 0) n++;
-                if (n > best) { best = n; bx = (ci + 0.5f) * CELL; by = (j + 0.5f) * CELL; }
+                if (n > best) { best = n; bx = _ox + (ci + 0.5f) * CELL; by = _oy + (j + 0.5f) * CELL; }
             }
         return best >= 8;
     }
@@ -95,7 +121,7 @@ public sealed class BactField
         p.Identity();
         float sz = Math.Max(1.1f, v.Px * 1.6f);
         var c = Rgb(30, 36, 30, 0.6f);
-        int i0 = CellI(v.X0, _nx), i1 = CellI(v.X1, _nx), j0 = CellI(v.Y0, _ny), j1 = CellI(v.Y1, _ny);
+        int i0 = CellI(v.X0, _ox, _nx), i1 = CellI(v.X1, _ox, _nx), j0 = CellI(v.Y0, _oy, _ny), j1 = CellI(v.Y1, _oy, _ny);
         for (int j = j0; j <= j1; j++)
             for (int ci = i0; ci <= i1; ci++)
                 for (int k = _head[j * _nx + ci]; k >= 0; k = _next[k])
@@ -112,7 +138,7 @@ public sealed class BactField
             for (int ci = 0; ci < _nx; ci++)
             {
                 int n = 0; for (int k = _head[j * _nx + ci]; k >= 0; k = _next[k]) if (_dead[k] == 0) n++;
-                if (n > 3) p.Rect(ci * CELL, j * CELL, CELL, CELL, Mul(col, Math.Min(1, n / 60f)));
+                if (n > 3) p.Rect(_ox + ci * CELL, _oy + j * CELL, CELL, CELL, Mul(col, Math.Min(1, n / 60f)));
             }
     }
 }
@@ -481,7 +507,7 @@ public sealed class Didinium : Ent
         if (State != St.Swim || Stun > 0 || o is not Paramecium pr || (pr.State != St.Swim && pr.State != St.Avoid)) return;
         float front = nx * MathF.Cos(A) + ny * MathF.Sin(A);
         if (front < 0.55f) return;
-        State = St.Capture; St0 = 0; Prey = pr; pr.State = St.Caught; pr.Captor = this;
+        State = St.Capture; St0 = 0; Prey = pr; pr.State = St.Caught; pr.Captor = this; pr.Holder = this;
         ToWorld(L * 0.58f, 0, out float fx, out float fy);
         for (int k = 0; k < 14; k++) W.Fx.NeedleAt(fx, fy, A + RandN() * 0.35f, Rand(20, 45), Rgb(255, 245, 210, 0.9f), 1.6f);
         W.Sfx("zap", fx, fy);
@@ -492,7 +518,7 @@ public sealed class Didinium : Ent
     public void Release(bool escaped)
     {
         var P = Prey;
-        if (P != null) { P.State = St.Swim; P.Captor = null; P.A = A + Rand(-0.6f, 0.6f); P.X += MathF.Cos(A) * 25; P.Y += MathF.Sin(A) * 25; }
+        if (P != null) { P.State = St.Swim; P.Captor = null; P.Holder = null; P.A = A + Rand(-0.6f, 0.6f); P.X += MathF.Cos(A) * 25; P.Y += MathF.Sin(A) * 25; }
         bool wasPlayerPrey = P != null && P.IsPlayer;
         Prey = null; State = St.Swim; Stun = 1.2f; A += PI + RandN() * 0.5f;
         if (escaped) { W.Log("Ofiara wyrwała się dzięki trichocystom!", IsPlayer ? "bad" : "good"); if (wasPlayerPrey) W.AddStat("escapes", 1); }

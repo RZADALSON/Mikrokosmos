@@ -13,9 +13,13 @@ public partial class WorldView : Node2D
 
     public override void _Ready() => DebrisAtlas.Ensure();
 
+    float _ox, _oy;
     public void SetCamera(float cx, float cy, float s, Vector2 size)
     {
-        Position = size / 2 - new Vector2(cx, cy) * s;
+        // origin skokowo co ~ szerokość ekranu: wierzchołki w buforze GPU pozostają małe (brak drgań daleko od startu)
+        float step = size.X / s;
+        if (MathF.Abs(cx - _ox) > step || MathF.Abs(cy - _oy) > step) { _ox = MathF.Round(cx / step) * step; _oy = MathF.Round(cy / step) * step; }
+        Position = size / 2 - new Vector2(cx - _ox, cy - _oy) * s;
         Scale = new Vector2(s, s);
         V.S = s; V.Px = 1f / (s * Stretch);
         V.X0 = cx - size.X / 2 / s; V.X1 = cx + size.X / 2 / s;
@@ -30,11 +34,11 @@ public partial class WorldView : Node2D
         var item = GetCanvasItem();
         if (World.DebrisList.Count > 0)
         {
-            _pt.Begin(V.Px);
+            _pt.Begin(V.Px); _pt.OX = _ox; _pt.OY = _oy;
             World.DrawDebris(_pt, V, DebrisAtlas.Uv, World.Sc.DebrisCols);
             _pt.Flush(item, DebrisAtlas.Tex.GetRid());
         }
-        _p.Begin(V.Px);
+        _p.Begin(V.Px); _p.OX = _ox; _p.OY = _oy;
         World.Draw(_p, V);
         _p.Flush(item);
         LastVertices = _p.VertexCount;

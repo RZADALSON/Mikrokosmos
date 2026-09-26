@@ -10,6 +10,8 @@ public sealed class EColi : Ent
     public float Wd, L, L0, Speed, Round, Pinch, Opacity = 1, Bund = 1, Wob, Cmem, Rb, Timer;
     public bool Sessile, Dividing, Warned, Resistant, KnownResistant;
     public float Bulge;
+    /// <summary>Liczba fagów związanych z powierzchnią (ograniczona liczba miejsc receptorowych).</summary>
+    public int Bound;
     public Infection Inf;
     public Bdello Invader;
 
@@ -78,7 +80,7 @@ public sealed class EColi : Ent
         else SetCapsule(Hl, Wd / 2 * (1 - Pinch * 0.3f));
     }
     public bool CanHost() => Alive && Invader == null && Inf == null && Round == 0 && !Dividing && State != St.Dead && State != St.Cup && State != St.Vac;
-    public bool CanAdsorb() => Alive && State != St.Dead && State != St.Bdelloplast && State != St.Cup && State != St.Vac && (Inf == null || Inf.T / Inf.Lat < 0.8f);
+    public bool CanAdsorb() => Alive && Bound < 8 && State != St.Dead && State != St.Bdelloplast && State != St.Cup && State != St.Vac && (Inf == null || Inf.T / Inf.Lat < 0.8f);
     public override bool CanControl() => Alive && Inf == null && Invader == null && State != St.Bdelloplast && State != St.Cup && State != St.Vac;
     public override bool Collides(Ent o) => !(o is Bdello b && b.Prey == this);
 
@@ -139,6 +141,8 @@ public sealed class EColi : Ent
     void Grow(float bdt)
     {
         if (!W.Sc.GrowEcoli || Inf != null || Invader != null || W.Preview) return;
+        // gęsta mikrokolonia: brak miejsca i składników – wzrost zahamowany
+        if (Sessile && !Dividing) { int touching = 0; foreach (var o in Nb) if (o is EColi) touching++; if (touching >= 4) return; }
         if (Dividing)
         {
             // β-laktam (ampicylina) blokuje syntezę peptydoglikanu w przegrodzie → wybrzuszenie i liza
@@ -316,7 +320,7 @@ public sealed class EColi : Ent
                 float off = Am * env * MathF.Sin(TAU * d / lam - f.Ph);
                 buf[k] = new Vector2(ax + ux * d - uy * off, ay + uy * d + ux * off);
             }
-            p.Stroke(new ReadOnlySpan<Vector2>(buf, 0, K + 1), false, lw, col);
+            p.Thin(new ReadOnlySpan<Vector2>(buf, 0, K + 1), false, lw, col);
         }
     }
 
@@ -371,7 +375,7 @@ public sealed class EColi : Ent
     {
         float hl = Hl, r = Wd / 2;
         _nucleoid = new List<Vector2[]>();
-        for (int k = 0; k < 46; k++)
+        for (int k = 0; k < 34; k++)
         {
             float x = Rand(-hl * 0.8f, hl * 0.8f), y = Rand(-r * 0.35f, r * 0.35f);
             var pts = new List<Vector2> { new(x, y) };
@@ -379,25 +383,25 @@ public sealed class EColi : Ent
             {
                 float x2 = x + Rand(-0.25f, 0.25f), y2 = Clamp(y + Rand(-0.12f, 0.12f), -r * 0.45f, r * 0.45f);
                 float cx = x + Rand(-0.15f, 0.15f), cy = y + Rand(-0.15f, 0.15f);
-                for (int s = 1; s <= 4; s++) { float t = s / 4f, u = 1 - t; pts.Add(new(u * u * x + 2 * u * t * cx + t * t * x2, u * u * y + 2 * u * t * cy + t * t * y2)); }
+                for (int s = 1; s <= 3; s++) { float t = s / 3f, u = 1 - t; pts.Add(new(u * u * x + 2 * u * t * cx + t * t * x2, u * u * y + 2 * u * t * cy + t * t * y2)); }
                 x = x2; y = y2;
             }
             _nucleoid.Add(pts.ToArray());
         }
         _pili = new List<Vector2[]>();
         var m = Mem;
-        for (int k = 0; k < 70; k++)
+        for (int k = 0; k < 45; k++)
         {
             int i = RandI(0, m.N - 1); float rx = m.Rx[i], ry = m.Ry[i];
             float ang = MathF.Atan2(ry * (hl + r) / r, rx) + RandN() * 0.25f, len = Rand(0.25f, 0.9f);
             float cx = rx + MathF.Cos(ang) * len * 0.5f + RandN() * 0.05f, cy = ry + MathF.Sin(ang) * len * 0.5f + RandN() * 0.05f;
             float ex = rx + MathF.Cos(ang) * len, ey = ry + MathF.Sin(ang) * len;
-            var pts = new Vector2[6];
-            for (int s = 0; s < 6; s++) { float t = s / 5f, u = 1 - t; pts[s] = new(u * u * rx + 2 * u * t * cx + t * t * ex, u * u * ry + 2 * u * t * cy + t * t * ey); }
+            var pts = new Vector2[4];
+            for (int s = 0; s < 4; s++) { float t = s / 3f, u = 1 - t; pts[s] = new(u * u * rx + 2 * u * t * cx + t * t * ex, u * u * ry + 2 * u * t * cy + t * t * ey); }
             _pili.Add(pts);
         }
         var rib = new List<Vector2>();
-        for (int k = 0; k < 480; k++)
+        for (int k = 0; k < 380; k++)
         {
             float x = Rand(-hl - r, hl + r), y = Rand(-r, r);
             if (MathF.Abs(x) > hl && Sq(MathF.Abs(x) - hl) + y * y > r * r * 0.72f) continue;
@@ -417,12 +421,12 @@ public sealed class EColi : Ent
         var I = Inf; float q = I != null ? I.T / I.Lat : 0;
         if (I == null || q < 0.6f) DrawFlagella(p, v, FlagEm, 1.2f);
         p.Local(X, Y, A);
-        foreach (var pl in _pili) p.Stroke(pl, false, 0.008f, PiliEm);
+        foreach (var pl in _pili) p.Thin(pl, false, 0.008f, PiliEm);
         p.Identity();
         Mem.Normals();
         int n = Mem.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
-        p.Dashed(sh, true, 0.06f, 0.006f, 0.008f, LpsEm);
+        p.Dashed(sh, true, 0.06f, 0.008f, 0.016f, LpsEm);
         Span<float> ts = stackalloc float[] { 0f, 1f };
         Span<Color> cs = stackalloc Color[] { Mul(CytoIn, Opacity), Mul(CytoOut, Opacity) };
         p.FillRadial(sh, X, Y, ts, cs);
@@ -433,9 +437,9 @@ public sealed class EColi : Ent
         p.Stroke(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 0.008f, ImEm);
         p.Local(X, Y, A);
         var rc = Mul(RiboEm, Opacity);
-        foreach (var r in _ribo) p.Rect(r.X - 0.011f, r.Y - 0.011f, 0.022f, 0.022f, rc);
+        foreach (var r in _ribo) p.Dot(r.X, r.Y, 0.012f, rc);
         float nucA = 1 - (I != null ? Smooth((q - 0.06f) / 0.22f) : 0);
-        if (nucA > 0.01f) { var nc = Mul(NucEm, nucA); foreach (var pl in _nucleoid) p.Stroke(pl, false, 0.008f, nc); }
+        if (nucA > 0.01f) { var nc = Mul(NucEm, nucA); foreach (var pl in _nucleoid) p.Thin(pl, false, 0.008f, nc); }
         if (I != null) DrawInfectEM(p, q);
     }
 
@@ -483,7 +487,7 @@ public sealed class EColi : Ent
             p.Translate(c.X + MathF.Sin(t * 1.3f + c.J) * 0.01f, c.Y + MathF.Cos(t * 1.1f + c.J) * 0.01f);
             p.Rotate(c.A);
             p.Scale(Math.Min(1, 0.4f + age));
-            if (tails) PhageT4.DrawT4(p, PhagePal.Em, 0, 0, 0, null, 0.005f, 0.9f);
+            if (tails) PhageT4.DrawT4(p, PhagePal.Em, 0, 0, 0, null, 0.005f, 0.9f, 2);
             else PhageT4.DrawHead(p, PhagePal.Em, 0, Rgb(222, 150, 72, 0.15f + full * 0.75f), 0.005f);
             p.Pop();
         }
