@@ -1,0 +1,29 @@
+; Mikrokosmos – symulator mikroświata (Godot 4.7 .NET)
+
+config_version=5
+
+[application]
+
+config/name="Mikrokosmos"
+config/description="Symulator mikroświata: wirusy, bakterie, komórki odporności i pierwotniaki."
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "C#")
+run/max_fps=0
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/vsync/vsync_mode=1
+
+[dotnet]
+
+project/assembly_name="Mikrokosmos"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.04, 0.05, 0.05, 1)
