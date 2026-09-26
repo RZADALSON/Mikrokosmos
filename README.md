@@ -21,14 +21,19 @@ Wymagane: Godot 4.7 .NET i .NET SDK 8 (oba zainstalowane przez winget).
 - **Ustawienia:** N – dźwięk · F – licznik FPS · V – V-Sync · F11 – pełny ekran · R – restart po przegranej
 
 ## Co jest w grze
-**Światy** są 3–5× większe niż w wersji przeglądarkowej:
-- staw 9 × 6,4 mm,
-- tkanka 520 × 360 µm,
-- biofilm 260 × 180 µm,
-- pole TEM 40 × 28 µm.
+**Światy są nieskończone.** Mapa generuje się w chunkach wokół gracza, a każdy świat ma kilka stref (biomów):
+
+| Scenariusz | Chunk | Strefy |
+|---|---|---|
+| T4 (TEM) | 6 µm | mikrokolonia, rozproszone, puste, kolonia odporna |
+| Bdellovibrio | 40 µm | biofilm E. coli, czysta woda, kolonia Acanthamoeby, osady mineralne |
+| E. coli | 40 µm | bogata, uboga, strefa ampicyliny, teren drapieżników |
+| Neutrofil | 100 µm | tkanka luźna, gęsty kolagen, ognisko zakażenia, wylew (żyłki co 420 µm) |
+| Pantofelek, Didinium, ameba | 1,4–1,6 mm | otwarta woda, zarośla skrętnicy, osad, chmury bakterii |
 
 **Nawigacja:**
-- minimapa,
+- radar (okno aktywnych chunków w kolorach stref),
+- w HUD-zie wiersze „Strefa” i „Od startu”; wejście w nową strefę pokazuje komunikat,
 - strzałki „zmysłu chemicznego”: zielona prowadzi do pokarmu, czerwona pokazuje zagrożenie.
 
 **Cele i rekordy:** każdy organizm ma 4 cele. Po ich ukończeniu gra przechodzi w tryb swobodny.
@@ -76,6 +81,21 @@ src/Game/                 Scenario (baza: cele, minimapa, paski), Scenarios (7 �
 kolizje metodą sort & sweep. Zapytania o sąsiedztwo idą przez siatkę przestrzenną (`World.Near` / `World.Query`).
 Prąd wody to pole bezźródłowe liczone z funkcji prądu.
 
+**Świat nieskończony (`World.UpdateChunks`):**
+- Aktywne jest okno 5 × 5 chunków (`ActiveR = 2`) wokół gracza. Tylko ono jest symulowane i rysowane.
+- Chunk, który wypada z okna, zostaje zamrożony. Jego organizmy trafiają do `Chunk.Parked` z pełnym stanem
+  i wracają, gdy gracz się zbliży.
+  - `Ent.Holder` wiąże zdobycz lub przyczepionego faga z właścicielem, więc parkują razem.
+  - `ParkCap` ogranicza liczbę zamrożonych organizmów na chunk.
+- Nowe chunki generuje `Scenario.GenerateChunk`. Strefę wybiera deterministycznie `BiomeAt` na podstawie
+  szumu `Noise2` i ziarna `World.Seed`. Chunki startowe (|cx|, |cy| ≤ 1) mają zawsze strefę 0.
+- Pola działają w obrębie okna:
+  - siatka przestrzenna i prąd wody liczą się tylko w oknie;
+  - chmury bakterii (`BactField`) oddają cząstki spoza okna do licznika `Chunk.Bact`;
+  - stężenia (`TileField`) są przechowywane w kafelkach na chunk.
+- `Painter.OX/OY`: wierzchołki są liczone względem punktu odniesienia przy kamerze, więc grafika nie drga
+  daleko od startu.
+
 ## Jak dodać nowy organizm
 1. Utwórz klasę dziedziczącą po `Ent` w `src/Organisms/`. Nadpisz w niej:
    - `Step` – zachowanie organizmu,
@@ -100,6 +120,9 @@ Prąd wody to pole bezźródłowe liczone z funkcji prądu.
   - Acanthamoeba,
   - odporność na T4,
   - ameba zjadająca wrotka,
-  - Vorticella.
+  - Vorticella,
+  - zamrażanie i odmrażanie chunków,
+  - różnorodność stref,
+  - długa podróż (stała liczba aktywnych encji).
 - `-- --shot=menu,t4,neutro:1,vort,spiro,net,rotifer --out=<folder> [--frames=N]` – zapisuje zrzuty ekranu
   (liczba po dwukropku oznacza tryb mikroskopu).
