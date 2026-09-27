@@ -155,12 +155,14 @@ public abstract class ScBiofilm : Scenario
         int b = c.Biome; bool start = c.X == 0 && c.Y == 0;
         for (int i = RandI(1, 3); i > 0; i--) { var (x, y) = Spot(w, c, 2, loc); Put(w, loc, new Microbe(w, MicroType.Pseudomonas, x, y, Rand(0, TAU))); }
         for (int i = b == 3 ? RandI(2, 4) : RandI(0, 1); i > 0; i--) { var (x, y) = Spot(w, c, 6, loc, 3); Put(w, loc, new Microbe(w, MicroType.Bacillus, x, y, Rand(0, TAU), Chance(0.4f) ? 1 : RandI(2, 5))); }
-        if (Chance(b == 3 ? 0.7f : 0.3f))
+        // Caulobacter – bakteria wód ubogich (oligotroficznych): najwięcej w czystej/ubogiej wodzie i na ziarnach mineralnych
+        if (Chance(b == 1 ? 0.7f : b == 3 ? 0.5f : b == 0 ? 0.08f : 0.2f))
         {
             var (x, y) = Spot(w, c, 5, loc, 5); int n = RandI(3, 6); float a0 = Rand(0, TAU);
             for (int k = 0; k < n; k++) Put(w, loc, new Microbe(w, MicroType.Caulobacter, x, y, 0, 1, a0 + k * TAU / n + Rand(-0.2f, 0.2f)));
         }
-        if (Chance(b == 1 ? 0.8f : 0.2f)) { var (x, y) = Spot(w, c, 20, loc, 10); Put(w, loc, new Microbe(w, MicroType.Spirillum, x, y, Rand(0, TAU))); }
+        // Spirillum volutans – mikroaerofil stojącej wody bogatej w materię organiczną, żyje tuż pod biofilmem
+        if (Chance(b == 0 ? 0.6f : b == 2 ? 0.3f : 0.08f)) { var (x, y) = Spot(w, c, 20, loc, 10); Put(w, loc, new Microbe(w, MicroType.Spirillum, x, y, Rand(0, TAU))); }
         if (Chance(b == 0 ? 0.5f : 0.15f)) for (int i = RandI(1, 3); i > 0; i--) { var (x, y) = Spot(w, c, 4, loc, 3); Put(w, loc, new Microbe(w, MicroType.Yeast, x, y, Rand(0, TAU))); }
         if (!start && Chance(b == 0 ? 0.6f : 0.35f)) for (int i = RandI(1, 2); i > 0; i--) { var (x, y) = Spot(w, c, 5, loc, 3); Put(w, loc, new Protist(w, Species.Bodo, x, y, Rand(0, TAU))); }
         if (Math.Abs(c.X) + Math.Abs(c.Y) > 1 && Chance(b == 1 ? 0.25f : 0.07f)) { var (x, y) = Spot(w, c, 30, loc, 15); Put(w, loc, new Protist(w, Species.Tetrahymena, x, y, Rand(0, TAU))); }
@@ -171,7 +173,7 @@ public abstract class ScBiofilm : Scenario
         if (w.Count(e => e is Protist p && p.S == Species.Bodo) < 5 && Chance(0.3f)) { var (x, y) = SpawnAwayS(w, 5); w.Add(new Protist(w, Species.Bodo, x, y, Rand(0, TAU))); }
     }
     protected static (float, float) SpawnAwayS(World w, float r) => w.Sc.SpawnAway(w, r);
-    protected const string BiofilmLife = "W biofilmie żyją też: Pseudomonas (jedna rzęska biegunowa, ≈ 40–50 µm/s), Bacillus (Gram+, łańcuszki, jasne przetrwalniki), Caulobacter (trzonek z lepkim holdfastem – rozetki), olbrzymi krętek Spirillum volutans (14–60 µm, pęki ~50 rzęsek na obu biegunach), drożdże.";
+    protected const string BiofilmLife = "W biofilmie żyją też: Pseudomonas (jedna rzęska biegunowa, ≈ 40–50 µm/s), Bacillus (Gram+, łańcuszki, jasne przetrwalniki), olbrzymi krętek Spirillum volutans (14–60 µm, pęki ~50 rzęsek na obu biegunach; mikroaerofil – żyje pod biofilmem w wodzie bogatej w materię organiczną) i różowe drożdże Rhodotorula (częste w wodach i biofilmach). Caulobacter (trzonek z lepkim holdfastem, rozetki) to bakteria wód ubogich – najwięcej go w czystej wodzie.";
     protected const string GrazerFact = "Drapieżcy bakterii: wiciowiec Bodo saltans (3–8 µm, „podskakuje”, zagarnia bakterie krótką wicią) i orzęsek Tetrahymena (30–70 µm) – prąd z jego aparatu gębowego wciąga tysiące bakterii na godzinę. Dla Ciebie to olbrzymy.";
     protected static int FreeEcoli(World w) => w.Count(e => e is EColi c && c.State != St.Dead && c.State != St.Bdelloplast && c.State != St.Cup && c.State != St.Vac);
     protected const string AcanthFact = "Acanthamoeba: trofozoit ≈ 12–35 µm z kolczastymi akantopodiami (do ~8 µm), jądro z dużym ciemnym jąderkiem. Pożera bakterie przez fagocytozę – spotyka je głównie przypadkiem, pełzając powoli.";
@@ -452,7 +454,8 @@ public sealed class ScNeutro : Scenario
         var loc = new List<Ent>();
         int col = c.Biome switch { 0 => 6, 1 => 18, 2 => 5, _ => 4 };
         for (int i = 0; i < col; i++) { var (x, y) = Spot(w, c, 8, loc, 5); if (!InVessel(w, x, y, 12)) Put(w, loc, new Collagen(w, x, y, Rand(0, TAU), Rand(25, 80), Rand(0.5f, 0.9f))); }
-        int rbc = c.Biome == 3 ? 14 : RandI(0, 2), plt = c.Biome == 3 ? 8 : RandI(0, 2);
+        // krwinki czerwone i płytki trafiają do tkanki tylko przy uszkodzeniu naczyń (wylew) albo w stanie zapalnym
+        int rbc = c.Biome == 3 ? 14 : c.Biome == 2 ? RandI(0, 2) : 0, plt = c.Biome == 3 ? 8 : c.Biome == 2 ? RandI(0, 2) : 0;
         for (int i = 0; i < rbc; i++) { var (x, y) = Spot(w, c, 4.5f, loc, 5); if (!InVessel(w, x, y, 6)) Put(w, loc, new RBC(w, x, y)); }
         for (int i = 0; i < plt; i++) { var (x, y) = Spot(w, c, 1.5f, loc, 2); if (!InVessel(w, x, y, 3)) Put(w, loc, new Platelet(w, x, y)); }
         if (Chance(0.2f)) { var (x, y) = Spot(w, c, 5, loc, 6); if (!InVessel(w, x, y, 6)) Put(w, loc, new Lymphocyte(w, x, y)); }
@@ -648,11 +651,11 @@ public abstract class ScPond : Scenario
         {
             case 0:
                 if (Chance(0.3f)) { var (x, y) = Spot(w, c, 100, loc, 120); Put(w, loc, new Grain(w, x, y, Rand(35, 90))); }
-                if (Chance(0.25f)) { var (x, y) = Spot(w, c, 150, loc, 100); Put(w, loc, new Rotifer(w, x, y, Rand(0, TAU))); }
                 break;
             case 1:
                 for (int i = RandI(2, 3); i > 0; i--) SpiroCell.Filament(w, c.X0 + Rand(150, c.S - 150), c.Y0 + Rand(150, c.S - 150), Rand(0, TAU), RandI(8, 16));
                 if (Chance(0.4f)) { var (x, y) = Spot(w, c, 100, loc, 120); Put(w, loc, new Grain(w, x, y, Rand(35, 80))); }
+                if (Chance(0.5f)) { var (x, y) = Spot(w, c, 150, loc, 100); Put(w, loc, new Rotifer(w, x, y, Rand(0, TAU))); } // bdelloidy żyją na roślinach
                 break;
             case 2:
                 for (int i = RandI(3, 4); i > 0; i--) { var (x, y) = Spot(w, c, 110, loc, 120); Put(w, loc, new Grain(w, x, y, Rand(35, 110))); }
@@ -665,7 +668,7 @@ public abstract class ScPond : Scenario
                 }
                 break;
             case 3:
-                for (int i = RandI(1, 2); i > 0; i--) { var (x, y) = Spot(w, c, 150, loc, 100); Put(w, loc, new Rotifer(w, x, y, Rand(0, TAU))); }
+                if (Chance(0.5f)) { var (x, y) = Spot(w, c, 150, loc, 100); Put(w, loc, new Rotifer(w, x, y, Rand(0, TAU))); }
                 break;
         }
     }
@@ -683,6 +686,8 @@ public abstract class ScPond : Scenario
         if (!start && Chance(0.12f)) P(Species.Blepharisma, 1, 260, 1.7f); // kanibal-olbrzym
         for (int i = b == 1 ? RandI(1, 3) : Chance(0.4f) ? 1 : 0; i > 0; i--) { var (x, y) = Spot(w, c, 80, loc, 80); Put(w, loc, new Paramecium(w, x, y, Rand(0, TAU), 0, 0, true)); }
         P(Species.Spirostomum, b == 2 ? RandI(1, 2) : Chance(0.3f) ? 1 : 0, 500);
+        P(Species.Loxodes, b == 2 ? RandI(1, 3) : b == 3 && Chance(0.3f) ? 1 : 0, 300); // tuż nad gnijącym mułem, mało tlenu
+        if (b == 2 && Chance(0.6f)) { var (x, y) = Spot(w, c, 150, loc, 100); Put(w, loc, new Rotifer(w, x, y, Rand(0, TAU))); }
         P(Species.Euplotes, b == 2 ? RandI(2, 3) : Chance(0.3f) ? 1 : 0, 70);
         P(Species.Tetrahymena, b == 3 ? RandI(1, 3) : Chance(0.4f) ? 1 : 0, 40);
         P(Species.Stentor, b is 1 or 2 ? RandI(1, 2) : Chance(0.25f) ? 1 : 0, 500);
@@ -713,6 +718,7 @@ public abstract class ScPond : Scenario
         "Coleps hirtus (40–65 µm, pancerz z płytek wapiennych) poluje stadami na ranne orzęski. Lacrymaria olor wysuwa „łabędzią szyję” na 7× długości ciała i trafia ofiary toksycystami.",
         "Słonecznica (Actinosphaerium, 200–1000 µm) przykleja ofiary do promienistych aksopodiów. Nicienie (~0,5–1 mm) wiją się z częstotliwością ~2 Hz; nitki sinic Oscillatoria ślizgają się po kilka µm/s.",
         "Toczek (Volvox, do 0,5 mm) to kula tysięcy komórek z wiciami, w środku kolonie potomne. Rozwielitka (Daphnia, 1–3 mm) odnóżami filtruje wodę i zjada glony, bakterie i orzęski wielkości pantofelka.",
+        "Loxodes magnus (≈ 0,5 mm) żyje tuż nad gnijącym mułem, gdzie prawie nie ma tlenu. Kierunek „góra–dół” wyczuwa 10–24 pęcherzykami Müllera (grawitaksja): gdy tlenu jest za dużo, płynie w dół. Je bakterie i glony.",
         "Wszystkie miękkie komórki odkształcają się przy kontakcie – pantofelek potrafi przecisnąć się przez szczelinę węższą niż jego ciało i potem wraca do kształtu.",
     };
     protected static void Many<T>(World w, Chunk c, List<Ent> loc, int n, float r, Func<float, float, T> mk) where T : Ent
@@ -779,7 +785,7 @@ public sealed class ScAmoeba : ScPond
             "Odżywia się fagocytozą: nibynóżki otaczają ofiarę i zamykają ją w wodniczce trawiennej. Poluje też na wrotki i orzęski.",
             "A. proteus nie tworzy cyst – głodująca kurczy się i w końcu ginie (w grze pasek „Głód”).",
             "Wodniczka tętniąca cyklicznie wyrzuca nadmiar wody. Jądro dyskowate ≈ 40–50 µm; w cytoplazmie kryształy.",
-            HabitatFacts[0], HabitatFacts[2], HabitatFacts[3], LifeFacts[0], LifeFacts[1], LifeFacts[2], LifeFacts[4], LifeFacts[5], LifeFacts[6],
+            HabitatFacts[0], HabitatFacts[2], HabitatFacts[3], LifeFacts[0], LifeFacts[1], LifeFacts[2], LifeFacts[4], LifeFacts[5], LifeFacts[6], LifeFacts[7],
             "Time-lapse ×25: szybkie pływaki są w grze spowolnione do ~⅓ ekranu na sekundę, żeby dało się je zobaczyć (w prawdziwym nagraniu poklatkowym byłyby rozmytą smugą).",
         };
     }
@@ -861,7 +867,7 @@ public sealed class ScDidinium : ScPond
             "Po kontakcie ryjka z ofiarą wystrzeliwuje toksycysty (paraliżujące) i peksycysty (przytrzymujące). Cytostom rozciąga się ogromnie.",
             "Pantofelek broni się, wystrzeliwując trichocysty – przeciw Didinium tylko częściowo skutecznie.",
             "Głodujący Didinium tworzy cystę spoczynkową – w grze oznacza to koniec rozgrywki.",
-            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3], LifeFacts[0], LifeFacts[3], LifeFacts[4], LifeFacts[5],
+            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3], LifeFacts[0], LifeFacts[3], LifeFacts[4], LifeFacts[5], LifeFacts[6],
         };
     }
     public override void GenerateChunk(World w, Chunk c)
@@ -938,7 +944,7 @@ public sealed class ScPara : ScPond
             "Rowek gębowy prowadzi do cytostomu; bakterie trafiają do wodniczek pokarmowych, które krążą po komórce (cykloza).",
             "Dwie gwiaździste wodniczki tętniące z kanalikami usuwają nadmiar wody. Makronukleus i mikronukleus; podział poprzeczny.",
             "Trichocysty: „igły” pod pellikulą, które w kilka milisekund wydłużają się kilkukrotnie – mechanizm obronny (działa też na Lacrymarię, słonecznicę i Stentora).",
-            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3], LifeFacts[0], LifeFacts[1], LifeFacts[2], LifeFacts[3], LifeFacts[4], LifeFacts[5], LifeFacts[6],
+            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3], LifeFacts[0], LifeFacts[1], LifeFacts[2], LifeFacts[3], LifeFacts[4], LifeFacts[5], LifeFacts[6], LifeFacts[7],
         };
     }
     public override void GenerateChunk(World w, Chunk c)

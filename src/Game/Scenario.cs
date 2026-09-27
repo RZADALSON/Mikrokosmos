@@ -220,6 +220,12 @@ public abstract class Scenario
         ("Spirillum volutans – rozmiar, pęki rzęsek (microbewiki)", "https://microbewiki.kenyon.edu/index.php/Spirillum_volutans"),
         ("Neutrofile a rozmiar drobnoustroju, NET na strzępki Candida (Nat Immunol 2014)", "https://www.nature.com/articles/ni.2987"),
         ("Rozmiar adipocytów (Am J Physiol)", "https://journals.physiology.org/doi/full/10.1152/ajpregu.00257.2017"),
+        ("Loxodes – mikroaerofil osadów, pęcherzyki Müllera", "https://en.wikipedia.org/wiki/Loxodes"),
+        ("Spirillum volutans – mikroaerofil wód stojących (Appl Environ Microbiol 1982)", "https://journals.asm.org/doi/pdf/10.1128/aem.43.2.469-477.1982"),
+        ("Caulobacter – bakteria wód oligotroficznych (J Bacteriol)", "https://journals.asm.org/doi/full/10.1128/jb.186.24.8254-8266.2004"),
+        ("Drożdże w wodach słodkich i biofilmach (J Water Health)", "https://iwaponline.com/jwh/article/18/2/91/73027/Aquatic-yeasts-diversity-characteristics-and"),
+        ("Wrotki bdelloidalne – siedliska (microbewiki)", "https://microbewiki.kenyon.edu/index.php/Bdelloid_rotifer"),
+        ("Wynaczynienie płytek w stanach zapalnych (Front Immunol)", "https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2026.1764398/full"),
     };
 
     public static readonly Scenario[] All = { new ScT4(), new ScBdello(), new ScEcoli(), new ScNeutro(), new ScPara(), new ScDidinium(), new ScAmoeba() };

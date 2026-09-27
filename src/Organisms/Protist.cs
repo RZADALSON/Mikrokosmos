@@ -19,7 +19,7 @@ public sealed class Spec
     /// <summary>Chloroplasty / zoochlorelle / ziarna pigmentu.</summary>
     public int ChlN; public float ChlR = 2; public Color Chl = Rgb(70, 150, 45, 0.6f), ChlHi = Rgb(200, 240, 150, 0.4f);
     public float Cilia; public int Flag; public float FlagL;
-    public bool Eyespot, Groove, Beads, MacroC, Armor, Cirri, Stripes, OralRing;
+    public bool Eyespot, Groove, Beads, MacroC, Armor, Cirri, Stripes, OralRing, Muller;
     public Color StripeC = Rgb(60, 120, 150, 0.45f);
     public int CV = 1;
     public float Soft = 0.4f;
@@ -459,6 +459,17 @@ public sealed class Protist : Ent, ICaptor
         for (int gi = 0; gi < _gran.Length; gi += gstep) { var g = _gran[gi]; Pt(g, 1, out float x, out float y); p.Dot(x, y, S.GranR, g.Z > 0 ? S.GranA : S.GranB); }
         for (int ci = 0; ci < _chl.Length; ci += detail ? 1 : 2) { var c = _chl[ci]; Pt(c, 1, out float x, out float y); p.Dot(x, y, S.ChlR * c.Z * (detail ? 1 : 1.3f), S.Chl); }
         if (S.ChlN > 0 && S.ChlR * v.S > 2.5f) foreach (var c in _chl) if (c.Z > 1.05f) { Pt(c, 1, out float x, out float y); p.Dot(x - S.ChlR * 0.25f, y - S.ChlR * 0.25f, S.ChlR * 0.35f, S.ChlHi); }
+        // pęcherzyki Müllera (Loxodes): czujniki grawitacji wzdłuż brzegu grzbietowego – jasny pęcherzyk z ciemnym ziarnem
+        if (S.Muller)
+        {
+            for (int k = 0; k < 16; k++)
+            {
+                float t = -0.7f + 1.35f * k / 15, x = t * hl, y = -(S.Profile(t) * hw * 0.72f) + S.Bend * hw * (t * t - 0.35f), r = hw * 0.07f;
+                p.FillCircle(x, y, r, Rgb(245, 245, 230, 0.55f));
+                p.Circle(x, y, r, Math.Max(v.Px, r * 0.12f), Rgb(90, 80, 45, 0.45f));
+                p.Dot(x + r * 0.2f, y + r * 0.15f, r * 0.35f, Rgb(60, 50, 30, 0.8f));
+            }
+        }
         // makronukleus
         var nucF = Rgb(165, 170, 150, 0.45f); var nucE = Rgb(70, 74, 62, 0.5f);
         if (S.Beads)
@@ -467,6 +478,7 @@ public sealed class Protist : Ent, ICaptor
             for (int k = 0; k < nb; k++) { float t = -0.45f + 1.0f * k / (nb - 1), yy = MathF.Sin(k * 1.3f + _seed) * Math.Min(hw * 0.12f, S.Profile(t) * hw * 0.4f); p.FillCircle(t * hl, yy, br, nucF); p.Circle(t * hl, yy, br, Math.Max(v.Px, br * 0.1f), nucE); }
         }
         else if (S.MacroC) p.Arc(-hl * 0.05f, 0, hw * 0.55f, -2.2f, 2.2f, hw * 0.16f, nucF, true);
+        else if (S.Muller) { for (int k = -1; k <= 1; k += 2) { p.FillCircle(k * hl * 0.12f, hw * 0.1f, hw * 0.16f, Rgb(215, 150, 60, 0.55f)); p.Circle(k * hl * 0.12f, hw * 0.1f, hw * 0.16f, Math.Max(v.Px, hw * 0.02f), nucE); } }
         else { p.FillEllipse(-hl * 0.05f, 0, hl * 0.18f, hw * 0.35f, 0, nucF); p.Ellipse(-hl * 0.05f, 0, hl * 0.18f, hw * 0.35f, 0, Math.Max(v.Px, hw * 0.02f), nucE); }
         // wodniczka tętnicza
         for (int k = 0; k < S.CV; k++)
@@ -548,6 +560,16 @@ public static class Species
     static float Ell(float t) => MathF.Sqrt(Math.Max(0, 1 - t * t));
 
     // ----------------------------------------------------- staw
+    public static readonly Spec Loxodes = new()
+    {
+        Id = "loxodes", Name = "Loxodes", Latin = "Loxodes magnus", L0 = 420, L1 = 600, Aspect = 0.2f, Bend = 0.35f,
+        Profile = t => MathF.Sqrt(Math.Max(0, 1 - t * t)) * (t > 0 ? 1 - 0.55f * t * t : 1) * 1.05f, Speed = 260, Move = Motion.Ciliate, Turn = 0.6f,
+        Body = Rgb(205, 188, 125, 0.45f), Edge = Rgb(95, 80, 40, 0.7f), GranN = 110, GranR = 1.3f, GranA = Rgb(120, 100, 50, 0.4f), GranB = Rgb(240, 232, 205, 0.4f),
+        ChlN = 40, ChlR = 2.2f, Chl = Rgb(150, 115, 45, 0.45f), ChlHi = Rgb(240, 220, 170, 0.35f),
+        Cilia = 5, Groove = true, Muller = true, CV = 0, Soft = 0.5f, BactFeed = 50, Food = 3,
+        Eats = (me, o) => o is Chlamy c && c.State == St.Free || o is Diatom d && d.State == St.Free && d.L < me.Length * 0.2f || o is Protist q && q.S == Euglena && q.State == St.Swim,
+        Fact = "Loxodes magnus (≈ 0,5 mm): płaski, sierpowaty orzęsek osadów; pęcherzyki Müllera działają jak czujniki grawitacji. Mikroaerofil – żyje przy dnie, gdzie tlenu prawie nie ma.",
+    };
     public static readonly Spec Blepharisma = new()
     {
         Id = "blepharisma", Name = "Blepharisma", Latin = "Blepharisma japonicum", L0 = 180, L1 = 330, Aspect = 0.34f,

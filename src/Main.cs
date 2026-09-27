@@ -1040,6 +1040,15 @@ public partial class Main : Node
             Run(150); int bits = _world.Fx.Bits.Count;
             Ok(bits > 10, $"cytoplazma wypływa przez otwór ({bits} drobin)");
 
+            // 22. krętek porusza się płynnie (bez skoków) także przy zderzeniach
+            Start(S("bdello")); var bp2 = _world.Player; Clear(bp2, 80);
+            var spir = _world.Add(new Microbe(_world, MicroType.Spirillum, bp2.X + 30, bp2.Y, 0));
+            for (int k = 0; k < 6; k++) _world.Add(new EColi(_world, spir.X + Rand(-15, 15), spir.Y + Rand(-4, 4), Rand(0, TAU)));
+            float maxStep = 0, px2 = spir.X, py2 = spir.Y;
+            for (int i = 0; i < 400; i++) { Run(1); maxStep = Math.Max(maxStep, Hypot(spir.X - px2, spir.Y - py2)); px2 = spir.X; py2 = spir.Y; }
+            float allowed = spir.Speed * _world.TimeScale / 60 * 4 + 0.5f;
+            Ok(maxStep < allowed, $"krętek porusza się płynnie (maks. krok {maxStep:0.00} µm/klatkę, limit {allowed:0.00})");
+
             // 17. strzępka Candida niszczona przez sieć NET
             Start(S("neutro")); var nn = _world.Player;
             var hy = _world.Add(new CandidaHypha(_world, nn.X + 4, nn.Y, 0));
@@ -1094,7 +1103,7 @@ public partial class Main : Node
                 {
                     bool nano = id.StartsWith("nano-"); string bare = nano ? id[5..] : id;
                     if (bare == "turn") bare = "turn";
-                    string sid = bare == "turn" ? "para" : bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => bare };
+                    string sid = bare == "turn" ? "para" : bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" or "sp-yeast" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => bare };
                     Start(Scenario.All.First(s => s.Id == sid), nano);
                     if (bare.StartsWith("sp-"))
                     {
@@ -1104,6 +1113,7 @@ public partial class Main : Node
                             "sp-stentor" => new Protist(_world, Species.Stentor, x, y, -0.4f),
                             "sp-blepharisma" or "sp-lysis" => new Protist(_world, Species.Blepharisma, x, y, 0.3f),
                             "sp-euglena" => new Protist(_world, Species.Euglena, x, y, 0.3f),
+                            "sp-loxodes" => new Protist(_world, Species.Loxodes, x, y, 0.3f),
                             "sp-spirostomum" => new Protist(_world, Species.Spirostomum, x, y, 0.2f),
                             "sp-coleps" => new Protist(_world, Species.Coleps, x, y, 0.2f),
                             "sp-euplotes" => new Protist(_world, Species.Euplotes, x, y, 0.2f),
@@ -1117,6 +1127,7 @@ public partial class Main : Node
                             "sp-tetra" => new Protist(_world, Species.Tetrahymena, x, y, 0.2f),
                             "sp-bodo" => new Protist(_world, Species.Bodo, x, y, 0.2f),
                             "sp-spirillum" => new Microbe(_world, MicroType.Spirillum, x, y, 0.2f),
+                            "sp-yeast" => new Microbe(_world, MicroType.Yeast, x, y, 0.2f),
                             "sp-macro" => new Macrophage(_world, x, y),
                             "sp-candida" => new CandidaHypha(_world, x, y, 0.2f),
                             "sp-fat" => new Adipocyte(_world, x, y, 40),

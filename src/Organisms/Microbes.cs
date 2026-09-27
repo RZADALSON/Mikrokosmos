@@ -10,7 +10,7 @@ public enum MicroType { Bacillus, Pseudomonas, Caulobacter, Spirillum, Yeast }
 public sealed class Microbe : Ent
 {
     public readonly MicroType T;
-    public float L, Wd, Speed; readonly int _cells; readonly bool _spore; float _timer, _ph, _stalk, _bud, _dir = 1; readonly float _seed;
+    public float L, Wd, Speed; readonly int _cells; readonly bool _spore; float _timer, _ph, _stalk, _bud, _dir = 1, _hp, _revCD; readonly float _seed;
     readonly float _ax, _ay;
     public override float Length => L;
     public override float Radius => Wd / 2;
@@ -31,7 +31,7 @@ public sealed class Microbe : Ent
             case MicroType.Spirillum:
                 Wd = Rand(1.3f, 1.7f); L = Rand(18, 45); Speed = Rand(15, 25); Name = "krętek olbrzymi"; Latin = "Spirillum volutans"; Soft = 0.02f; D = 0; Dr = 0.002f; _timer = ExpRand(6); break;
             case MicroType.Yeast:
-                Wd = Rand(4, 6.5f); L = Wd * Rand(1.1f, 1.3f); _bud = Chance(0.6f) ? Rand(0.2f, 0.8f) : 0; Name = "drożdże"; Latin = "Saccharomyces cerevisiae"; Soft = 0.1f; D = 0.002f; Dr = 0.001f; break;
+                Wd = Rand(3, 5f); L = Wd * Rand(1.15f, 1.4f); _bud = Chance(0.5f) ? Rand(0.2f, 0.8f) : 0; Name = "drożdże różowe"; Latin = "Rhodotorula mucilaginosa"; Soft = 0.1f; D = 0.002f; Dr = 0.001f; break;
         }
         R = L / 2 + (t == MicroType.Spirillum ? 3 : 1); Mass = L * Wd * 0.5f + 0.3f;
         Edible = true; Food = 0.1f;
@@ -40,9 +40,21 @@ public sealed class Microbe : Ent
     {
         if (State is St.Cup or St.Vac) { SetCircle(0.1f); return; }
         if (T == MicroType.Yeast) SetCircle(Wd / 2);
-        else if (T == MicroType.Spirillum) SetCapsule(L / 2 - 2, 2.2f);
+        else if (T == MicroType.Spirillum)
+        {
+            // kolizja wzdłuż zwojów helisy (w rzucie – fala), a nie prosta kapsuła: inne komórki mieszczą się między zwojami
+            const int K = 10; UseParts(K);
+            for (int k = 0; k < K; k++)
+            {
+                float x0 = -L / 2 + L * k / K, x1 = -L / 2 + L * (k + 1) / K;
+                PartCap(k, x0, HelixY(x0), x1, HelixY(x1), Wd / 2);
+            }
+            Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = 2.2f;
+        }
         else SetCapsule(Math.Max(0, L / 2 - Wd / 2), Wd / 2);
     }
+    const float HelixAmp = 2.2f, HelixLam = 11;
+    float HelixY(float x) => HelixAmp * MathF.Sin(TAU * x / HelixLam + _hp);
     public override bool Collides(Ent o) => State is not (St.Cup or St.Vac);
     public override void Step(float dt, float gdt)
     {
@@ -56,6 +68,8 @@ public sealed class Microbe : Ent
                 if (_timer <= 0) { _dir = Chance(0.6f) ? -_dir : _dir; A += RandN() * 0.6f; _timer = ExpRand(1.5f); }
                 Vx = MathF.Cos(A) * Speed * _dir; Vy = MathF.Sin(A) * Speed * _dir; break;
             case MicroType.Spirillum:
+                // sztywna helisa obraca się wokół osi: fala przesuwa się płynnie w kierunku ruchu (bez skoków przy zawracaniu)
+                _revCD -= dt; _hp += gdt * TAU * 0.9f * _dir;
                 if (_timer <= 0) { _dir = -_dir; _timer = ExpRand(6); }
                 A += RandN() * 0.05f * MathF.Sqrt(dt);
                 Vx = MathF.Cos(A) * Speed * _dir; Vy = MathF.Sin(A) * Speed * _dir; break;
@@ -67,7 +81,8 @@ public sealed class Microbe : Ent
     }
     public override void OnTouch(Ent o, float nx, float ny)
     {
-        if (T == MicroType.Spirillum && !o.Fixed) _dir = -_dir;
+        // odwrócenie kierunku (pęki rzęsek zmieniają konfigurację) – nie częściej niż co ~1 s, bo inaczej "drga" w miejscu
+        if (T == MicroType.Spirillum && !o.Fixed && _revCD <= 0 && (o.Mass > Mass * 0.3f)) { _dir = -_dir; _revCD = 1.2f; }
     }
 
     public override void Draw(Painter p, View v)
@@ -91,8 +106,8 @@ public sealed class Microbe : Ent
         {
             case MicroType.Spirillum:
             {
-                const int K = 60; float amp = 2.2f, lam = 11;
-                for (int k = 0; k <= K; k++) { float x = -L / 2 + L * k / K; buf[k] = new Vector2(x, amp * MathF.Sin(TAU * x / lam + _ph * 0.3f * _dir)); }
+                const int K = 60; float amp = HelixAmp, lam = HelixLam;
+                for (int k = 0; k <= K; k++) { float x = -L / 2 + L * k / K; buf[k] = new Vector2(x, amp * MathF.Sin(TAU * x / lam + _hp)); }
                 var s = new ReadOnlySpan<Vector2>(buf, 0, K + 1);
                 p.SoftStroke(s, false, Wd * 2.2f, halo);
                 p.Stroke(s, false, Wd, body, true);
@@ -103,14 +118,16 @@ public sealed class Microbe : Ent
             case MicroType.Yeast:
             {
                 p.Glow(0, 0, Wd * 0.8f, halo);
-                p.FillEllipse(0, 0, L / 2, Wd / 2, 0, em ? Rgb(110, 140, 155, 0.9f) : Rgb(150, 150, 130, 0.55f));
+                // Rhodotorula: karotenoidy nadają lekko różowo-pomarańczowy odcień, śluzowa otoczka
+                p.FillEllipse(0, 0, L / 2 + Wd * 0.12f, Wd / 2 + Wd * 0.12f, 0, em ? Rgb(90, 110, 120, 0.3f) : Rgb(235, 225, 215, 0.18f));
+                p.FillEllipse(0, 0, L / 2, Wd / 2, 0, em ? Rgb(110, 140, 155, 0.9f) : Rgb(185, 150, 135, 0.55f));
                 p.Ellipse(0, 0, L / 2, Wd / 2, 0, em ? Wd * 0.08f : lw * 1.5f, edge);
                 p.FillCircle(L * 0.08f, Wd * 0.05f, Wd * 0.2f, em ? Rgb(60, 80, 90, 0.8f) : Rgb(215, 220, 205, 0.55f));
                 for (int k = 0; k < 8; k++) p.Dot(MathF.Cos(k * 2.3f + _seed) * Wd * 0.3f, MathF.Sin(k * 1.7f) * Wd * 0.3f, Wd * 0.04f, em ? Rgb(30, 45, 55, 0.8f) : Rgb(60, 62, 55, 0.6f));
                 if (_bud > 0)
                 {
                     float br = Wd * 0.28f * _bud + Wd * 0.1f;
-                    p.FillCircle(L / 2 + br * 0.75f, 0, br, em ? Rgb(110, 140, 155, 0.9f) : Rgb(150, 150, 130, 0.5f));
+                    p.FillCircle(L / 2 + br * 0.75f, 0, br, em ? Rgb(110, 140, 155, 0.9f) : Rgb(185, 150, 135, 0.5f));
                     p.Circle(L / 2 + br * 0.75f, 0, br, em ? Wd * 0.06f : lw * 1.3f, edge);
                 }
                 break;
