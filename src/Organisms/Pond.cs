@@ -297,7 +297,7 @@ public sealed class Lacrymaria : Ent, ICaptor
     {
         Kind = Kind.Protist; Layer = 3; Name = "Lacrymaria"; Latin = "Lacrymaria olor"; Soft = 0.5f;
         _l = Rand(160, 300); _w = _l * 0.36f; _neckMax = _l * Rand(4, 7); R = _l / 2 + 10; Mass = 20;
-        Mem = new Membrane(NN) { MaxDef = _w * 0.25f }; MemK = 7; MemS = 0.5f;
+        Mem = new Membrane(NN) { MaxDef = _w * 0.3f, Stiff = 8, Damping = 0.55f }; MemK = 7; MemS = 0.5f;
         for (int i = 0; i < NN; i++)
         {
             float th = i * TAU / NN, c = MathF.Cos(th), s = MathF.Sin(th);

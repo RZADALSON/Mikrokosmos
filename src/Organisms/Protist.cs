@@ -55,7 +55,8 @@ public sealed class Protist : Ent, ICaptor
 {
     public readonly Spec S;
     public float L, Wd, Speed, Contr, Cph, Roll, St0, AvoidCD, Energy, Meta, MetaPh, Stun;
-    float _moveT, _jump, _hold, _seekT, _metaT, _lk = -1, _mk = -1, _mph;
+    float _moveT, _jump, _hold, _seekT, _metaT, _lk = -1, _mk = -1, _mph, _head, _track;
+    public Steer Sw;
     bool _walking = true;
     readonly int NN;
     readonly float[] _rr;
@@ -80,7 +81,8 @@ public sealed class Protist : Ent, ICaptor
         L = Rand(s.L0, s.L1) * scale; Wd = L * s.Aspect; Speed = s.Speed * Rand(0.8f, 1.15f);
         NN = L * s.Aspect > 40 || L > 300 ? 56 : 44;
         _rr = new float[NN];
-        Mem = new Membrane(NN) { MaxDef = Wd * 0.3f }; MemK = 7; MemS = 0.5f;
+        Mem = new Membrane(NN) { MaxDef = Wd * 0.35f, Stiff = s.Armor ? 20 : 8, Damping = 0.55f }; MemK = 4; MemS = s.Armor ? 0.3f : 0.75f;
+        _head = a;
         Mass = Math.Max(0.5f, L * Wd / 400);
         Edible = s.Edible; Food = s.Food; State = St.Swim;
         Roll = Rand(0, TAU); Cph = Rand(0, TAU); _seed = Rand(0, 99); MetaPh = Rand(0, TAU); _metaT = ExpRand(12);
@@ -163,16 +165,16 @@ public sealed class Protist : Ent, ICaptor
             if (_hold > 0) _hold -= dt;
             else Contr = Math.Max(0, Contr - dt / (S.Move == Motion.Sessile ? 8 : 3));
         }
-        float v = Speed;
+        float v = Speed, maxW = 2.2f * S.Turn, acc = 3, tacc = 3.5f;
         switch (S.Move)
         {
             case Motion.Ciliate:
                 Roll += dt * TAU * 0.8f;
-                A += (MathF.Sin(Roll) * 0.6f * S.Turn) * dt + RandN() * 0.35f * MathF.Sqrt(dt);
+                _head += RandN() * 0.3f * MathF.Sqrt(dt);
                 break;
             case Motion.Flagellate:
                 Roll += dt * TAU * 1.4f;
-                A += MathF.Sin(Roll) * 0.8f * dt + RandN() * 0.5f * MathF.Sqrt(dt);
+                _head += RandN() * 0.45f * MathF.Sqrt(dt);
                 if (S.Metaboly > 0)
                 {
                     _metaT -= dt;
@@ -183,39 +185,49 @@ public sealed class Protist : Ent, ICaptor
                 break;
             case Motion.Walk:
                 _moveT -= dt;
-                if (_moveT <= 0) { _walking = !_walking; _moveT = _walking ? Rand(1.5f, 4) : Rand(0.4f, 1.6f); if (_walking) A += RandN() * 1.3f; }
+                if (_moveT <= 0) { _walking = !_walking; _moveT = _walking ? Rand(1.5f, 4) : Rand(0.4f, 1.6f); if (_walking) _head += RandN() * 1.3f; }
                 if (!_walking) v = 0;
+                acc = 6; tacc = 6;
                 break;
             case Motion.Jump:
                 _moveT -= dt; _jump -= dt;
-                if (_moveT <= 0) { _moveT = ExpRand(1.2f); A += RandN() * 1.6f; _jump = 0.2f; }
+                if (_moveT <= 0) { _moveT = ExpRand(1.2f); _head += RandN() * 1.6f; _jump = 0.2f; }
                 v *= _jump > 0 ? 3 : 0.2f;
+                acc = 14; tacc = 10; maxW = 8;
                 break;
             case Motion.Sessile:
                 v = 0; X = _ax; Y = _ay;
-                A = _a0 + MathF.Sin(W.T * 0.25f + _seed) * 0.25f;
+                A = _a0 + MathF.Sin(W.T * 0.25f + _seed) * 0.25f; Vx = Vy = 0;
                 break;
         }
-        // polowanie: słaba chemotaksja w stronę ofiar
+        // polowanie: słaba chemotaksja – ofiara musi być przed nami (rzęski nie "widzą" do tyłu), pościg ma limit czasu
         if ((S.Eats != null || S.Victim != null) && S.Move != Motion.Sessile)
         {
-            _seekT -= dt;
+            _seekT -= dt; _track -= dt;
             if (_seekT <= 0)
             {
                 _seekT = 0.6f;
                 float sense = S.Sense > 0 ? S.Sense : L * 3 + 100;
-                _target = W.Near(X, Y, sense, e => e != this && e.Alive && ((S.Victim != null && S.Victim(this, e) && e.Hp < 1) || (S.Eats != null && S.Eats(this, e))));
-                if (_target == null && S.Victim != null) _target = W.Near(X, Y, sense * 0.5f, e => e != this && e.Alive && S.Victim(this, e));
+                bool Front(Ent e) => MathF.Abs(WrapA(MathF.Atan2(e.Y - Y, e.X - X) - A)) < 1.5f;
+                var nt = W.Near(X, Y, sense, e => e != this && e.Alive && Front(e) && ((S.Victim != null && S.Victim(this, e) && e.Hp < 1) || (S.Eats != null && S.Eats(this, e))));
+                if (nt == null && S.Victim != null) nt = W.Near(X, Y, sense * 0.5f, e => e != this && e.Alive && Front(e) && S.Victim(this, e));
+                if (nt != _target) { _target = nt; _track = 8; }
+                if (_track <= 0) _target = null;
             }
-            if (_target != null && _target.Alive) A = Turn(A, MathF.Atan2(_target.Y - Y, _target.X - X), (S.Victim != null ? 2.2f : 0.9f) * dt);
+            if (_target != null && _target.Alive) _head = Turn(_head, MathF.Atan2(_target.Y - Y, _target.X - X), (S.Victim != null ? 1.0f : 0.45f) * dt);
         }
         if (State == St.Avoid)
         {
             St0 -= dt; v = -0.45f * Speed;
-            if (St0 <= 0) { State = St.Swim; A += Sign() * Rand(0.7f, 2.0f); }
+            if (St0 <= 0) { State = St.Swim; _head = A + Sign() * Rand(0.7f, 2.0f); }
         }
         if (Contr > 0.3f || Stun > 0) v *= 0.1f;
-        Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v;
+        if (S.Move != Motion.Sessile)
+        {
+            float wob = S.Move == Motion.Ciliate ? MathF.Sin(Roll) * 0.1f : S.Move == Motion.Flagellate ? MathF.Sin(Roll) * 0.12f : 0;
+            Sw.Update(this, dt, _head + wob, v, maxW, acc, tacc);
+            Mem.Bend = Sw.Bend(L * LenK, Wd * WidK, Math.Max(Speed, 1), S.Armor ? 0.03f : 0.2f);
+        }
         // poza kadrem odżywianie liczone co 4 klatki (statystycznie to samo, 4× taniej)
         long t0 = World.Prof ? World.TS : 0;
         if (W.OnScreen(this)) Feed(dt);
@@ -332,7 +344,7 @@ public sealed class Protist : Ent, ICaptor
             Gut.RemoveAt(k);
             if (escaped && f.O.IsPlayer) { W.Log($"Wyrwałeś się z {S.Name}!", "good"); W.AddStat("escapes", 1); }
         }
-        Stun = 1.5f;
+        Stun = 1.5f; _head = A + PI;
     }
 
     public override void OnTouch(Ent o, float nx, float ny)

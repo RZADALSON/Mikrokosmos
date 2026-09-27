@@ -178,7 +178,7 @@ public sealed class Amoeba : Ent
     {
         Kind = Kind.Amoeba; Layer = 2; Soft = 0.9f; Name = "ameba"; Latin = "Amoeba proteus";
         Rb = rb; A0 = PI * Rb * Rb;
-        Mem = new Membrane(NN) { MaxDef = 26 }; MemK = 3; MemS = 0.35f;
+        Mem = new Membrane(NN) { MaxDef = 40, Stiff = 4, Damping = 0.7f }; MemK = 3; MemS = 0.35f;
         Mass = 70; Seed = Rand(0, 99); AiA = Rand(0, TAU);
         for (int i = 0; i < G; i++)
         {

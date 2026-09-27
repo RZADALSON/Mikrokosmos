@@ -28,15 +28,51 @@ public sealed class Membrane
         for (int i = 0; i < N; i++) { float t = i * TAU / N; Rx[i] = MathF.Cos(t) * rr[i]; Ry[i] = MathF.Sin(t) * rr[i]; }
     }
 
+    /// <summary>
+    /// Sprężystość ciała (rad/s): 0 = kształt narzucany natychmiast; &gt; 0 = węzły dążą do kształtu spoczynkowego
+    /// jak tłumiona sprężyna (ciało "galaretowate": wygina się, faluje i powoli wraca do formy).
+    /// </summary>
+    public float Stiff;
+    /// <summary>Współczynnik tłumienia sprężyny (1 = krytyczne, &lt; 1 = lekkie drżenie).</summary>
+    public float Damping = 0.65f;
+    /// <summary>Wygięcie osi ciała: y += Bend·x² (w układzie lokalnym) – ciało krzywi się w stronę skrętu.</summary>
+    public float Bend;
+    /// <summary>Poza kadrem: bez symulacji sprężystości (oszczędność).</summary>
+    public bool Lod;
+    float[] _lx, _ly, _vx, _vy;
+    float _lastA = float.NaN;
+
     public void Follow(float x, float y, float a, float k, float fdt)
     {
         float c = MathF.Cos(a), s = MathF.Sin(a), dec = MathF.Exp(-k * fdt), md = MaxDef, mr = 0;
+        bool jelly = Stiff > 0 && fdt > 0 && !Lod;
+        if (Lod && _lx != null) { for (int i = 0; i < N; i++) { _lx[i] = Rx[i]; _ly[i] = Ry[i] + Bend * Rx[i] * Rx[i]; _vx[i] = _vy[i] = 0; } }
+        if (jelly && _lx == null)
+        {
+            _lx = new float[N]; _ly = new float[N]; _vx = new float[N]; _vy = new float[N];
+            for (int i = 0; i < N; i++) { _lx[i] = Rx[i]; _ly[i] = Ry[i]; }
+        }
+        // obrót ciała: końce "nie nadążają" – kształt lokalny obraca się lekko wstecz (bezwładność lepkościowa kształtu)
+        if (jelly && !float.IsNaN(_lastA))
+        {
+            float da = WrapA(a - _lastA) * 0.35f, cr = MathF.Cos(-da), sr = MathF.Sin(-da);
+            for (int i = 0; i < N; i++) { float lx = _lx[i], ly = _ly[i]; _lx[i] = lx * cr - ly * sr; _ly[i] = lx * sr + ly * cr; }
+        }
+        _lastA = a;
+        float w = Stiff, k2 = w * w, cd = 2 * Damping * w, h = Math.Min(fdt, 1f / 30);
         for (int i = 0; i < N; i++)
         {
             float dx = Dx[i] * dec, dy = Dy[i] * dec, m = dx * dx + dy * dy;
             if (m > md * md) { float f = md / MathF.Sqrt(m); dx *= f; dy *= f; }
             Dx[i] = dx; Dy[i] = dy;
-            float rx = Rx[i], ry = Ry[i];
+            float rx = Rx[i], ry = Ry[i] + Bend * Rx[i] * Rx[i];
+            if (jelly)
+            {
+                float ax = (rx - _lx[i]) * k2 - _vx[i] * cd, ay = (ry - _ly[i]) * k2 - _vy[i] * cd;
+                _vx[i] += ax * h; _vy[i] += ay * h;
+                _lx[i] += _vx[i] * h; _ly[i] += _vy[i] * h;
+                rx = _lx[i]; ry = _ly[i];
+            }
             float px = x + c * rx - s * ry + dx, py = y + s * rx + c * ry + dy;
             Px[i] = px; Py[i] = py;
             float d2 = (px - x) * (px - x) + (py - y) * (py - y); if (d2 > mr) mr = d2;

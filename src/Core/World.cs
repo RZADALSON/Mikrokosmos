@@ -98,7 +98,7 @@ public sealed class World
     public Action<string, string> OnLog;
     public Action<string, string> OnBanner;
     public Action<string, bool> OnGameOver;
-    public Action<string, float> OnSfx;
+    public Action<string, float, float> OnSfx;
     public Action<Scenario.Goal> OnGoal;
     public Action<Chunk> OnEnterBiome;
 
@@ -137,7 +137,7 @@ public sealed class World
         if (Preview || OnSfx == null) return;
         float d = Hypot(x - CamX, y - CamY) / Math.Max(ViewR, 1e-6f);
         if (d > 1.6f) return;
-        OnSfx(kind, vol * Clamp(1.2f - d * 0.7f, 0, 1));
+        OnSfx(kind, vol * Clamp(1.2f - d * 0.7f, 0, 1), Clamp((x - CamX) / Math.Max(ViewR, 1e-6f), -1, 1) * 0.8f);
     }
     public void After(float delay, Action a) => _timers.Add((T + delay, a));
     readonly Dictionary<string, float> _logT = new();
@@ -150,6 +150,7 @@ public sealed class World
     /// <summary>Czy encja jest w pobliżu kadru (poza nim część obliczeń kosmetycznych jest pomijana).</summary>
     public bool OnScreen(Ent e, float k = 1.4f) => Preview || (MathF.Abs(e.X - CamX) < ViewR * k + e.R && MathF.Abs(e.Y - CamY) < ViewR * k * 0.7f + e.R);
     public int Frame;
+    St _lastPS;
 
     public float Stat(string k) => Stats.TryGetValue(k, out var v) ? v : 0;
     public void AddStat(string k, float v) => Stats[k] = Stat(k) + v;
@@ -391,6 +392,7 @@ public sealed class World
             if (!e.Alive) continue;
             if (e.Mem != null)
             {
+                e.Mem.Lod = !OnScreen(e);
                 e.Mem.Follow(e.X, e.Y, e.A, e.MemK, gdt);
                 if (e.MemS > 0 && OnScreen(e))
                     foreach (var o in e.Nb)
@@ -416,6 +418,16 @@ public sealed class World
         }
         if (T % 1f < gdt) Ents.RemoveAll(e => !e.Alive);
         if (Player != null && !Player.Alive && !Over && !Preview) OnPlayerLost();
+        if (Player != null && Player.Alive && !Preview)
+        {
+            var ps = Player.State;
+            if (ps != _lastPS && ps is St.Caught or St.Cup && _lastPS is not (St.Caught or St.Cup or St.Vac))
+            {
+                Banner("SCHWYTANY!", Player is Paramecium ? "Spacja – wystrzel trichocysty, może uda się wyrwać" : "Pochłonięty przez drapieżnika – z wodniczki pokarmowej nie ma ucieczki");
+                OnSfx?.Invoke("hurt", 1, 0);
+            }
+            _lastPS = ps;
+        }
     }
 
     void UpdateDebris(float dt)

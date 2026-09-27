@@ -15,7 +15,7 @@ public partial class Main : Node
     World _world, _demo;
     bool _paused, _mouseFollow, _mouseDown, _actionEdge, _showFps, _testInput, _nano;
     float _timeMul = 1;
-    Control _nanoPick;
+    Control _nanoPick, _settings;
     int _modeIdx;
     float _camX, _camY, _zoom = 1, _tz = 1, _s0 = 1, _hudT, _fpsAcc; int _fpsN;
     readonly InputState _input = new();
@@ -41,6 +41,10 @@ public partial class Main : Node
 
     public override void _Ready()
     {
+        Settings.Load();
+        var a0 = OS.GetCmdlineUserArgs();
+        if (!a0.Any(a => a.StartsWith("--shot") || a == "--check" || a == "--autotest")) Settings.ApplyWindow();
+        _showFps = Settings.ShowFps;
         Ui.Init();
         DebrisAtlas.Ensure();
         _audio = new Audio(); AddChild(_audio);
@@ -48,9 +52,12 @@ public partial class Main : Node
         BuildHud();
         BuildMenu();
         BuildDialogs();
+        _audio.Muted = Settings.Muted;
+        _fps.Visible = _showFps;
         EnsureDemo();
         ShowMenu();
         var args = OS.GetCmdlineUserArgs();
+        if (args.Any(a => a.StartsWith("--audio="))) { Audio.Report(args.First(a => a.StartsWith("--audio="))[8..]); GetTree().Quit(); return; }
         if (args.Contains("--check")) _ = Checks();
         else if (args.Contains("--autotest")) _ = AutoTest(args);
         else if (args.Any(a => a.StartsWith("--shot="))) _ = Shots(args);
@@ -276,27 +283,38 @@ public partial class Main : Node
         var L = new CanvasLayer { Layer = 20 }; AddChild(L);
         _menu = Ui.Full(new Control { Theme = Ui.Theme }); L.AddChild(_menu);
         _menu.AddChild(Ui.Full(new ColorRect { Color = new Color(0.02f, 0.03f, 0.035f, 0.62f), MouseFilter = Control.MouseFilterEnum.Ignore }));
-        var scroll = Ui.Full(new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }); _menu.AddChild(scroll);
-        var margin = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        foreach (var s in new[] { "margin_left", "margin_right" }) margin.AddThemeConstantOverride(s, 28);
-        margin.AddThemeConstantOverride("margin_top", 40); margin.AddThemeConstantOverride("margin_bottom", 40);
-        scroll.AddChild(margin);
-        var v = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }; v.AddThemeConstantOverride("separation", 8); margin.AddChild(v);
-        var title = Ui.L("M I K R O K O S M O S", 64, Hex("#dcebd6"), true, HorizontalAlignment.Center);
+        // bez przewijania: siatka kart skaluje się tak, by zawsze zmieścić się w oknie
+        var margin = Ui.Full(new MarginContainer());
+        foreach (var m in new[] { "margin_left", "margin_right" }) margin.AddThemeConstantOverride(m, 24);
+        margin.AddThemeConstantOverride("margin_top", 22); margin.AddThemeConstantOverride("margin_bottom", 14);
+        _menu.AddChild(margin);
+        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 6); margin.AddChild(v);
+        var title = Ui.L("M I K R O K O S M O S", 54, Hex("#dcebd6"), true, HorizontalAlignment.Center);
         title.AddThemeColorOverride("font_shadow_color", new Color(0.4f, 0.6f, 0.4f, 0.35f)); title.AddThemeConstantOverride("shadow_outline_size", 12);
         v.AddChild(title);
-        v.AddChild(Ui.L("Wybierz organizm – każdy żyje w innej skali, innym czasie i pod innym mikroskopem", 17, Hex("#c8d2c2"), false, HorizontalAlignment.Center));
-        v.AddChild(Ui.L("od wirusa 0,2 µm (mikroskop elektronowy) po amebę 0,5 mm (mikroskop świetlny)", 13, Hex("#95a293"), false, HorizontalAlignment.Center));
-        v.AddChild(new Control { CustomMinimumSize = new Vector2(0, 18) });
-        var flow = new HFlowContainer { Alignment = FlowContainer.AlignmentMode.Center, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        flow.AddThemeConstantOverride("h_separation", 18); flow.AddThemeConstantOverride("v_separation", 18);
-        v.AddChild(flow);
-        foreach (var sc in Scenario.All) flow.AddChild(MakeCard(sc));
-        flow.AddChild(MakeNanoCard());
-        v.AddChild(new Control { CustomMinimumSize = new Vector2(0, 16) });
-        v.AddChild(Ui.L("WASD / przytrzymaj LPM – ruch   ·   C – podążanie za kursorem   ·   Shift – szybciej   ·   Spacja – akcja   ·   Kółko – zoom   ·   M – tryb mikroskopu   ·   K – minimapa   ·   I – wiedza   ·   N – dźwięk   ·   F – FPS   ·   V – V-Sync   ·   Esc – pauza", 13, Hex("#aab5a7"), false, HorizontalAlignment.Center, true));
+        v.AddChild(Ui.L("Wybierz organizm – każdy żyje w innej skali, innym czasie i pod innym mikroskopem · od wirusa 0,2 µm (TEM) po amebę 0,5 mm", 15, Hex("#c8d2c2"), false, HorizontalAlignment.Center));
+        var holder = new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Pass };
+        v.AddChild(holder);
+        var grid = new GridContainer { Columns = 4 };
+        grid.AddThemeConstantOverride("h_separation", 18); grid.AddThemeConstantOverride("v_separation", 18);
+        holder.AddChild(grid);
+        foreach (var sc in Scenario.All) grid.AddChild(MakeCard(sc));
+        grid.AddChild(MakeNanoCard());
+        void Fit()
+        {
+            var gs = grid.GetCombinedMinimumSize(); var hs = holder.Size;
+            if (gs.X <= 0 || hs.X <= 0 || hs.Y <= 0) return;
+            float k = Math.Min(1.15f, Math.Min(hs.X / gs.X, hs.Y / gs.Y));
+            grid.Size = gs; grid.Scale = new Vector2(k, k); grid.Position = (hs - gs * k) / 2;
+        }
+        holder.Resized += Fit;
+        grid.MinimumSizeChanged += Fit;
+        v.AddChild(Ui.L("WASD / LPM – ruch · C – za kursorem · Shift – szybciej · Spacja – akcja · Kółko – zoom · M – mikroskop · K – radar · I – wiedza · O – ustawienia · F11 – pełny ekran · Esc – pauza", 13, Hex("#aab5a7"), false, HorizontalAlignment.Center, true));
         var foot = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; foot.AddThemeConstantOverride("separation", 20); v.AddChild(foot);
-        foot.AddChild(Ui.L("Fizyka niskiej liczby Reynoldsa · ruchy Browna · miękkie membrany · Godot 4 + C#", 13, Hex("#9aa598")));
+        foot.AddChild(Ui.L("Fizyka niskiej liczby Reynoldsa · ruchy Browna · miękkie ciała · Godot 4 + C#", 13, Hex("#9aa598")));
+        var set = new LinkButton { Text = "Ustawienia (O)" }; set.AddThemeColorOverride("font_color", Hex("#cfe6c8"));
+        set.Pressed += () => ShowSettings(true);
+        foot.AddChild(set);
         var src = new LinkButton { Text = "Źródła naukowe" }; src.AddThemeColorOverride("font_color", Hex("#cfe6c8"));
         src.Pressed += () => ShowInfo(null);
         foot.AddChild(src);
@@ -406,6 +424,43 @@ public partial class Main : Node
         close.Pressed += () => ToggleInfo(false);
         v.AddChild(close);
 
+        // ustawienia
+        _settings = Ui.Full(new Control { Theme = Ui.Theme, Visible = false }); L.AddChild(_settings);
+        _settings.AddChild(Ui.Full(new ColorRect { Color = new Color(0, 0, 0, 0.55f) }));
+        var cs2 = Ui.Full(new CenterContainer()); _settings.AddChild(cs2);
+        var ps2 = new PanelContainer { CustomMinimumSize = new Vector2(520, 0) }; cs2.AddChild(ps2);
+        var vs2 = new VBoxContainer(); vs2.AddThemeConstantOverride("separation", 10); ps2.AddChild(vs2);
+        vs2.AddChild(Ui.L("Ustawienia", 26, null, true));
+        vs2.AddChild(Ui.L("OBRAZ", 12, Ui.Dim, true));
+        var wm = new OptionButton { CustomMinimumSize = new Vector2(0, 34) };
+        foreach (var m in Settings.WindowModes) wm.AddItem(m);
+        wm.Selected = Settings.WindowMode;
+        wm.ItemSelected += i => { Settings.WindowMode = (int)i; Settings.ApplyWindow(); Settings.Save(); };
+        vs2.AddChild(Row("Tryb wyświetlania", wm));
+        var vsync = new CheckButton { ButtonPressed = Settings.VSync };
+        vsync.Toggled += on => { Settings.VSync = on; DisplayServer.WindowSetVsyncMode(on ? DisplayServer.VSyncMode.Enabled : DisplayServer.VSyncMode.Disabled); Settings.Save(); };
+        vs2.AddChild(Row("V-Sync (synchronizacja z monitorem)", vsync));
+        var fpsC = new CheckButton { ButtonPressed = Settings.ShowFps };
+        fpsC.Toggled += on => { Settings.ShowFps = _showFps = on; _fps.Visible = on; Settings.Save(); };
+        vs2.AddChild(Row("Licznik FPS", fpsC));
+        vs2.AddChild(Ui.L("DŹWIĘK", 12, Ui.Dim, true));
+        HSlider Sl(float v0, Action<float> set)
+        {
+            var sl = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01, Value = v0, CustomMinimumSize = new Vector2(220, 24) };
+            sl.ValueChanged += x => { set((float)x); Settings.Save(); };
+            return sl;
+        }
+        vs2.AddChild(Row("Głośność ogólna", Sl(Settings.Master, x => Settings.Master = x)));
+        vs2.AddChild(Row("Efekty (organizmy)", Sl(Settings.Sfx, x => { Settings.Sfx = x; _audio.Play("pop", 0.8f); })));
+        vs2.AddChild(Row("Tło (woda, mikroskop)", Sl(Settings.Ambient, x => Settings.Ambient = x)));
+        var mute = new CheckButton { ButtonPressed = Settings.Muted };
+        mute.Toggled += on => { Settings.Muted = _audio.Muted = on; Settings.Save(); };
+        vs2.AddChild(Row("Wycisz wszystko (N)", mute));
+        var closeS = new Button { Text = "  Zamknij (O / Esc)  ", SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+        closeS.Pressed += () => ShowSettings(false);
+        vs2.AddChild(closeS);
+        _settingsMute = mute; _settingsMode = wm;
+
         // wybór skali dla nanobota
         _nanoPick = Ui.Full(new Control { Theme = Ui.Theme, Visible = false }); L.AddChild(_nanoPick);
         _nanoPick.AddChild(Ui.Full(new ColorRect { Color = new Color(0, 0, 0, 0.55f) }));
@@ -455,9 +510,24 @@ public partial class Main : Node
         Button PB(string t, Action a) { var b = new Button { Text = t, CustomMinimumSize = new Vector2(0, 38) }; b.Pressed += () => { _audio.Play("tick"); a(); }; v3.AddChild(b); return b; }
         PB("Wznów (P / Esc)", () => SetPause(false));
         PB("Wiedza o organizmie (I)", () => { _pause.Visible = false; ToggleInfo(true); });
+        PB("Ustawienia (O)", () => { _pause.Visible = false; ShowSettings(true); });
         PB("Zacznij od nowa", () => Start(_sc, _nano));
         PB("Wyjdź do menu", ShowMenu);
         v3.AddChild(Ui.L("N – dźwięk · K – minimapa · M – mikroskop · F11 – pełny ekran", 12, Ui.Dim, false, HorizontalAlignment.Center));
+    }
+
+    CheckButton _settingsMute; OptionButton _settingsMode;
+    static Control Row(string label, Control c)
+    {
+        var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 16);
+        var l = Ui.L(label, 15, null); l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; h.AddChild(l);
+        h.AddChild(c); return h;
+    }
+    void ShowSettings(bool on)
+    {
+        _settings.Visible = on;
+        if (on) { _settingsMute.SetPressedNoSignal(Settings.Muted); _settingsMode.Selected = Settings.WindowMode; }
+        if (_mode == Mode.Game) { _paused = on || _pause.Visible; if (!on && !_pause.Visible) _paused = false; }
     }
 
     static string WorldName(Scenario sc) => sc.Id switch
@@ -522,7 +592,7 @@ public partial class Main : Node
         _world.Nano = nano;
         _world.Input = _input;
         _world.OnLog = Log; _world.OnBanner = Banner; _world.OnGameOver = OnGameOver;
-        _world.OnSfx = (k, v) => _audio.Play(k, v);
+        _world.OnSfx = (k, v, pan) => _audio.Play(k, v, pan);
         _world.OnEnterBiome = c => { if (_world.T > 1) Toast("Strefa: " + _sc.BiomeName(c.Biome)); };
         _world.OnGoal = g =>
         {
@@ -578,15 +648,17 @@ public partial class Main : Node
         {
             var key = k.PhysicalKeycode;
             if (key == Key.Space) _actionEdge = true;
-            if (key == Key.F) { _showFps = !_showFps; _fps.Visible = _showFps; }
-            if (key == Key.N) { _audio.Muted = !_audio.Muted; Toast(_audio.Muted ? "Dźwięk: WYŁ." : "Dźwięk: WŁ."); }
+            if (key == Key.F) { _showFps = !_showFps; _fps.Visible = _showFps; Settings.ShowFps = _showFps; Settings.Save(); }
+            if (key == Key.N) { _audio.Muted = !_audio.Muted; Settings.Muted = _audio.Muted; Settings.Save(); Toast(_audio.Muted ? "Dźwięk: WYŁ." : "Dźwięk: WŁ."); }
+            if (key == Key.O) { ShowSettings(!_settings.Visible); return; }
+            if (key == Key.Escape && _settings.Visible) { ShowSettings(false); return; }
             if (key == Key.V)
             {
                 bool on = DisplayServer.WindowGetVsyncMode() != DisplayServer.VSyncMode.Disabled;
                 DisplayServer.WindowSetVsyncMode(on ? DisplayServer.VSyncMode.Disabled : DisplayServer.VSyncMode.Enabled);
                 Toast(on ? "V-Sync: WYŁ. (bez limitu klatek)" : "V-Sync: WŁ. (odświeżanie monitora)");
             }
-            if (key == Key.F11) DisplayServer.WindowSetMode(DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen ? DisplayServer.WindowMode.Windowed : DisplayServer.WindowMode.Fullscreen);
+            if (key == Key.F11) { Settings.WindowMode = Settings.WindowMode == 0 ? 1 : 0; Settings.ApplyWindow(); Settings.Save(); Toast("Tryb: " + Settings.WindowModes[Settings.WindowMode]); }
             if (_mode == Mode.Game)
             {
                 if (key == Key.Escape) { if (_info.Visible) ToggleInfo(false); else if (!_world.Over) SetPause(!_paused); }
@@ -803,7 +875,7 @@ public partial class Main : Node
 
             // 4. T4 odpada od odpornego mutanta
             Start(S("t4")); var ph = (PhageT4)_world.Player;
-            foreach (var e in _world.Ents) if (e is EColi ce) ce.Resistant = true;
+            foreach (var e in _world.Ents) { if (e is EColi ce) ce.Resistant = true; if (e is Omv || e is OtherPhage) e.Alive = false; }
             var cell = (EColi)_world.Ents.First(e => e is EColi);
             cell.ToWorld(0, cell.Wd / 2 + 0.2f, out float px, out float py);
             ph.X = px; ph.Y = py; ph.A = cell.A - PI / 2; ph.D = 0; ph.Dr = 0;
@@ -904,6 +976,22 @@ public partial class Main : Node
             foreach (var s in Scenario.All) { Start(s, true); Run(30); if (!(_world.Player is Nanobot nb2 && nb2.Alive)) { Ok(false, "nanobot w świecie " + s.Id); } }
             Ok(true, "nanobot uruchamia się we wszystkich 7 skalach");
 
+            // 18. ruch pantofelka: rozpędzanie, płynny obrót, wygięcie ciała na zakręcie, kontrola po schwytaniu
+            Start(S("para")); var pm = (Paramecium)_world.Player; Clear(pm, 900);
+            pm.A = 0; _input.Mag = 1; _input.Ang = 0; _input.Dx = 1; _input.Dy = 0;
+            Run(6); float v01 = MathF.Abs(pm.Sw.V);
+            Run(90); float v15 = MathF.Abs(pm.Sw.V);
+            Ok(v01 < v15 * 0.6f && v15 > pm.Speed * 0.8f, $"pantofelek rozpędza się stopniowo ({v01:0} → {v15:0} µm/s)");
+            float a0 = pm.A; _input.Ang = PI; _input.Dx = -1; Run(6);
+            float turned = MathF.Abs(WrapA(pm.A - a0));
+            Ok(turned < 0.5f, $"obrót nie jest natychmiastowy (po 0,1 s: {turned:0.00} rad)");
+            float maxBend = 0; for (int i = 0; i < 60; i++) { Run(1); maxBend = Math.Max(maxBend, MathF.Abs(pm.Mem.Bend)); }
+            Ok(maxBend > 1e-5f, $"ciało wygina się w łuk podczas skrętu (krzywizna {maxBend * 1e4:0.00}·10⁻⁴ /µm)");
+            var hel = _world.Add(new Helio(_world, pm.X + 230, pm.Y)); Run(60);
+            if (pm.State == St.Caught) { _input.Action = true; Run(1); _input.Action = false; }
+            Ok(pm.State != St.Caught || pm.TrichCD > 0, "schwytany pantofelek może wystrzelić trichocysty");
+            _input.Mag = 0; _input.Dx = 0;
+
             // 17. strzępka Candida niszczona przez sieć NET
             Start(S("neutro")); var nn = _world.Player;
             var hy = _world.Add(new CandidaHypha(_world, nn.X + 4, nn.Y, 0));
@@ -934,7 +1022,8 @@ public partial class Main : Node
                 else
                 {
                     bool nano = id.StartsWith("nano-"); string bare = nano ? id[5..] : id;
-                    string sid = bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => bare };
+                    if (bare == "turn") bare = "turn";
+                    string sid = bare == "turn" ? "para" : bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => bare };
                     Start(Scenario.All.First(s => s.Id == sid), nano);
                     if (bare.StartsWith("sp-"))
                     {
@@ -971,7 +1060,12 @@ public partial class Main : Node
                     _modeIdx = mode % _sc.Modes.Length; ApplyMode();
                     _testInput = true;
                     _input.Mag = 1; _input.Ang = 0.3f; _input.Dx = MathF.Cos(0.3f); _input.Dy = MathF.Sin(0.3f);
-                    for (int f = 0; f < frames; f++) { _world.Update(1f / 60); if (f == frames / 2) { _input.Mag = 0; _input.Dx = _input.Dy = 0; } }
+                    for (int f = 0; f < frames; f++)
+                    {
+                        if (bare == "turn") { _input.Mag = 1; _input.Ang = f * 0.035f; _input.Dx = MathF.Cos(_input.Ang); _input.Dy = MathF.Sin(_input.Ang); _world.CamX = _world.Player.X; _world.CamY = _world.Player.Y; _world.ViewR = 500; }
+                        _world.Update(1f / 60);
+                        if (f == frames / 2 && bare != "turn") { _input.Mag = 0; _input.Dx = _input.Dy = 0; }
+                    }
                     _testInput = false;
                     _tz = _zoom = zoom;
                     var ct = _world.CamTarget(); if (ct != null) { _camX = ct.X; _camY = ct.Y; }

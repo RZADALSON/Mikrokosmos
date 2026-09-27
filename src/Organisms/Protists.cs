@@ -148,6 +148,8 @@ public sealed class Paramecium : Ent
 {
     const int NN = 56;
     public float L, Wd, Sk = 1, Speed, St0, Roll, Cph, AvoidCD, Energy, Div, TrichCD, Hunger;
+    public Steer Sw;
+    float _head, _spin;
     public int FoodCount;
     public bool GrowBack;
     public ICaptor Captor;
@@ -174,7 +176,8 @@ public sealed class Paramecium : Ent
             _zoo = new Vector3[300];
             for (int i = 0; i < _zoo.Length; i++) { float t = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.9f; _zoo[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Rand(0.8f, 1.15f)); }
         }
-        Mem = new Membrane(NN) { MaxDef = 14 }; MemK = 9; MemS = 0.5f;
+        Mem = new Membrane(NN) { MaxDef = Wd * 0.35f, Stiff = 9, Damping = 0.55f }; MemK = 4; MemS = 0.8f;
+        _head = a;
         Speed = Rand(750, 1050); Mass = 25; State = St.Swim; Roll = Rand(0, TAU); Cph = Rand(0, TAU); Energy = energy;
         _cv = new[] { new Cv { X = 0.27f, Y = -0.12f, Ph = Rand(0, 1) }, new Cv { X = -0.27f, Y = -0.1f, Ph = Rand(0, 1) } };
         for (int i = 0; i < 4; i++) Fv.Add(new FoodVac { U = Rand(0, 1), Age = Rand(0, 0.8f), R = Rand(5, 8) });
@@ -224,40 +227,53 @@ public sealed class Paramecium : Ent
                 W.Fx.Spill(ex, ey, 5, new FX.SpillOpt { Speed = 20, R = 1.2f, Life = 4, D = 2, Cols = new[] { Rgb(60, 60, 45, 0.6f) } });
             }
         }
-        if (State is St.Eaten or St.Caught or St.Cup or St.Vac) { Vx = Vy = 0; ComputeRest(); return; }
+        // schwytany: nadal można wystrzelić trichocysty i szarpać się
+        if (IsPlayer && W.Input.Action && TrichCD <= 0 && State is St.Caught or St.Cup) Discharge();
+        if (State is St.Eaten or St.Caught or St.Cup or St.Vac)
+        {
+            Vx = Vy = 0; Sw.V = 0; Sw.Omega = 0;
+            if (State is St.Caught or St.Cup) Mem.Bend = MathF.Sin(W.T * 9) * 0.6f * Wd / Sq(L / 2) * (IsPlayer && W.Input.Mag > 0.05f ? 1 : 0.4f);
+            ComputeRest(); return;
+        }
         if (IsPlayer && W.Sc.Starve > 0 && !W.Preview && W.Sc.Id == "para")
         {
             Hunger += gdt / W.Sc.Starve;
             if (Hunger >= 1) { W.Log("Śmierć głodowa – zabrakło pokarmu (bakterii).", "bad"); Die(); return; }
         }
+        float v2 = Speed, maxW = IsPlayer ? 4.5f : 3f;
+        // obrót wokół długiej osi (~1 obrót/s) → tor spiralny: w rzucie kurs lekko się kołysze
+        _spin += dt * TAU * (0.4f + 0.8f * Math.Abs(Sw.V) / Speed);
+        float wob = MathF.Sin(_spin) * 0.1f;
         if (State == St.Divide)
         {
-            Vx = MathF.Cos(A) * Speed * 0.2f; Vy = MathF.Sin(A) * Speed * 0.2f;
             Div += bdt / 1800;
-            if (Div >= 1) Split();
-            ComputeRest(); return;
+            if (Div >= 1) { Split(); return; }
+            v2 = Speed * 0.35f;
+            if (IsPlayer) { var I = W.Input; if (I.Mag > 0.05f) _head = I.Ang; v2 *= I.Mag > 0.05f ? I.Mag : 0; }
+            maxW = 1.2f;
         }
-        float v2 = Speed;
-        if (State == St.Avoid)
+        else if (State == St.Avoid)
         {
+            // reakcja unikania: rzęski biją wstecz, potem obrót w nowym kierunku (płynny, nie skokowy)
             St0 -= dt; v2 = -0.45f * Speed;
-            if (St0 <= 0) { State = St.Swim; A += Sign() * Rand(0.7f, 2.0f); }
+            if (St0 <= 0) { State = St.Swim; _head = A + Sign() * Rand(0.7f, 2.0f); }
         }
         else if (IsPlayer)
         {
             var I = W.Input; bool on = I.Mag > 0.05f;
-            if (on) A = Turn(A, I.Ang, 3.2f * gdt);
+            if (on) _head = I.Ang;
             v2 = Speed * (on ? I.Mag : 0) * (I.Boost ? 1.7f : 1);
             if (I.Action && TrichCD <= 0) Discharge();
         }
         else
         {
             Roll += dt * TAU * 0.9f;
-            A += MathF.Sin(Roll) * 0.7f * dt + RandN() * 0.3f * MathF.Sqrt(dt);
+            _head += MathF.Sin(Roll) * 0.5f * dt + RandN() * 0.3f * MathF.Sqrt(dt);
         }
-        Vx = MathF.Cos(A) * v2; Vy = MathF.Sin(A) * v2;
+        Sw.Update(this, dt, _head + (Math.Abs(Sw.V) > Speed * 0.2f ? wob : 0), v2, maxW, 3.2f, IsPlayer ? 6 : 4);
+        Mem.Bend = Sw.Bend(L * Sk, Wd * Sk, Speed);
         Feed(dt);
-        if (Energy >= 6 && State == St.Swim && !W.Preview) { State = St.Divide; Energy = 0; if (IsPlayer) W.Log("Podział poprzeczny (amitoza makronukleusa, mitoza mikronukleusa)...", "good"); }
+        if (Energy >= 6 && State == St.Swim && !W.Preview) { State = St.Divide; Energy = 0; if (IsPlayer) W.Log("Podział poprzeczny (amitoza makronukleusa, mitoza mikronukleusa) – nadal możesz płynąć, ale wolniej.", "good"); }
         ComputeRest();
     }
     void Feed(float dt)
@@ -280,6 +296,7 @@ public sealed class Paramecium : Ent
         Paramecium Mk(float sg)
         {
             var e = W.Add(new Paramecium(W, X + c * off * sg, Y + s * off * sg, A, L * Rand(0.92f, 1.0f), 0, Green));
+            e.Sw.V = Sw.V; e._head = _head;
             e.Lineage = Lineage || IsPlayer; e.Sk = 0.62f; e.GrowBack = true; return e;
         }
         var A1 = Mk(1); Mk(-1);
@@ -293,8 +310,15 @@ public sealed class Paramecium : Ent
     }
     public override void OnTouch(Ent o, float nx, float ny)
     {
-        if (IsPlayer || State != St.Swim || AvoidCD > 0) return;
+        if (State != St.Swim || AvoidCD > 0) return;
         if (o is Didinium d && d.Prey == this) return;
+        if (IsPlayer)
+        {
+            // gracz: uderzenie przodem hamuje rzęski (depolaryzacja) – bez automatycznego cofania
+            float front = nx * MathF.Cos(A) + ny * MathF.Sin(A);
+            if (front > 0.6f) { Sw.V *= 0.4f; AvoidCD = 0.4f; }
+            return;
+        }
         State = St.Avoid; St0 = Rand(0.25f, 0.5f); AvoidCD = 1.2f;
     }
     public void Die()
@@ -359,7 +383,8 @@ public sealed class Paramecium : Ent
         else foreach (var g in _gran) p.Rect(g.X * L2 * 0.45f, g.Y * W2 * 0.42f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? GranD : GranB);
         // rowek gębowy
         var buf = p.Buf2;
-        for (int k = 0; k <= 10; k++) { float t = k / 10f, u = 1 - t; buf[k] = new Vector2(u * u * L2 * 0.44f + 2 * u * t * L2 * 0.25f + t * t * L2 * 0.02f, u * u * W2 * 0.1f + 2 * u * t * W2 * 0.33f + t * t * W2 * 0.2f); }
+        float rc = MathF.Cos(_spin); // obrót wokół długiej osi – rowek przechodzi z jednej strony na drugą
+        for (int k = 0; k < 11; k++) { float t = k / 10f, u = 1 - t; buf[k] = new Vector2(u * u * L2 * 0.44f + 2 * u * t * L2 * 0.25f + t * t * L2 * 0.02f, (u * u * W2 * 0.1f + 2 * u * t * W2 * 0.33f + t * t * W2 * 0.2f) * rc); }
         var groove = new ReadOnlySpan<Vector2>(buf, 0, 11);
         p.Stroke(groove, false, 2.4f * sk, Rgb(40, 46, 40, 0.4f), true);
         p.Stroke(groove, false, 1f * sk, Rgb(230, 236, 220, 0.3f), true);
@@ -377,7 +402,7 @@ public sealed class Paramecium : Ent
         // wodniczki tętniące z kanalikami
         foreach (var c in _cv)
         {
-            float x = c.X * L2, y = c.Y * W2, ph = c.Ph;
+            float x = c.X * L2, y = c.Y * W2 * MathF.Cos(_spin), ph = c.Ph;
             float canal = ph < 0.55f ? Smooth(ph / 0.5f) : Math.Max(0, 1 - (ph - 0.55f) / 0.2f);
             float vr = ph < 0.4f ? 0 : ph < 0.9f ? Smooth((ph - 0.4f) / 0.5f) * 8 * sk : (1 - (ph - 0.9f) / 0.1f) * 8 * sk;
             if (canal > 0.02f)
@@ -399,7 +424,8 @@ public sealed class Didinium : Ent, ICaptor
     public float L, Wd, Speed, St0, Swell = 1, Mouth, Stun, Roll, Cph, Hunger, Cyst, TurnT;
     public int Meals;
     public Paramecium Prey;
-    float _psx, _psy, _psa;
+    public Steer Sw;
+    float _psx, _psy, _psa, _head;
     readonly float[] _rr = new float[NN];
     readonly Vector3[] _gran = new Vector3[70];
 
@@ -409,7 +435,8 @@ public sealed class Didinium : Ent, ICaptor
     {
         Kind = Kind.Didi; Layer = 3; Soft = 0.35f; Edible = true; Food = 1.2f; Name = "Didinium"; Latin = "Didinium nasutum";
         L = len > 0 ? len : Rand(100, 125); Wd = L * 0.78f;
-        Mem = new Membrane(NN) { MaxDef = 10 }; MemK = 9; MemS = 0.5f;
+        Mem = new Membrane(NN) { MaxDef = L * 0.12f, Stiff = 9, Damping = 0.55f }; MemK = 4; MemS = 0.7f;
+        _head = a;
         Speed = Rand(650, 800); Mass = 18; State = St.Swim;
         Roll = Rand(0, TAU); Cph = Rand(0, TAU);
         for (int i = 0; i < _gran.Length; i++) { float t = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.78f; _gran[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Chance(0.5f) ? 1 : 0); }
@@ -457,20 +484,21 @@ public sealed class Didinium : Ent, ICaptor
             if (IsPlayer)
             {
                 var I = W.Input; bool on = I.Mag > 0.05f;
-                if (on) A = Turn(A, I.Ang, 3.8f * gdt);
+                if (on) _head = I.Ang;
                 v = Speed * (on ? I.Mag : 0) * (I.Boost ? 1.5f : 1);
             }
             else
             {
                 Roll += dt * TAU * 1.1f;
-                // Didinium trafia ofiary głównie przypadkowymi zderzeniami – słaba chemotaksja z bliska
+                // Didinium trafia ofiary głównie przypadkowymi zderzeniami – słaba chemotaksja z bliska, tylko z przodu
                 var t = W.Near(X, Y, 250, e => e is Paramecium q && (q.State == St.Swim || q.State == St.Avoid));
-                if (t != null) A = Turn(A, MathF.Atan2(t.Y - Y, t.X - X), 0.8f * dt);
-                A += MathF.Sin(Roll) * 0.8f * dt + RandN() * 0.4f * MathF.Sqrt(dt);
-                TurnT -= dt; if (TurnT <= 0) { A += RandN() * 1.2f; TurnT = ExpRand(3); }
+                if (t != null) { float ta = MathF.Atan2(t.Y - Y, t.X - X); if (MathF.Abs(WrapA(ta - A)) < 1.6f) _head = Turn(_head, ta, 0.6f * dt); }
+                _head += MathF.Sin(Roll) * 0.6f * dt + RandN() * 0.4f * MathF.Sqrt(dt);
+                TurnT -= dt; if (TurnT <= 0) { _head += RandN() * 1.2f; TurnT = ExpRand(3); }
             }
             if (Stun > 0) v *= 0.2f;
-            Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v;
+            Sw.Update(this, dt, _head, v, 3f, 3.2f, 4);
+            Mem.Bend = Sw.Bend(L, Wd, Speed, 0.12f);
         }
         else if (State == St.Capture)
         {
@@ -510,8 +538,8 @@ public sealed class Didinium : Ent, ICaptor
             St0 += bdt;
             float p = St0 / 2400;
             float v = Speed * 0.35f;
-            if (IsPlayer) { var I = W.Input; bool on = I.Mag > 0.05f; if (on) A = Turn(A, I.Ang, 2 * gdt); v *= on ? I.Mag : 0; }
-            Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v;
+            if (IsPlayer) { var I = W.Input; bool on = I.Mag > 0.05f; if (on) _head = I.Ang; v *= on ? I.Mag : 0; }
+            Sw.Update(this, dt, _head, v, 1.5f, 2.5f, 3);
             if (P != null && P.Alive) { ToWorld(0, 0, out P.X, out P.Y); P.A = A; P.Dig = Smooth(p); }
             float preyArea = P != null ? P.L * P.Wd * 0.8f : 0;
             Swell = 1 + preyArea / (L * Wd * 0.8f) * 0.55f * (1 - Smooth(p));
@@ -542,7 +570,7 @@ public sealed class Didinium : Ent, ICaptor
         var P = Prey;
         if (P != null) { P.State = St.Swim; P.Captor = null; P.Holder = null; P.A = A + Rand(-0.6f, 0.6f); P.X += MathF.Cos(A) * 25; P.Y += MathF.Sin(A) * 25; }
         bool wasPlayerPrey = P != null && P.IsPlayer;
-        Prey = null; State = St.Swim; Stun = 1.2f; A += PI + RandN() * 0.5f;
+        Prey = null; State = St.Swim; Stun = 1.2f; _head = A + PI + RandN() * 0.5f;
         if (escaped) { W.Log("Ofiara wyrwała się dzięki trichocystom!", IsPlayer ? "bad" : "good"); if (wasPlayerPrey) W.AddStat("escapes", 1); }
     }
     void Divide()

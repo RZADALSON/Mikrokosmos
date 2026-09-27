@@ -174,7 +174,7 @@ public sealed class Acanth : Ent
     public Acanth(World w, float x, float y) : base(w, x, y, 0)
     {
         Kind = Kind.Acanth; Layer = 2; Soft = 0.55f; Latin = "Acanthamoeba castellanii"; Rb = Rand(10, 14); Mass = 20; R = Rb * 1.8f;
-        Mem = new Membrane(NN) { MaxDef = 2 }; MemK = 4; MemS = 0.5f; _dir = Rand(0, TAU); _seed = Rand(0, 99);
+        Mem = new Membrane(NN) { MaxDef = 3, Stiff = 8, Damping = 0.6f }; MemK = 4; MemS = 0.5f; _dir = Rand(0, TAU); _seed = Rand(0, 99);
         for (int i = 0; i < 12; i++) _spikes.Add(new Spike { Ang = Rand(0, TAU), Len = Rand(0, 5), Tgt = Rand(2, 6) });
         for (int i = 0; i < _gran.Length; i++) { float t = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.7f; _gran[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Chance(0.5f) ? 1 : 0); }
         Name = "Acanthamoeba";

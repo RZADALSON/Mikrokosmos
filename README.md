@@ -18,7 +18,8 @@ Wymagane: Godot 4.7 .NET i .NET SDK 8 (oba zainstalowane przez winget).
 - **Akcja:** Spacja / PPM – akcja organizmu (koziołek, trichocysty, przyspieszenie czasu; u neutrofila przytrzymanie = NEToza)
 - **Widok:** M – tryb mikroskopu · K – minimapa · G – mapy stężeń (E. coli)
 - **Menu i informacje:** I / Tab – wiedza i źródła · Esc / P – pauza (menu pauzy)
-- **Ustawienia:** N – dźwięk · F – licznik FPS · V – V-Sync · F11 – pełny ekran · R – restart po przegranej
+- **Ustawienia (O, także w menu i pauzie):** tryb okna (okno / pełny ekran w oknie / pełny ekran wyłączny), V-Sync, licznik FPS,
+  głośność ogólna, efektów i tła. Zapis w `user://settings.cfg`. Skróty: N – wycisz · F11 – okno ↔ pełny ekran · R – restart po przegranej
 
 ## Co jest w grze
 **Światy są nieskończone.** Mapa generuje się w chunkach wokół gracza, a każdy świat ma kilka stref (biomów):
@@ -73,7 +74,11 @@ Rekordy zapisują się w `user://records.cfg`.
 
 **Przetrwanie:** głód (pantofelek, Didinium, ameba), energia fazy ataku (Bdellovibrio), integralność błony (neutrofil).
 
-**Dźwięk:** generowany proceduralnie, bez plików audio (`src/Game/Audio.cs`).
+**Dźwięk:** generowany proceduralnie (stereo 44,1 kHz, `src/Game/Audio.cs`) w stylu nagrań hydrofonowych: szum wody, bąbelki,
+miękkie pęknięcia błon, bez trzasków. `-- --audio=<folder>` zapisuje każdy efekt do WAV i wypisuje poziomy.
+
+**Ruch:** `Steer` – ciąg rzęsek/wici narasta w ułamku sekundy, obrót przyspiesza płynnie. Membrany są sprężyste
+(`Membrane.Stiff`), wyginają się na zakrętach (`Membrane.Bend`) i wgniatają przy kontakcie.
 
 ## Architektura
 ```

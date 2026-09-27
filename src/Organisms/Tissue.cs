@@ -16,7 +16,7 @@ public sealed class Macrophage : Ent
     {
         Kind = Kind.TissueCell; Layer = 2; Name = "makrofag"; Latin = "makrofag tkankowy (histiocyt)"; Soft = 0.8f;
         _r0 = Rand(9, 11.5f); R = _r0 * 1.7f; Mass = 30; _seed = Rand(0, 99); _dir = Rand(0, TAU);
-        Mem = new Membrane(NN) { MaxDef = 3 }; MemK = 4; MemS = 0.45f;
+        Mem = new Membrane(NN) { MaxDef = 4, Stiff = 6, Damping = 0.6f }; MemK = 4; MemS = 0.45f;
         _lys = new Vector3[110];
         for (int i = 0; i < _lys.Length; i++) _lys[i] = new Vector3(Rand(0, TAU), MathF.Sqrt(R01()) * 0.8f, Rand(0.12f, 0.35f));
         Shape(); Mem.Follow(x, y, 0, 1, 1);

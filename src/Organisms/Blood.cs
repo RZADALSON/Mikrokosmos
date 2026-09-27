@@ -59,7 +59,7 @@ public sealed class Neutrophil : Ent
     public Neutrophil(World w, float x, float y, float a) : base(w, x, y, a)
     {
         Kind = Kind.Neutro; Layer = 2; Soft = 0.75f; Name = "neutrofil"; Latin = "granulocyt obojętnochłonny";
-        Mem = new Membrane(NN) { MaxDef = 2.2f }; MemK = 5; MemS = 0.45f;
+        Mem = new Membrane(NN) { MaxDef = 3f, Stiff = 7, Damping = 0.6f }; MemK = 5; MemS = 0.45f;
         Mass = 12; R = R0 * 1.75f; Seed = Rand(0, 100);
         int nl = RandI(3, 5);
         float lx = -2.4f, ly = Rand(-1.5f, 1.5f);
@@ -253,7 +253,7 @@ public sealed class RBC : Ent
     {
         Kind = Kind.Rbc; Layer = 1; Soft = 0.85f; Name = "erytrocyt";
         Rr = Rand(3.7f, 4.05f); El = Rand(0, 0.08f);
-        Mem = new Membrane(36) { MaxDef = 2.4f }; MemK = 3; MemS = 0.85f;
+        Mem = new Membrane(36) { MaxDef = 3f, Stiff = 12, Damping = 0.45f }; MemK = 3; MemS = 0.85f;
         var rr = new float[36];
         for (int i = 0; i < 36; i++) { float t = i * TAU / 36; rr[i] = Rr * (1 + El * MathF.Cos(2 * t)); }
         Mem.Radial(rr);
@@ -304,7 +304,7 @@ public sealed class Lymphocyte : Ent
     public Lymphocyte(World w, float x, float y) : base(w, x, y, Rand(0, TAU))
     {
         Kind = Kind.Lympho; Layer = 1; Soft = 0.5f; Name = "limfocyt"; Rr = Rand(3.6f, 4.1f); R = Rr + 0.8f; Mass = 5; D = 0.003f;
-        Mem = new Membrane(40) { MaxDef = 1.5f }; MemK = 4; MemS = 0.6f; _seed = Rand(0, 99);
+        Mem = new Membrane(40) { MaxDef = 2f, Stiff = 8, Damping = 0.6f }; MemK = 4; MemS = 0.6f; _seed = Rand(0, 99);
         Shape(); Mem.Follow(x, y, A, 1, 1);
     }
     void Shape()
