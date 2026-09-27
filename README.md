@@ -29,10 +29,24 @@ Wymagane: Godot 4.7 .NET i .NET SDK 8 (oba zainstalowane przez winget).
 | T4 (TEM) | 6 µm | mikrokolonia, rozproszone, puste, kolonia odporna |
 | Bdellovibrio | 40 µm | biofilm E. coli, czysta woda, kolonia Acanthamoeby, osady mineralne |
 | E. coli | 40 µm | bogata, uboga, strefa ampicyliny, teren drapieżników |
-| Neutrofil | 100 µm | tkanka luźna, gęsty kolagen, ognisko zakażenia, wylew (żyłki co 420 µm) |
-| Pantofelek, Didinium, ameba | 1,4–1,6 mm | otwarta woda, zarośla skrętnicy, osad, chmury bakterii |
+| Neutrofil, makrofag | 100 µm | tkanka luźna, gęsty kolagen, ognisko zakażenia, wylew (żyłki co 420 µm) |
+| Pantofelek, Didinium, ameba, klejnotka | 1,4–1,6 mm | otwarta woda, zarośla skrętnicy, osad, chmury bakterii |
 
-**Tryb nanobota (eksploracja):** osobna karta w menu. Wybierasz skalę (7 światów, w grze klawisze 1–7).
+**Makrofag** (time-lapse ×90): wolny fagocyt, który pochłania bakterie, drożdże *Candida*, erytrocyty z wylewów i apoptotyczne neutrofile.
+- Spacja wydziela cytokiny, które ściągają neutrofile z żyłki.
+- Neutrofile starzeją się w tkance i przechodzą apoptozę. Nieuprzątnięte ulegają martwicy wtórnej.
+- Eferocytoza przełącza makrofaga w fenotyp naprawczy (TGF-β) i regeneruje błonę.
+- Strawione erytrocyty zostawiają złotobrązowe ziarna hemosyderyny.
+- Drożdżak, który nie zostanie strawiony na czas, wypuszcza strzępkę i przebija makrofaga (kandydalizyna).
+
+**Klejnotka** (*Euglena gracilis*): energia pochodzi z fotosyntezy.
+- Światło zależy od strefy, dryfujących cieni rzęsy wodnej i chmur (0–2000 µmol/m²/s).
+- Krzywa P–I nasyca się przy ok. 200–400. Powyżej ok. 800 narasta fotoinhibicja.
+- Zapasem jest paramylon; pełny zapas uruchamia podział podłużny.
+- W półmroku przy detrytusie działa osmotrofia.
+- Spacja uruchamia metabolię: pełzanie i chowanie się w kłaczkach detrytusu przed drapieżnikami.
+
+**Tryb nanobota (eksploracja):** osobna karta w menu. Wybierasz skalę (9 światów, w grze klawisze 1–9).
 - Bot ma ok. 1/30 kadru i jest nieśmiertelny.
 - Laser (Spacja / PPM) dezintegruje każdą komórkę.
 - Skaner pokazuje nazwę, gatunek, rozmiar i stan organizmu pod kursorem.
@@ -155,6 +169,8 @@ Prąd wody to pole bezźródłowe liczone z funkcji prądu.
   - długa podróż (stała liczba aktywnych encji),
   - miękkie odkształcenie, Coleps, blefaryzmina, wabik OMV, wir Stentora,
   - laser nanobota i start bota we wszystkich skalach, NET na strzępce Candida.
+  - eferocytoza i hemosyderyna w makrofagu, apoptoza i martwica wtórna neutrofili,
+  - światło w stawie, fotosynteza, fotoinhibicja, metabolia w detrytusie i podział podłużny Eugleny.
 - `-- --shot=sp-daphnia@0.4,nano-para` – zrzut wybranego gatunku (`sp-...`) albo trybu nanobota (`nano-...`), `@` = zoom.
 - `-- --shot=menu,t4,neutro:1,vort,spiro,net,rotifer --out=<folder> [--frames=N]` – zapisuje zrzuty ekranu
   (liczba po dwukropku oznacza tryb mikroskopu).

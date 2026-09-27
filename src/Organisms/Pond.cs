@@ -209,7 +209,7 @@ public sealed class Helio : Ent, ICaptor
         _dir = Rand(0, TAU); FlowK = 0.6f;
     }
     public override void UpdatePrim() => SetCircle(_rb * 0.95f);
-    bool Prey(Ent o) => o.Alive && o.Holder == null && !o.Fixed && o.State is St.Swim or St.Free or St.Avoid && o.Kind != Kind.None && o.Kind != Kind.Bot
+    bool Prey(Ent o) => o.Alive && o.Holder == null && !o.Hidden && !o.Fixed && o.State is St.Swim or St.Free or St.Avoid && o.Kind != Kind.None && o.Kind != Kind.Bot
         && (o is Paramecium || o is Chlamy || o is Rotifer || o is Protist { S.Armor: false } && o.Length < _rb * 2.2f && !(o is Protist { S.Move: Motion.Sessile }));
     public override void Step(float dt, float gdt)
     {
@@ -312,7 +312,7 @@ public sealed class Lacrymaria : Ent, ICaptor
     public override bool Collides(Ent o) => o != _prey;
     float NeckBaseX => X + MathF.Cos(A) * _l * 0.5f;
     float NeckBaseY => Y + MathF.Sin(A) * _l * 0.5f;
-    bool IsPrey(Ent o) => o.Alive && o != this && o.Holder == null && !o.Fixed && o.State is St.Swim or St.Free or St.Avoid && o.Kind != Kind.None && o.Kind != Kind.Bot
+    bool IsPrey(Ent o) => o.Alive && o != this && o.Holder == null && !o.Hidden && !o.Fixed && o.State is St.Swim or St.Free or St.Avoid && o.Kind != Kind.None && o.Kind != Kind.Bot
         && (o is Paramecium || o is Chlamy || o is Protist { S.Armor: false, S.Move: not Motion.Sessile } && o.Length < _l * 1.3f);
     public override void Step(float dt, float gdt)
     {
@@ -651,6 +651,8 @@ public sealed class Detritus : Ent
         }
     }
     public override void UpdatePrim() => SetCircle(_r * 0.6f);
+    /// <summary>Luźny kłaczek: Euglena w metabolii potrafi się w niego wcisnąć (pełzanie w ciasnocie).</summary>
+    public override bool Permeable(Ent o) => o is Protist { S.Photo: true, Meta: > 0.5f };
     public override void Draw(Painter p, View v)
     {
         p.Local(X, Y, A);

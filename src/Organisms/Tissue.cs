@@ -1,26 +1,43 @@
 namespace Mikro;
 
 /// <summary>
-/// Makrofag tkankowy (~20 µm): duży, pofałdowany brzeg (ruffling), nerkowate jądro, mnóstwo lizosomów.
-/// Pełza wolniej niż neutrofil; pochłania bakterie, drożdże Candida i szczątki martwych komórek (eferocytoza).
+/// Makrofag tkankowy (~20–25 µm): duży, pofałdowany brzeg (ruffling), nerkowate jądro, mnóstwo lizosomów.
+/// Pełza wolno (ruch ameboidalny ≈ 3 µm/min); pochłania bakterie, drożdże Candida, erytrocyty z wylewów
+/// (erytrofagocytoza → hemosyderyna) i apoptotyczne neutrofile (eferocytoza → fenotyp naprawczy).
 /// </summary>
 public sealed class Macrophage : Ent
 {
     const int NN = 72;
-    readonly float _r0; readonly float[] _rr = new float[NN]; readonly float _seed; float _dir, _turnT;
+    readonly float _r0; readonly float[] _rr = new float[NN]; readonly float _seed; float _dir, _turnT, _v;
     readonly Vector3[] _lys;
-    sealed class Ph { public Ent O; public float St, Lx, Ly; }
-    readonly List<Ph> _ph = new();
+    public enum PT { Bact, Yeast, Rbc, Apo }
+    public sealed class Ph { public Ent O; public PT T; public bool Closed; public float St, Lx, Ly, Sx, Sy, Tx, Ty, Germ, GermAt; }
+    public readonly List<Ph> Phagos = new();
+    /// <summary>Wypełnienie fagosomami (umowne jednostki objętości), fenotyp naprawczy 0..1, odnowienie sygnału cytokinowego (s gry).</summary>
+    public float Load, M2, CytoCD;
+    public const float MaxLoad = 100;
+    float _cyto;
+    readonly List<Vector3> _hemo = new();
+    public int Hemo => _hemo.Count;
+    readonly List<Ent> _q = new();
+    public float R0 => _r0;
     public override float Radius => _r0;
-    public Macrophage(World w, float x, float y) : base(w, x, y, 0)
+    public Macrophage(World w, float x, float y, float r0 = 0) : base(w, x, y, 0)
     {
         Kind = Kind.TissueCell; Layer = 2; Name = "makrofag"; Latin = "makrofag tkankowy (histiocyt)"; Soft = 0.8f;
-        _r0 = Rand(9, 11.5f); R = _r0 * 1.7f; Mass = 30; _seed = Rand(0, 99); _dir = Rand(0, TAU);
+        _r0 = r0 > 0 ? r0 : Rand(9, 11.5f); R = _r0 * 1.7f; Mass = 30; _seed = Rand(0, 99); _dir = Rand(0, TAU);
         Mem = new Membrane(NN) { MaxDef = 4, Stiff = 6, Damping = 0.6f }; MemK = 4; MemS = 0.45f;
         _lys = new Vector3[110];
         for (int i = 0; i < _lys.Length; i++) _lys[i] = new Vector3(Rand(0, TAU), MathF.Sqrt(R01()) * 0.8f, Rand(0.12f, 0.35f));
         Shape(); Mem.Follow(x, y, 0, 1, 1);
     }
+    static float Size(PT t, Ent o) => t switch { PT.Rbc => 3.9f, PT.Apo => 5.2f, _ => o.Radius };
+    static float LoadOf(PT t) => t switch { PT.Bact => 1, PT.Yeast => 5, PT.Rbc => 16, _ => 26 };
+    /// <summary>Czas zamykania miseczki fagocytarnej (s biologiczne) – duże cele otaczane są dłużej.</summary>
+    static float CupT(PT t) => t switch { PT.Bact => 40, PT.Yeast => 90, PT.Rbc => 150, _ => 200 };
+    /// <summary>Czas trawienia w fagolizosomie (s biologiczne).</summary>
+    static float DigT(PT t) => t switch { PT.Bact => 1500, PT.Yeast => 2600, PT.Rbc => 3600, _ => 2700 };
+
     void Shape()
     {
         float t = W.T;
@@ -30,42 +47,180 @@ public sealed class Macrophage : Ent
             float r = _r0 * (1 + 0.1f * Noise1(th * 3 + t * 0.4f + _seed) + 0.05f * Noise1(th * 11 + t * 1.3f) * Math.Max(0, c) + 0.18f * Gauss(WrapA(th - _dir), 0.7f));
             _rr[i] = r;
         }
-        foreach (var p in _ph) if (p.St < 30) { float ap = MathF.Atan2(p.Ly, p.Lx), need = Hypot(p.Lx, p.Ly) + p.O.Radius + 0.5f; for (int i = 0; i < NN; i++) { float g = Gauss(WrapA(i * TAU / NN - ap), 0.3f); _rr[i] = Math.Max(_rr[i], Lerp(_rr[i], need, g)); } }
+        // miseczka fagocytarna: wypustki obejmują cel
+        foreach (var p in Phagos)
+            if (!p.Closed)
+            {
+                float ap = MathF.Atan2(p.Ly, p.Lx), d = Hypot(p.Lx, p.Ly), sz = Size(p.T, p.O), need = d + sz + 0.5f;
+                float wd = Math.Max(0.3f, (sz + 1) / Math.Max(d, 1));
+                for (int i = 0; i < NN; i++) { float g = Gauss(WrapA(i * TAU / NN - ap), wd); _rr[i] = Math.Max(_rr[i], Lerp(_rr[i], need, g)); }
+            }
         Mem.Radial(_rr);
     }
     public override void UpdatePrim() => RadialParts(_rr, NN, 8);
     public override bool Rotates => false; // kształt liczony względem kierunku pełzania w układzie świata
-    bool Food(Ent o) => o.Alive && o.Holder == null && (o is Staph s && s.State == St.Free || o is CandidaYeast y && y.State == St.Free);
+    bool Eatable(Ent o, out PT t)
+    {
+        t = PT.Bact;
+        if (!o.Alive || o.Holder != null || o == this) return false;
+        if (o is Staph s) return s.State == St.Free;
+        if (o is CandidaYeast y) { t = PT.Yeast; return y.State == St.Free; }
+        if (o is Neutrophil n) { t = PT.Apo; return n.Apoptotic && !n.IsPlayer; }
+        if (o is RBC) { t = PT.Rbc; return true; }
+        return false;
+    }
+    bool Food(Ent o) => Eatable(o, out _);
     public override bool Collides(Ent o) => o.Holder != this;
+
+    /// <summary>Sygnał alarmowy: cytokiny i chemokiny (IL-8/CXCL8, CXCL1/2, TNF, IL-1β) ściągają neutrofile z najbliższej żyłki.</summary>
+    public void Signal()
+    {
+        CytoCD = 45; _cyto = 1;
+        W.AddStat("m_signal", 1);
+        W.Sfx("net", X, Y, 0.4f);
+        if (W.Sc is ScMacro sc) sc.Recruit(W, X, Y, 3);
+        if (IsPlayer) W.Log("Cytokiny i chemokiny (IL-8, CXCL1/2, TNF) – śródbłonek żyłki się aktywuje, neutrofile wychodzą do tkanki.", "good");
+    }
+
     public override void Step(float dt, float gdt)
     {
-        _turnT -= dt;
-        var f = W.Near(X, Y, 45, Food);
-        if (f != null) _dir = Turn(_dir, MathF.Atan2(f.Y - Y, f.X - X), 0.8f * gdt);
-        else if (_turnT <= 0) { _dir += RandN(); _turnT = ExpRand(60); }
-        float v = 8f / 60f * (1 - _ph.Count * 0.06f);
-        Vx = MathF.Cos(_dir) * v; Vy = MathF.Sin(_dir) * v;
-        if (_ph.Count < 10)
+        float bdt = dt * W.Bio;
+        _turnT -= dt; CytoCD -= gdt; _cyto = Math.Max(0, _cyto - gdt * 0.4f);
+        M2 = Math.Max(0, M2 - dt / 21600); // fenotyp naprawczy utrzymuje się godzinami
+        float tgt = _dir, mag, vmax;
+        if (IsPlayer)
+        {
+            var I = W.Input; bool on = I.Mag > 0.05f;
+            if (on) tgt = I.Ang;
+            mag = on ? I.Mag : 0; vmax = 4.5f / 60f;
+            if (I.Action && CytoCD <= 0 && !W.Preview) Signal();
+        }
+        else
+        {
+            var f = W.Near(X, Y, 45, Food);
+            if (f != null) tgt = MathF.Atan2(f.Y - Y, f.X - X);
+            else if (_turnT <= 0) { tgt = _dir + RandN(); _turnT = ExpRand(60); }
+            mag = 1; vmax = 3.5f / 60f;
+        }
+        // repolaryzacja makrofaga trwa – skręca powoli, prędkość narasta stopniowo
+        _dir = Turn(_dir, tgt, (IsPlayer ? 1.1f : 0.8f) * gdt);
+        float want = vmax * mag * (1 - 0.5f * Load / MaxLoad) * (0.45f + 0.55f * Hp);
+        _v += (want - _v) * Damp(IsPlayer ? 1.5f : 0.8f, gdt);
+        Vx = MathF.Cos(_dir) * _v; Vy = MathF.Sin(_dir) * _v;
+
+        if (!W.Preview)
+        {
+            // leukocydyny S. aureus (PVL, HlgAB) niszczą też monocyty i makrofagi
+            W.Query(X, Y, _r0 + 4, _q); float dmg = 0;
+            foreach (var o in _q) if (o is Staph s && s.State == St.Free && !s.Strep) { float d = Hypot(o.X - X, o.Y - Y); dmg += Math.Max(0, 1 - d / (_r0 + 4)); }
+            if (dmg > 0) Hp -= dmg * 0.0011f * gdt;
+            else Hp = Math.Min(1, Hp + gdt * (0.002f + 0.012f * M2));
+            if (Hp <= 0) { Kill(); return; }
+        }
+
+        if (Load < MaxLoad)
             foreach (var o in Nb)
             {
-                if (!Food(o)) continue;
-                o.State = St.Cup; o.Solid = false; o.Holder = this;
-                _ph.Add(new Ph { O = o, Lx = o.X - X, Ly = o.Y - Y });
-                break;
+                if (!Eatable(o, out var t) || Load + LoadOf(t) > MaxLoad) continue;
+                float lx = o.X - X, ly = o.Y - Y, d = Hypot(lx, ly);
+                if (d > RadialUtil.Interp(_rr, NN, MathF.Atan2(ly, lx)) + Size(t, o) + 0.4f) continue;
+                Engulf(o, t, lx, ly);
             }
-        for (int k = _ph.Count - 1; k >= 0; k--)
+        for (int k = Phagos.Count - 1; k >= 0; k--)
         {
-            var p = _ph[k]; var o = p.O;
-            if (!o.Alive || o.Holder != this) { _ph.RemoveAt(k); continue; }
-            p.St += dt;
-            if (p.St > 30) o.State = St.Vac;
-            float q = Damp(0.05f, dt); p.Lx = Lerp(p.Lx, p.Lx * 0.4f, q); p.Ly = Lerp(p.Ly, p.Ly * 0.4f, q);
-            o.Dig = Clamp((p.St - 30) / 1500, 0, 1);
-            if (o.Dig >= 1) { o.Alive = false; _ph.RemoveAt(k); continue; }
+            var p = Phagos[k]; var o = p.O;
+            if (!o.Alive || o.Holder != this) { Load -= LoadOf(p.T); Phagos.RemoveAt(k); continue; }
+            if (!p.Closed)
+            {
+                p.St += dt;
+                float q = Smooth(p.St / CupT(p.T));
+                p.Lx = Lerp(p.Sx, p.Tx, q); p.Ly = Lerp(p.Sy, p.Ty, q);
+                if (p.St >= CupT(p.T)) { p.Closed = true; p.St = 0; o.State = St.Vac; Closed(p); }
+            }
+            else
+            {
+                p.St += bdt;
+                float q = Damp(0.01f, dt); p.Lx = Lerp(p.Lx, p.Tx, q); p.Ly = Lerp(p.Ly, p.Ty, q);
+                o.Dig = Clamp(p.St / DigT(p.T), 0, 1);
+                if (p.T == PT.Yeast)
+                {
+                    // Candida w fagosomie przechodzi w strzępkę i przebija makrofaga (kandydalizyna, piroptoza)
+                    p.Germ += dt;
+                    if (p.Germ >= p.GermAt && o.Dig < 1) { Escape(p); Phagos.RemoveAt(k); if (!Alive) return; continue; }
+                }
+                if (o.Dig >= 1) { Done(p); o.Alive = false; Load -= LoadOf(p.T); Phagos.RemoveAt(k); continue; }
+            }
             o.X = X + p.Lx; o.Y = Y + p.Ly;
         }
         Shape();
     }
+    void Engulf(Ent o, PT t, float lx, float ly)
+    {
+        o.State = St.Cup; o.Solid = false; o.Holder = this;
+        if (o is Staph s) s.Owner = this;
+        // miejsce w cytoplazmie: z dala od jądra (z tyłu, za kierunkiem pełzania) i od innych fagosomów
+        float sz = Size(t, o), nx = -MathF.Cos(_dir) * _r0 * 0.25f, ny = -MathF.Sin(_dir) * _r0 * 0.25f, tx = 0, ty = 0, best = float.MaxValue;
+        for (int k = 0; k < 16; k++)
+        {
+            float a = Rand(0, TAU), rr = MathF.Sqrt(R01()) * Math.Max(0.5f, _r0 * 0.85f - sz), cx = MathF.Cos(a) * rr, cy = MathF.Sin(a) * rr;
+            float pen = Math.Max(0, _r0 * 0.4f + sz - Hypot(cx - nx, cy - ny)) * 0.6f;
+            foreach (var q in Phagos) pen += Math.Max(0, Size(q.T, q.O) + sz + 0.4f - Hypot(cx - q.Tx, cy - q.Ty));
+            if (pen < best) { best = pen; tx = cx; ty = cy; }
+        }
+        Phagos.Add(new Ph { O = o, T = t, Sx = lx, Sy = ly, Lx = lx, Ly = ly, Tx = tx, Ty = ty, GermAt = t == PT.Yeast ? Rand(1800, 7000) : 0 });
+        Load += LoadOf(t);
+        if (!IsPlayer) return;
+        switch (t)
+        {
+            case PT.Apo: W.Log("Sygnał „zjedz mnie” (fosfatydyloseryna na powierzchni) – makrofag otacza apoptotyczny neutrofil.", "info"); break;
+            case PT.Rbc: W.LogOnce("m_rbc0", "Erytrofagocytoza: makrofag otacza erytrocyt, który wydostał się z naczynia.", "info", 30); break;
+            case PT.Yeast: W.LogOnce("m_y0", "Drożdżak Candida w miseczce fagocytarnej. Uwaga – w fagosomie może wypuścić strzępkę.", "info", 30); break;
+            default: W.LogOnce("m_b0", "Receptory (FcγR, CR3, receptory zmiatacze) wiążą bakterię – tworzy się miseczka fagocytarna.", "info", 60); break;
+        }
+    }
+    void Closed(Ph p)
+    {
+        if (!IsPlayer) return;
+        W.AddStat("m_eng", 1);
+        W.LogOnce("m_cl" + (int)p.T, p.T switch
+        {
+            PT.Apo => "Fagosom zamknięty. Trawienie ciałka apoptotycznego nie wywołuje zapalenia.",
+            PT.Rbc => "Erytrocyt w fagolizosomie: hemoglobina → hem → oksygenaza hemowa-1 uwalnia żelazo.",
+            _ => "Fagosom zamknięty – fuzja z lizosomami, zakwaszenie, enzymy i reaktywne formy tlenu.",
+        }, "good", 40);
+    }
+    void Done(Ph p)
+    {
+        bool mine = IsPlayer || Lineage;
+        switch (p.T)
+        {
+            case PT.Bact: if (mine) { W.AddStat("m_killed", 1); W.AddStat("killed", 1); } break;
+            case PT.Yeast: if (mine) { W.AddStat("m_killed", 1); W.AddStat("fungi", 1); } if (IsPlayer) W.Log("Drożdżak strawiony, zanim zdążył wypuścić strzępkę.", "good"); break;
+            case PT.Rbc:
+                // żelazo z hemu magazynowane w ferrytynie/hemosyderynie – złotobrązowe ziarna (syderofag)
+                for (int i = 0; i < 3; i++) { float a = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.7f; _hemo.Add(new Vector3(a, r, Rand(0.22f, 0.42f))); }
+                if (_hemo.Count > 60) _hemo.RemoveRange(0, _hemo.Count - 60);
+                if (mine) W.AddStat("m_rbc", 1);
+                if (IsPlayer) W.LogOnce("m_hemo", "Z żelaza hemu powstaje hemosyderyna – złotobrązowe ziarna. Makrofag z nimi to syderofag (ślad dawnego wylewu, np. siniaka).", "good", 60);
+                break;
+            case PT.Apo:
+                M2 = 1; Hp = Math.Min(1, Hp + 0.25f);
+                if (mine) W.AddStat("m_effero", 1);
+                if (IsPlayer) W.Log("Eferocytoza! Makrofag wydziela TGF-β i PGE2 i hamuje własne cytokiny zapalne (Fadok i in. 1998) – fenotyp naprawczy, błona się regeneruje.", "good");
+                break;
+        }
+    }
+    void Escape(Ph p)
+    {
+        var o = p.O; float a = MathF.Atan2(p.Ly, p.Lx);
+        o.Alive = false; Load -= LoadOf(p.T);
+        W.Add(new CandidaHypha(W, X + p.Lx, Y + p.Ly, a));
+        W.Sfx("pop", X, Y, 0.6f);
+        if (IsPlayer) W.Log("Candida wypuściła strzępkę w fagosomie – kandydalizyna i piroptoza przebijają błonę makrofaga!", "bad");
+        Damage(0.3f);
+    }
+
+    static readonly Color HemoC = Rgb(165, 112, 38, 0.8f), HemoH = Rgb(240, 200, 120, 0.5f);
     public override void Draw(Painter p, View v)
     {
         int n = Mem.Smooth(p.Shape);
@@ -76,11 +231,32 @@ public sealed class Macrophage : Ent
         p.FillRadial(sh, X, Y, ts, cs);
         p.Stroke(sh, true, 0.14f, Rgb(40, 40, 34, 0.7f));
         p.Local(X, Y, 0);
+        if (_cyto > 0.01f) { float rr = _r0 + (1 - _cyto) * 70; p.Circle(0, 0, rr, 0.6f + 1.5f * _cyto, Rgb(230, 235, 200, 0.22f * _cyto)); p.Glow(0, 0, rr, Rgb(220, 225, 180, 0.08f * _cyto)); }
         float nx = -MathF.Cos(_dir) * _r0 * 0.25f, ny = -MathF.Sin(_dir) * _r0 * 0.25f;
         p.FillEllipse(nx, ny, _r0 * 0.38f, _r0 * 0.28f, _dir, Rgb(85, 85, 105, 0.45f));
         p.Arc(nx + MathF.Cos(_dir) * _r0 * 0.3f, ny + MathF.Sin(_dir) * _r0 * 0.3f, _r0 * 0.15f, _dir + 2, _dir + 4.3f, 0.5f, Rgb(160, 158, 146, 0.6f));
         foreach (var l in _lys) { float r = RadialUtil.Interp(_rr, NN, l.X) * l.Y; p.Dot(MathF.Cos(l.X) * r, MathF.Sin(l.X) * r, l.Z, l.Z > 0.28f ? Rgb(215, 220, 200, 0.55f) : Rgb(50, 50, 42, 0.5f)); }
-        foreach (var ph in _ph) p.Circle(ph.Lx, ph.Ly, ph.O.Radius + 0.35f, 0.12f, Rgb(235, 240, 220, 0.5f));
+        foreach (var h in _hemo) { float r = RadialUtil.Interp(_rr, NN, h.X) * h.Y, x = MathF.Cos(h.X) * r, y = MathF.Sin(h.X) * r; p.Dot(x, y, h.Z, HemoC); p.Dot(x - h.Z * 0.3f, y - h.Z * 0.3f, h.Z * 0.35f, HemoH); }
+        foreach (var ph in Phagos)
+        {
+            float d = ph.O.Dig, sz = Size(ph.T, ph.O);
+            if (ph.T == PT.Rbc)
+            {
+                // erytrocyt w fagolizosomie: hemoglobina rozkładana – krążek blednie i brązowieje
+                float r = sz * (1 - 0.45f * d);
+                p.FillCircleGrad(ph.Lx, ph.Ly, r, Rgb((int)Lerp(175, 150, d), (int)Lerp(125, 110, d), (int)Lerp(110, 60, d), 0.45f * (1 - d * 0.7f)), Rgb((int)Lerp(145, 130, d), (int)Lerp(92, 95, d), (int)Lerp(85, 50, d), 0.6f * (1 - d * 0.7f)));
+            }
+            else if (ph.T == PT.Apo)
+            {
+                // ciałko apoptotyczne: obkurczona komórka z gęstymi grudkami chromatyny
+                float r = sz * (1 - 0.4f * d);
+                p.FillCircle(ph.Lx, ph.Ly, r, Rgb(150, 150, 138, 0.4f * (1 - d * 0.6f)));
+                for (int k = 0; k < 3; k++) p.FillCircle(ph.Lx + MathF.Cos(k * 2.1f + 0.5f) * r * 0.4f, ph.Ly + MathF.Sin(k * 2.1f + 0.5f) * r * 0.4f, r * 0.26f * (1 - 0.5f * d), Rgb(40, 40, 62, 0.75f * (1 - d * 0.7f)));
+            }
+            float rim = sz + (ph.Closed ? 0.45f : 0.15f);
+            if (ph.Closed) p.FillCircle(ph.Lx, ph.Ly, rim, Rgb(210, 225, 200, 0.12f));
+            p.Circle(ph.Lx, ph.Ly, rim, 0.13f, ph.Closed ? Rgb(235, 240, 220, 0.5f) : Rgb(235, 240, 220, 0.3f));
+        }
     }
 }
 

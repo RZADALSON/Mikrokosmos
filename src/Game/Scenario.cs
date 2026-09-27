@@ -27,6 +27,10 @@ public abstract class Scenario
     /// <summary>Rozmiar komórki siatki przestrzennej (µm).</summary>
     public float GridCell = 20;
     public string ScoreLabel = "wynik";
+    /// <summary>Średni czas życia neutrofila w tkance (s czasu biologicznego); 0 = bez apoptozy.</summary>
+    public float NeutroLife;
+    /// <summary>Natężenie światła PAR w punkcie (µmol fotonów m⁻² s⁻¹); &lt; 0 = scenariusz bez modelu światła.</summary>
+    public virtual float Light(World w, float x, float y) => -1;
 
     // ------------------------------------------------ świat nieskończony (chunki)
     /// <summary>Bok chunka (µm); 0 = świat skończony Wd × Ht.</summary>
@@ -226,7 +230,21 @@ public abstract class Scenario
         ("Drożdże w wodach słodkich i biofilmach (J Water Health)", "https://iwaponline.com/jwh/article/18/2/91/73027/Aquatic-yeasts-diversity-characteristics-and"),
         ("Wrotki bdelloidalne – siedliska (microbewiki)", "https://microbewiki.kenyon.edu/index.php/Bdelloid_rotifer"),
         ("Wynaczynienie płytek w stanach zapalnych (Front Immunol)", "https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2026.1764398/full"),
+        ("Makrofagi i neutrofile – odmienne tryby migracji w tkance (PubMed 2017)", "https://pubmed.ncbi.nlm.nih.gov/28972134/"),
+        ("Makrofagi: migracja mezenchymalna vs ameboidalna (Cancer Immunol Res 2018)", "https://aacrjournals.org/cancerimmunolres/article/6/11/1337/468868/The-Protease-Dependent-Mesenchymal-Migration-of"),
+        ("Chemokiny CXCL1/CXCL2 makrofagów i mastocytów ściągają neutrofile (Blood 2013)", "https://ashpublications.org/blood/article-abstract/121/24/4930/31645"),
+        ("Fadok i in. 1998 – eferocytoza hamuje cytokiny zapalne (TGF-β, PGE2)", "https://www.jci.org/articles/view/11638"),
+        ("Martwica wtórna nieuprzątniętych neutrofili (PMC)", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6084545/"),
+        ("Eferocytoza neutrofili i zapalenie przewlekłe (Front Immunol 2026)", "https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2026.1835168/full"),
+        ("Erytrofagocytoza, oksygenaza hemowa, żelazo (Front Immunol 2017)", "https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2017.00073/full"),
+        ("Ucieczka Candida z makrofagów – kandydalizyna (Cell Rep 2022)", "https://www.cell.com/cell-reports/fulltext/S2211-1247(22)01206-2"),
+        ("Candida wykorzystuje piroptozę do ucieczki z makrofagów (mBio 2014)", "https://journals.asm.org/doi/10.1128/mbio.00003-14"),
+        ("Euglena – fotoaktywowana cyklaza adenylanowa steruje fototaksją (Plant Physiol 2003)", "https://academic.oup.com/plphys/article-abstract/133/4/1517/6103414"),
+        ("Euglena – fototaksja dodatnia i ujemna zależnie od natężenia (PNAS 2015)", "https://www.pnas.org/doi/10.1073/pnas.1422922112"),
+        ("Euglena – fotoinhibicja i reaktywne formy tlenu (Planta)", "https://link.springer.com/article/10.1007/BF00195688"),
+        ("Euglena – wzrost i skład komórek w różnych warunkach, paramylon (PLOS One 2018)", "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0195329"),
+        ("Noselli i in. 2019 – metabolia jako pełzanie w ciasnocie (arXiv)", "https://arxiv.org/pdf/2005.11952"),
     };
 
-    public static readonly Scenario[] All = { new ScT4(), new ScBdello(), new ScEcoli(), new ScNeutro(), new ScPara(), new ScDidinium(), new ScAmoeba() };
+    public static readonly Scenario[] All = { new ScT4(), new ScBdello(), new ScEcoli(), new ScNeutro(), new ScMacro(), new ScPara(), new ScDidinium(), new ScAmoeba(), new ScEuglena() };
 }

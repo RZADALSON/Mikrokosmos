@@ -20,6 +20,8 @@ public sealed class Spec
     public int ChlN; public float ChlR = 2; public Color Chl = Rgb(70, 150, 45, 0.6f), ChlHi = Rgb(200, 240, 150, 0.4f);
     public float Cilia; public int Flag; public float FlagL;
     public bool Eyespot, Groove, Beads, MacroC, Armor, Cirri, Stripes, OralRing, Muller;
+    /// <summary>Fototrof (chloroplasty, paramylon, fototaksja); pellikula z helikalnych pasków; wodniczka tętniąca przy zbiorniczku z przodu.</summary>
+    public bool Photo, Pellicle, CvFront;
     public Color StripeC = Rgb(60, 120, 150, 0.45f);
     public int CV = 1;
     public float Soft = 0.4f;
@@ -55,6 +57,10 @@ public sealed class Protist : Ent, ICaptor
 {
     public readonly Spec S;
     public float L, Wd, Speed, Contr, Cph, Roll, St0, AvoidCD, Energy, Meta, MetaPh, Stun;
+    /// <summary>Fototrof: zapas paramylonu 0..1, uszkodzenie fotoukładu II 0..1, światło (µmol m⁻² s⁻¹), wydajność fotosyntezy, głód, postęp podziału.</summary>
+    public float Paramylon = 0.5f, PhotoDmg, Lux = -1, PhotoRate, Hunger, Div;
+    bool _nearDet, _inDet; float _dk = -1;
+    public override bool Hidden => _inDet;
     float _moveT, _jump, _hold, _seekT, _metaT, _lk = -1, _mk = -1, _mph, _head, _track;
     public Steer Sw;
     bool _walking = true;
@@ -81,7 +87,7 @@ public sealed class Protist : Ent, ICaptor
         Lysis.Start(this, S.Body, S.Edge, S.ChlN > 0 ? S.Chl : S.GranA, S.GranB);
         Alive = false;
     }
-    public override bool CanControl() => false;
+    public override bool CanControl() => S.Photo && State is St.Swim or St.Avoid;
 
     public Protist(World w, Spec s, float x, float y, float a, float scale = 1) : base(w, x, y, a)
     {
@@ -99,8 +105,9 @@ public sealed class Protist : Ent, ICaptor
         _gran = new Vector3[s.GranN];
         for (int i = 0; i < _gran.Length; i++) _gran[i] = new Vector3(Rand(0, TAU), MathF.Sqrt(R01()) * 0.85f, Chance(0.5f) ? 1 : 0);
         _chl = new Vector3[s.ChlN];
-        for (int i = 0; i < _chl.Length; i++) _chl[i] = new Vector3(Rand(0, TAU), MathF.Sqrt(R01()) * 0.86f, Rand(0.75f, 1.2f));
+        for (int i = 0; i < _chl.Length; i++) _chl[i] = new Vector3(Rand(0, TAU), MathF.Sqrt(R01()) * (s.Photo ? 0.7f : 0.86f), Rand(0.75f, 1.2f));
         R = L / 2 + s.Cilia + 6;
+        if (s.Photo) Paramylon = Rand(0.3f, 0.9f);
         Compute(); Mem.Follow(x, y, a, 1, 1);
     }
 
@@ -110,10 +117,10 @@ public sealed class Protist : Ent, ICaptor
         float lk = LenK;
         // kształt przeliczany tylko przy wyraźnej zmianie (skurcz, metabolia) i tylko w pobliżu kadru
         bool metaMove = Meta > 0 && MathF.Abs(MetaPh - _mph) > 0.12f;
-        if (_lk > 0 && MathF.Abs(lk - _lk) < 0.008f && MathF.Abs(Meta - _mk) < 0.02f && !metaMove) return;
+        if (_lk > 0 && MathF.Abs(lk - _lk) < 0.008f && MathF.Abs(Meta - _mk) < 0.02f && !metaMove && MathF.Abs(Div - _dk) < 0.02f) return;
         if (_lk > 0 && !W.OnScreen(this, 1.8f)) return;
-        _lk = lk; _mk = Meta; _mph = MetaPh;
-        float hl = L * lk / 2, hw = Wd * WidK / 2;
+        _lk = lk; _mk = Meta; _mph = MetaPh; _dk = Div;
+        float hl = L * lk / 2, hw = Wd * WidK / 2 * (1 + 0.55f * Div);
         const int M = 24;
         for (int k = 0; k <= M; k++)
         {
@@ -193,7 +200,7 @@ public sealed class Protist : Ent, ICaptor
             case Motion.Flagellate:
                 Roll += dt * TAU * 1.4f;
                 _head += RandN() * 0.45f * MathF.Sqrt(dt);
-                if (S.Metaboly > 0)
+                if (S.Metaboly > 0 && !(IsPlayer && S.Photo))
                 {
                     _metaT -= dt;
                     if (_metaT <= 0) { _walking = !_walking; _metaT = _walking ? ExpRand(14) : Rand(4, 9); }
@@ -218,6 +225,7 @@ public sealed class Protist : Ent, ICaptor
                 A = _a0 + MathF.Sin(W.T * 0.25f + _seed) * 0.25f; Vx = Vy = 0;
                 break;
         }
+        if (S.Photo) { PhotoStep(dt, gdt, ref v, ref maxW); if (!Alive) return; }
         // polowanie: słaba chemotaksja – ofiara musi być przed nami (rzęski nie "widzą" do tyłu), pościg ma limit czasu
         if ((S.Eats != null || S.Victim != null) && S.Move != Motion.Sessile)
         {
@@ -225,10 +233,11 @@ public sealed class Protist : Ent, ICaptor
             if (_seekT <= 0)
             {
                 _seekT = 0.6f;
-                float sense = S.Sense > 0 ? S.Sense : L * 3 + 100;
+                // orzęski wyczuwają ofiarę głównie z bliska (mechano- i chemorecepcja na odległość rzędu długości ciała)
+                float sense = S.Sense > 0 ? S.Sense : L * 0.9f + 60;
                 bool Front(Ent e) => MathF.Abs(WrapA(MathF.Atan2(e.Y - Y, e.X - X) - A)) < 1.5f;
-                var nt = W.Near(X, Y, sense, e => e != this && e.Alive && Front(e) && ((S.Victim != null && S.Victim(this, e) && e.Hp < 1) || (S.Eats != null && S.Eats(this, e))));
-                if (nt == null && S.Victim != null) nt = W.Near(X, Y, sense * 0.5f, e => e != this && e.Alive && Front(e) && S.Victim(this, e));
+                var nt = W.Near(X, Y, sense, e => e != this && e.Alive && !e.Hidden && Front(e) && ((S.Victim != null && S.Victim(this, e) && e.Hp < 1) || (S.Eats != null && S.Eats(this, e))));
+                if (nt == null && S.Victim != null) nt = W.Near(X, Y, sense * 0.5f, e => e != this && e.Alive && !e.Hidden && Front(e) && S.Victim(this, e));
                 if (nt != _target) { _target = nt; _track = 8; }
                 if (_track <= 0) _target = null;
             }
@@ -254,6 +263,96 @@ public sealed class Protist : Ent, ICaptor
         Digest(dt);
         Compute();
         if (World.Prof) World.PAdd("p:compute", t0);
+    }
+
+    // ------------------------------------------------------------------ fototrof (Euglena)
+    void PhotoStep(float dt, float gdt, ref float v, ref float maxW)
+    {
+        bool player = IsPlayer && !W.Preview;
+        if (player)
+        {
+            var I = W.Input; bool on = I.Mag > 0.05f;
+            if (on) _head = I.Ang;
+            // Spacja: metabolia – fale skurczu pellikuli; w ciasnocie to skuteczne pełzanie (Noselli i in. 2019)
+            Meta = I.ActionHeld ? Math.Min(1, Meta + dt / 0.8f) : Math.Max(0, Meta - dt / 0.8f);
+            if (Meta > 0) MetaPh += dt * 2.6f;
+            float sw = Speed * (on ? I.Mag : 0) * (I.Boost ? 1.35f : 1);
+            v = Lerp(sw, on ? 10 : 0, Smooth(Meta)) * (Div > 0 ? 0.5f : 1);
+            maxW = 2.4f * (1 - 0.6f * Meta);
+        }
+        float lux = W.Sc.Light(W, X, Y);
+        if (lux < 0 || W.Preview) return;
+        Lux = lux;
+        // krzywa P–I: nasycenie przy ~200–400 µmol m⁻² s⁻¹, fotoinhibicja (uszkodzenia PSII przez RFT) przy bardzo silnym świetle
+        PhotoRate = MathF.Tanh(lux / 180) * (1 - PhotoDmg);
+        if (lux > 800) PhotoDmg = Math.Min(1, PhotoDmg + (lux - 800) / 700 * gdt / 35);
+        else if (lux < 450) PhotoDmg = Math.Max(0, PhotoDmg - gdt / 50);
+        if ((W.Frame + Id) % 12 == 0)
+        {
+            W.Query(X, Y, L * 0.6f + 110, _q); _nearDet = _inDet = false;
+            foreach (var d in _q)
+            {
+                if (d is not Detritus || !d.Alive) continue;
+                float dd = Hypot(d.X - X, d.Y - Y);
+                if (dd < d.Radius + L * 0.6f + 40) _nearDet = true;
+                if (Meta > 0.5f && dd < d.Radius + L * 0.15f) _inDet = true;
+            }
+        }
+        if (!IsPlayer)
+        {
+            // fototaksja: plamka oczna zacienia fotoreceptor przy obrocie komórki – skręt ku umiarkowanemu światłu, ucieczka od zbyt silnego
+            if ((W.Frame + Id) % 20 == 0)
+            {
+                float best = 1e9f, ba = _head;
+                for (int k = -2; k <= 2; k++)
+                {
+                    float a = _head + k * 0.7f, li = W.Sc.Light(W, X + MathF.Cos(a) * 90, Y + MathF.Sin(a) * 90), sc = MathF.Abs(MathF.Log((li + 15) / 400));
+                    if (sc < best - 0.02f) { best = sc; ba = a; }
+                }
+                _head = Turn(_head, ba, 0.5f);
+            }
+            if (!Lineage) { Paramylon = Clamp(Paramylon + (PhotoRate - 0.3f) * gdt / 200, 0.1f, 1); return; }
+        }
+        // osmotrofia: w półmroku przy detrytusie wchłania rozpuszczone związki organiczne (octan, etanol, cukry)
+        float osmo = _nearDet && lux < 300 ? (_inDet ? 0.45f : 0.3f) : 0;
+        float gain = (PhotoRate + osmo) * gdt / 70;
+        float cost = gdt / 260 * (1 + (Sw.V > Speed * 1.1f ? 1.2f : 0)) + PhotoDmg * gdt / 250;
+        Paramylon += gain - cost;
+        if (PhotoDmg > 0.75f) Damage((PhotoDmg - 0.75f) * gdt / 25);
+        if (!Alive) return;
+        if (Paramylon <= 0)
+        {
+            Paramylon = 0; Hunger += gdt / 50;
+            if (Hunger >= 1) { if (player) W.Log("Zapas paramylonu wyczerpany – komórka umiera z głodu (za mało światła i pokarmu organicznego).", "bad"); Kill(); return; }
+        }
+        else Hunger = Math.Max(0, Hunger - gdt / 20);
+        if (player)
+        {
+            W.AddStat("photo", PhotoRate * gdt);
+            W.Stats["paramax"] = Math.Max(W.Stat("paramax"), Paramylon);
+            if (_inDet) W.Stats["hidden"] = 1;
+            if (lux > 800) W.LogOnce("eu_hi", "Za jasno! Silne światło uszkadza fotoukład II (fotoinhibicja). Przy dużym natężeniu Euglena płynie OD światła – szukaj półcienia.", "bad", 40);
+            if (osmo > 0) W.LogOnce("eu_osmo", "Półmrok przy detrytusie: Euglena wchłania rozpuszczone związki organiczne (osmotrofia) – miksotrofia ratuje ją w ciemności.", "info", 60);
+        }
+        if (Paramylon >= 1 && Div <= 0 && State == St.Swim) { Div = 0.001f; if (player) W.Log("Pełny zapas paramylonu – zaczyna się podział podłużny (od przodu ku tyłowi). Płyniesz wolniej.", "good"); }
+        if (Div > 0) { Div += gdt / 18; Paramylon = 1; if (Div >= 1) Split(); }
+    }
+    void Split()
+    {
+        // podział podłużny: bruzda przebiega od przodu do tyłu, córki rozchodzą się bokami
+        float nx = -MathF.Sin(A), ny = MathF.Cos(A), off = Wd * 0.45f;
+        Protist Mk(float sg)
+        {
+            var e = W.Add(new Protist(W, S, X + nx * off * sg, Y + ny * off * sg, A + sg * 0.2f));
+            e.L = L; e.Wd = Wd; e.R = R; e._lk = -1; e.Compute(); e.Mem.Follow(e.X, e.Y, e.A, 1, 1);
+            e.Paramylon = 0.32f; e.Lineage = true; e._head = e.A; e.Sw.V = Sw.V * 0.5f; e.Hp = Math.Max(0.6f, Hp);
+            return e;
+        }
+        var a1 = Mk(1); Mk(-1);
+        W.AddStat("pop", 1);
+        bool pl = IsPlayer;
+        ReleaseHeld(); Alive = false;
+        if (pl) { W.Player = null; W.SetPlayer(a1); W.Log("Podział zakończony – dwie klejnotki. Każda dostała połowę chloroplastów i ziaren paramylonu.", "good"); }
     }
 
     void Mouth(out float mx, out float my) => ToWorld(L * LenK * 0.42f, S.Groove ? Wd * 0.12f : 0, out mx, out my);
@@ -373,6 +472,12 @@ public sealed class Protist : Ent, ICaptor
     public override void OnTouch(Ent o, float nx, float ny)
     {
         if (!o.Permeable(this)) Sw.Push(this, o, nx, ny);
+        if (IsPlayer)
+        {
+            // gracz: zderzenie przodem hamuje wić, bez automatycznej ucieczki
+            if (nx * MathF.Cos(A) + ny * MathF.Sin(A) > 0.6f && !o.Permeable(this)) Sw.V *= 0.5f;
+            return;
+        }
         if (State != St.Swim || AvoidCD > 0 || S.Move == Motion.Sessile) return;
         if (o == _target || (S.Eats != null && S.Eats(this, o)) || (S.Victim != null && S.Victim(this, o))) return;
         State = St.Avoid; St0 = Rand(0.25f, 0.5f); AvoidCD = 1.2f;
@@ -401,10 +506,10 @@ public sealed class Protist : Ent, ICaptor
     {
         var m = Mem;
         bool eaten = State is St.Cup or St.Vac;
-        float al = eaten ? (1 - Dig) * 0.9f : 1;
+        float al = eaten ? (1 - Dig) * 0.9f : _inDet ? 0.6f : 1;
         if (al <= 0.01f) return;
         float oldA = p.Alpha; p.Alpha = al;
-        float lk = LenK, hl = L * lk / 2, hw = Wd * WidK / 2;
+        float lk = LenK, hl = L * lk / 2, hw = Wd * WidK / 2 * (1 + 0.55f * Div);
         m.Normals();
         // rzęski
         float pxLen = L * lk / Math.Max(v.Px, 1e-6f); // długość na ekranie w pikselach
@@ -469,11 +574,37 @@ public sealed class Protist : Ent, ICaptor
             }
         }
         if (tiny) { p.Alpha = oldA; return; }
+        // pellikula Eugleny: białkowe paski biegnące helikalnie pod błoną (widoczne jako skośne prążki)
+        if (S.Pellicle && detail)
+        {
+            var pc = Rgb(40, 80, 30, 0.2f); float pw = Math.Max(v.Px * 0.8f, hw * 0.025f);
+            for (int r = -9; r <= 9; r++)
+            {
+                float px = 0, py = 0; bool has = false;
+                for (int k = 0; k <= 14; k++)
+                {
+                    float t = -0.92f + 1.84f * k / 14, f = r / 9f + 0.55f * t + 0.12f * MathF.Sin(MetaPh + t * 3) * Meta;
+                    float x = t * hl, y = S.Profile(t) * hw * f;
+                    bool inside = MathF.Abs(f) < 0.93f && Hypot(x, y) < Rr(MathF.Atan2(y, x)) * 0.93f;
+                    if (inside && has) p.Seg(px, py, x, y, pw, pc);
+                    px = x; py = y; has = inside;
+                }
+            }
+        }
         int gstep = detail ? 1 : 3;
         _gp ??= Prep(_gran); _cp ??= Prep(_chl);
-        for (int gi = 0; gi < _gp.Length; gi += gstep) { Pt(in _gp[gi], out float x, out float y); p.Dot(x, y, S.GranR, _gp[gi].Z > 0 ? S.GranA : S.GranB); }
-        for (int ci = 0; ci < _cp.Length; ci += detail ? 1 : 2) { Pt(in _cp[ci], out float x, out float y); p.Dot(x, y, S.ChlR * _cp[ci].Z * (detail ? 1 : 1.3f), S.Chl); }
+        // chloroplasty; przy fotouszkodzeniu bledną (rozkład chlorofilu)
+        var chl = S.Chl;
+        if (PhotoDmg > 0) chl = new Color(Lerp(chl.R, 0.72f, PhotoDmg * 0.6f), Lerp(chl.G, 0.7f, PhotoDmg * 0.4f), Lerp(chl.B, 0.35f, PhotoDmg * 0.6f), chl.A);
+        for (int ci = 0; ci < _cp.Length; ci += detail ? 1 : 2) { Pt(in _cp[ci], out float x, out float y); p.Dot(x, y, S.ChlR * _cp[ci].Z * (detail ? 1 : 1.3f), chl); }
         if (S.ChlN > 0 && S.ChlR * v.S > 2.5f && detail) for (int ci = 0; ci < _cp.Length; ci++) if (_cp[ci].Z > 1.05f) { Pt(in _cp[ci], out float x, out float y); p.Dot(x - S.ChlR * 0.25f, y - S.ChlR * 0.25f, S.ChlR * 0.35f, S.ChlHi); }
+        if (S.Photo)
+        {
+            // ziarna paramylonu: jasne, silnie załamujące światło pałeczki – ich liczba rośnie z zapasem
+            int gn = (int)(_gp.Length * (0.15f + 0.85f * Clamp(Paramylon, 0, 1)));
+            for (int gi = 0; gi < gn; gi += gstep) { Pt(in _gp[gi], out float x, out float y); p.FillEllipse(x, y, S.GranR * 1.25f, S.GranR * 0.6f, gi * 0.7f, S.GranA); }
+        }
+        else for (int gi = 0; gi < _gp.Length; gi += gstep) { Pt(in _gp[gi], out float x, out float y); p.Dot(x, y, S.GranR, _gp[gi].Z > 0 ? S.GranA : S.GranB); }
         // pęcherzyki Müllera (Loxodes): czujniki grawitacji wzdłuż brzegu grzbietowego – jasny pęcherzyk z ciemnym ziarnem
         if (S.Muller)
         {
@@ -499,7 +630,7 @@ public sealed class Protist : Ent, ICaptor
         for (int k = 0; k < S.CV; k++)
         {
             float ph = (W.T * 0.15f + _seed + k * 0.5f) % 1, vr = ph < 0.9f ? Smooth(ph / 0.9f) * hw * 0.3f : (1 - (ph - 0.9f) / 0.1f) * hw * 0.3f;
-            float cx = -hl * (0.72f - k * 0.1f), cy = hw * 0.15f * (k == 0 ? 1 : -1);
+            float cx = S.CvFront ? hl * 0.6f : -hl * (0.72f - k * 0.1f), cy = S.CvFront ? -hw * 0.25f : hw * 0.15f * (k == 0 ? 1 : -1);
             vr = Math.Min(vr, L * 0.03f);
             if (vr > v.Px) { p.FillCircle(cx, cy, vr, Rgb(215, 225, 210, 0.45f)); p.Circle(cx, cy, vr, Math.Max(v.Px, vr * 0.08f), Rgb(250, 255, 240, 0.55f)); }
         }
@@ -564,7 +695,20 @@ public sealed class Protist : Ent, ICaptor
                 p.Thin(new ReadOnlySpan<Vector2>(buf, 0, K + 1), false, Math.Max(v.Px * 0.9f, hw * 0.05f), Mul(S.Edge, 0.7f));
             }
         }
-        if (S.Eyespot) p.FillEllipse(hl * 0.78f, hw * 0.25f, hw * 0.18f, hw * 0.12f, 0.3f, Rgb(230, 70, 30, 0.9f));
+        if (S.Photo)
+        {
+            // zbiorniczek (rezerwuar) u nasady wici; przy podziale – bruzda od przodu i podwojone organelle
+            p.FillEllipse(hl * 0.8f, 0, hw * 0.32f, hw * 0.2f, 0, Rgb(232, 240, 222, 0.35f));
+            if (Div > 0)
+            {
+                p.Line(hl * 1.02f, 0, hl * (1.02f - 2 * Div), 0, Math.Max(v.Px, hw * 0.07f), Mul(S.Edge, 0.8f), true);
+                p.FillEllipse(hl * 0.78f, -hw * 0.3f, hw * 0.16f, hw * 0.11f, -0.3f, Rgb(230, 70, 30, 0.9f));
+                var buf = p.Buf2;
+                for (int k = 0; k <= 18; k++) { float t = k / 18f, d = t * S.FlagL * L; buf[k] = new Vector2(hl + d * 0.95f, -hw * 0.3f - d * 0.15f + L * 0.07f * t * MathF.Sin(TAU * t * 1.5f - Cph * 1.4f + 2)); }
+                p.Thin(new ReadOnlySpan<Vector2>(buf, 0, 19), false, Math.Max(v.Px * 0.9f, hw * 0.05f), Mul(S.Edge, 0.7f));
+            }
+        }
+        if (S.Eyespot) p.FillEllipse(hl * 0.78f, hw * (Div > 0 ? 0.35f : 0.25f), hw * 0.18f, hw * 0.12f, 0.3f, Rgb(230, 70, 30, 0.9f));
         p.Alpha = oldA;
     }
 }
@@ -598,8 +742,9 @@ public static class Species
     {
         Id = "euglena", Name = "klejnotka", Latin = "Euglena gracilis", L0 = 48, L1 = 85, Aspect = 0.2f,
         Profile = t => MathF.Pow(Math.Max(0, 1 - t * t), t < 0 ? 1.0f : 0.55f), Speed = 68, Move = Motion.Flagellate, Metaboly = 1,
-        Body = Rgb(150, 190, 120, 0.45f), Edge = Rgb(30, 70, 25, 0.75f), GranN = 16, GranR = 1.3f, GranA = Rgb(240, 245, 225, 0.6f), GranB = Rgb(240, 245, 225, 0.5f),
-        ChlN = 38, ChlR = 2.4f, Chl = Rgb(60, 145, 45, 0.7f), Flag = 1, FlagL = 0.9f, Eyespot = true, CV = 1, Soft = 0.55f, Food = 0.5f,
+        Body = Rgb(150, 190, 120, 0.45f), Edge = Rgb(30, 70, 25, 0.75f), GranN = 30, GranR = 1.3f, GranA = Rgb(245, 248, 232, 0.7f), GranB = Rgb(240, 245, 225, 0.5f),
+        ChlN = 30, ChlR = 2.1f, Chl = Rgb(60, 145, 45, 0.7f), Flag = 1, FlagL = 0.9f, Eyespot = true, CV = 1, Soft = 0.55f, Food = 0.5f,
+        Photo = true, Pellicle = true, CvFront = true,
         Fact = "Euglena (≈ 50–100 µm): wić, czerwona plamka oczna (fototaksja), dziesiątki chloroplastów, ziarna paramylonu. Pływa ≈ 70 µm/s po spirali; zatrzymana zmienia kształt falami skurczu (metabolia, ruch euglenoidalny).",
     };
     public static readonly Spec Spirostomum = new()

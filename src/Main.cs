@@ -247,7 +247,7 @@ public partial class Main : Node
             _bars[i].l.Text = lab.ToUpperInvariant(); _bars[i].b.Value = Clamp(val, 0, 1); _bars[i].f.BgColor = col;
         }
         var G = _nano ? null : _sc.Goals;
-        if (_nano) { _goalHdr.Text = "TRYB EKSPLORACJI"; _goalText.Text = "Brak celów – zwiedzaj, skanuj i porównuj skale (1–7)."; _goalBar.Visible = false; }
+        if (_nano) { _goalHdr.Text = "TRYB EKSPLORACJI"; _goalText.Text = "Brak celów – zwiedzaj, skanuj i porównuj skale (1–9)."; _goalBar.Visible = false; }
         if (G != null)
         {
             if (_world.GoalIdx < G.Length)
@@ -297,7 +297,7 @@ public partial class Main : Node
         v.AddChild(Ui.L("Wybierz organizm – każdy żyje w innej skali, innym czasie i pod innym mikroskopem · od wirusa 0,2 µm (TEM) po amebę 0,5 mm", 15, Hex("#c8d2c2"), false, HorizontalAlignment.Center));
         var holder = new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Pass };
         v.AddChild(holder);
-        var grid = new GridContainer { Columns = 4 };
+        var grid = new GridContainer { Columns = 5 };
         grid.AddThemeConstantOverride("h_separation", 18); grid.AddThemeConstantOverride("v_separation", 18);
         holder.AddChild(grid);
         foreach (var sc in Scenario.All) grid.AddChild(MakeCard(sc));
@@ -470,7 +470,7 @@ public partial class Main : Node
         var pn = new PanelContainer { CustomMinimumSize = new Vector2(560, 0) }; cn.AddChild(pn);
         var vn = new VBoxContainer(); vn.AddThemeConstantOverride("separation", 8); pn.AddChild(vn);
         vn.AddChild(Ui.L("Nanobot – wybierz skalę świata", 24, null, true));
-        vn.AddChild(Ui.L("Rozmiar bota dopasuje się do świata (≈ 1/30 kadru). W grze klawisze 1–7 przełączają skalę.", 13, Ui.Dim, false, HorizontalAlignment.Left, true));
+        vn.AddChild(Ui.L("Rozmiar bota dopasuje się do świata (≈ 1/30 kadru). W grze klawisze 1–9 przełączają świat.", 13, Ui.Dim, false, HorizontalAlignment.Left, true));
         int idx = 1;
         foreach (var s in Scenario.All)
         {
@@ -538,6 +538,8 @@ public partial class Main : Node
         "bdello" => "Biofilm E. coli (obiektyw 100×)",
         "ecoli" => "Biofilm z glukozą i antybiotykiem (100×)",
         "neutro" => "Tkanka łączna z żyłkami (40×, time-lapse)",
+        "macro" => "Tkanka – sprzątanie po zapaleniu (40×, time-lapse ×90)",
+        "euglena" => "Staw – światło i cień, wiciowce (40×)",
         "para" => "Staw – orzęski (10×)",
         "didinium" => "Staw – drapieżniki (10×)",
         "amoeba" => "Staw – dno i ameby (10×, time-lapse)",
@@ -614,7 +616,7 @@ public partial class Main : Node
             if (org != null) { org.Alive = false; _world.Ents.Remove(org); }
             _world.Player = null; _world.Focus = null;
             _world.SetPlayer(_world.Add(new Nanobot(_world, bx, by)));
-            _world.Log($"Nanobot w świecie: {WorldName(sc)}. Spacja / PPM – laser na cel pod kursorem, najedź kursorem na komórkę, by ją zeskanować. 1–7 – zmiana skali, Z/X – tempo czasu.", "info");
+            _world.Log($"Nanobot w świecie: {WorldName(sc)}. Spacja / PPM – laser na cel pod kursorem, najedź kursorem na komórkę, by ją zeskanować. 1–9 – zmiana skali, Z/X – tempo czasu.", "info");
         }
         _tz = _zoom = 1;
         var t = _world.CamTarget();
@@ -628,7 +630,7 @@ public partial class Main : Node
         if (nano)
         {
             _orgName.Text = "Nanobot"; _orgLatin.Text = WorldName(sc); _orgType.Text = $"Tryb eksploracji · Ø {Nanobot.Fmt(((Nanobot)_world.Player).Size)}"; _orgDot.Color = Hex("#8fe3ff");
-            _controls.Text = "  WASD / LPM – lot · Shift – dopalacz · Spacja / PPM – laser · kursor – skaner · 1–7 – skala · Z/X – tempo czasu · M – mikroskop · I – wiedza · Esc – pauza  ";
+            _controls.Text = "  WASD / LPM – lot · Shift – dopalacz · Spacja / PPM – laser · kursor – skaner · 1–9 – skala · Z/X – tempo czasu · M – mikroskop · I – wiedza · Esc – pauza  ";
         }
         _magLbl.Text = sc.Mag;
         _timeLbl.Text = (sc.TimeScale >= 1 ? $"Time-lapse ×{sc.TimeScale}" : $"Ruch zwolniony ×{sc.TimeScale}") + (sc.Bio > 1 ? $" · procesy życiowe ×{sc.Bio}" : "");
@@ -673,7 +675,7 @@ public partial class Main : Node
                 if (key == Key.R && _world.Over) Start(_sc, _nano);
                 if (_nano)
                 {
-                    int ki = key switch { Key.Key1 => 0, Key.Key2 => 1, Key.Key3 => 2, Key.Key4 => 3, Key.Key5 => 4, Key.Key6 => 5, Key.Key7 => 6, _ => -1 };
+                    int ki = key switch { Key.Key1 => 0, Key.Key2 => 1, Key.Key3 => 2, Key.Key4 => 3, Key.Key5 => 4, Key.Key6 => 5, Key.Key7 => 6, Key.Key8 => 7, Key.Key9 => 8, _ => -1 };
                     if (ki >= 0 && ki < Scenario.All.Length) { Start(Scenario.All[ki], true); Toast("Skala: " + WorldName(_sc)); }
                     if (key == Key.Z) { _timeMul = Math.Max(0.125f, _timeMul / 2); Toast($"Tempo czasu ×{_timeMul:0.###}"); }
                     if (key == Key.X) { _timeMul = Math.Min(8, _timeMul * 2); Toast($"Tempo czasu ×{_timeMul:0.###}"); }
@@ -978,7 +980,7 @@ public partial class Main : Node
 
             // 16. nanobot działa w każdej skali
             foreach (var s in Scenario.All) { Start(s, true); Run(30); if (!(_world.Player is Nanobot nb2 && nb2.Alive)) { Ok(false, "nanobot w świecie " + s.Id); } }
-            Ok(true, "nanobot uruchamia się we wszystkich 7 skalach");
+            Ok(true, $"nanobot uruchamia się we wszystkich {Scenario.All.Length} światach");
 
             // 18. ruch pantofelka: rozpędzanie, płynny obrót, wygięcie ciała na zakręcie, kontrola po schwytaniu
             Start(S("para")); var pm = (Paramecium)_world.Player; Clear(pm, 900);
@@ -1063,6 +1065,52 @@ public partial class Main : Node
             _world.Add(new Net(_world, nn.X + 4, nn.Y, 24));
             Run(1500);
             Ok(!hy.Alive, "sieć NET niszczy strzępkę Candida (za dużą do fagocytozy)");
+
+            // 24–25. makrofag: eferocytoza apoptotycznego neutrofila i erytrofagocytoza (hemosyderyna)
+            Start(S("macro")); var mac = (Macrophage)_world.Player; Clear(mac, 70);
+            _input.Mag = 0; _input.Dx = _input.Dy = 0;
+            var apoN = _world.Add(new Neutrophil(_world, mac.X + mac.R0 + 4, mac.Y, 0)); apoN.StartApoptosis(); apoN.Apo = 1000;
+            var rbc = _world.Add(new RBC(_world, mac.X - mac.R0 - 3, mac.Y));
+            Run(5400);
+            Ok(_world.Stat("m_effero") >= 1 && mac.M2 > 0.5f, $"makrofag pochłania apoptotyczny neutrofil – eferocytoza, fenotyp naprawczy (M2 {mac.M2:0.00})");
+            Ok(_world.Stat("m_rbc") >= 1 && mac.Hemo >= 3, $"strawiony erytrocyt zostawia ziarna hemosyderyny ({mac.Hemo})");
+
+            // 26. neutrofil w tkance starzeje się → apoptoza → bez sprzątania martwica wtórna
+            var old = _world.Add(new Neutrophil(_world, mac.X + 60, mac.Y + 40, 0)); old.Age = 1e9f;
+            Run(2);
+            Ok(old.Apoptotic, "stary neutrofil przechodzi apoptozę (piknoza, zaokrąglenie)");
+            old.Apo = 1e6f; Run(2);
+            Ok(!old.Alive && _world.Stat("necro") >= 1, "nieuprzątnięta komórka apoptotyczna ulega martwicy wtórnej");
+
+            // 27–30. Euglena: światło, fotosynteza, fotouszkodzenia, metabolia w detrytusie, podział podłużny
+            Start(S("euglena")); var eu = (Protist)_world.Player; Clear(eu, 400);
+            void Safe() { foreach (var e in _world.Ents) if (e != eu && !(e is Protist { S.Photo: true, Lineage: true }) && e is not Detritus && Hypot(e.X - eu.X, e.Y - eu.Y) < 4000) e.Alive = false; _world.Ents.RemoveAll(e => !e.Alive); }
+            void RunSafe(int f) { for (int i = 0; i < f; i += 5) { Run(5); Safe(); } }
+            float lmin = 1e9f, lmax = 0;
+            for (int i = 0; i < 3000; i++) { float l = _world.Sc.Light(_world, eu.X + Rand(-9000, 9000), eu.Y + Rand(-9000, 9000)); lmin = Math.Min(lmin, l); lmax = Math.Max(lmax, l); }
+            Ok(lmax > 1000 && lmin < 150, $"światło w stawie zróżnicowane ({lmin:0}–{lmax:0} µmol/m²/s)");
+            var dtr = _world.Add(new Detritus(_world, eu.X + 30, eu.Y, 50));
+            _input.Mag = 1; _input.Ang = 0; _input.Dx = 1; _input.Dy = 0; _input.ActionHeld = true;
+            eu.A = 0; RunSafe(300); _input.ActionHeld = false; _input.Mag = 0; _input.Dx = 0;
+            Ok(eu.Hidden, $"metabolia: Euglena wpełza w kłaczek detrytusu i chowa się (Meta {eu.Meta:0.00})");
+            dtr.Alive = false; RunSafe(120);
+            (float, float) Find(Func<float, bool> ok)
+            {
+                for (int i = 0; i < 4000; i++) { float x = eu.X + Rand(-6000, 6000), y = eu.Y + Rand(-6000, 6000); if (ok(_world.Sc.Light(_world, x, y))) return (x, y); }
+                return (eu.X, eu.Y);
+            }
+            // teleport + wygenerowanie nowych chunków + usunięcie drapieżników (test izolowany)
+
+            void Tp(float x, float y) { eu.X = x; eu.Y = y; Safe(); RunSafe(150); }
+            var (mx, my) = Find(l => l > 280 && l < 520);
+            Tp(mx, my); eu.Paramylon = 0.3f; eu.PhotoDmg = 0; RunSafe(1200);
+            Ok(eu.Paramylon > 0.4f, $"fotosynteza w półcieniu wypełnia zapas paramylonu (0,30 → {eu.Paramylon:0.00}, światło {eu.Lux:0}, stan {eu.State}, zjadacz {(eu.Holder is Protist hp ? hp.S.Id : eu.Holder?.GetType().Name)})");
+            var (hx, hy2) = Find(l => l > 1300);
+            Tp(hx, hy2); RunSafe(600);
+            Ok(eu.PhotoDmg > 0.05f, $"silne światło uszkadza fotoukład II (fotouszkodzenie {eu.PhotoDmg * 100:0}%, światło {eu.Lux:0})");
+            Tp(mx, my); eu.PhotoDmg = 0; eu.Paramylon = 1; RunSafe(1500);
+            int pop = _world.CountAll(e => e is Protist q && q.S.Photo && q.Lineage);
+            Ok(pop >= 2 && _world.Player != eu && _world.Player is Protist, $"pełny zapas → podział podłużny (populacja {pop}, stan {eu.State}, Div {eu.Div:0.00})");
         }
         catch (Exception ex) { fails++; GD.PrintErr("[check] WYJĄTEK " + ex); }
         GD.Print(fails == 0 ? "[check] WSZYSTKO OK" : $"[check] BŁĘDÓW: {fails}");
@@ -1111,7 +1159,7 @@ public partial class Main : Node
                 {
                     bool nano = id.StartsWith("nano-"); string bare = nano ? id[5..] : id;
                     if (bare == "turn") bare = "turn";
-                    string sid = bare == "turn" ? "para" : bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" or "sp-yeast" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" or "sp-fibro" or "sp-mast" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => bare };
+                    string sid = bare == "turn" ? "para" : bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" or "sp-yeast" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" or "sp-fibro" or "sp-mast" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", "effero" => "macro", "eudiv" => "euglena", _ => bare };
                     Start(Scenario.All.First(s => s.Id == sid), nano);
                     if (bare.StartsWith("sp-"))
                     {
@@ -1145,6 +1193,13 @@ public partial class Main : Node
                         };
                         if (sp != null) { _world.Add(sp); _world.Focus = sp; if (sp is Protist pr) pr.Speed *= 0.2f; }
                     }
+                    if (bare == "effero" && _world.Player is Macrophage mcp)
+                    {
+                        var an = _world.Add(new Neutrophil(_world, mcp.X + mcp.R0 + 4, mcp.Y + 3, 0)); an.StartApoptosis(); an.Apo = 1200;
+                        _world.Add(new RBC(_world, mcp.X - mcp.R0 - 3, mcp.Y - 2)); _world.Add(new RBC(_world, mcp.X - 2, mcp.Y + mcp.R0 + 3));
+                        _world.Add(new Staph(_world, mcp.X + 3, mcp.Y - mcp.R0 - 1)); _world.Add(new Staph(_world, mcp.X + 4, mcp.Y - mcp.R0 - 1.5f));
+                    }
+                    if (bare == "eudiv" && _world.Player is Protist ep) ep.Paramylon = 1;
                     if (id == "vort") _world.Focus = _world.Ents.OfType<Vorticella>().FirstOrDefault();
                     if (id == "spiro") _world.Focus = _world.Ents.OfType<SpiroCell>().FirstOrDefault();
                     if (id == "rotifer") _world.Focus = _world.Ents.OfType<Rotifer>().FirstOrDefault();
@@ -1156,7 +1211,7 @@ public partial class Main : Node
                     {
                         if (bare == "turn") { _input.Mag = 1; _input.Ang = f * 0.035f; _input.Dx = MathF.Cos(_input.Ang); _input.Dy = MathF.Sin(_input.Ang); _world.CamX = _world.Player.X; _world.CamY = _world.Player.Y; _world.ViewR = 500; }
                         _world.Update(1f / 60);
-                        if (f == frames / 2 && bare != "turn") { _input.Mag = 0; _input.Dx = _input.Dy = 0; }
+                        if ((f == frames / 2 && bare != "turn") || (f == 0 && bare is "effero" or "eudiv")) { _input.Mag = 0; _input.Dx = _input.Dy = 0; }
                         if (bare == "sp-lysis" && f == frames - 150 && _world.Focus != null) { var fo = _world.Focus; fo.Kill(); _world.Focus = _world.Ents.OfType<Lysis>().LastOrDefault(); }
                     }
                     _testInput = false;

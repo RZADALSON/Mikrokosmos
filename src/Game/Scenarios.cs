@@ -389,10 +389,10 @@ public sealed class ScEcoli : ScBiofilm
 // =====================================================================
 //  Tkanka – neutrofil, sieć żyłek, kolagen (świat nieskończony)
 // =====================================================================
-public sealed class ScNeutro : Scenario
+public class ScNeutro : Scenario
 {
-    const float VHW = 16;   // połowa średnicy żyłki (µm)
-    const float VS = 420;   // odstęp między żyłkami (µm)
+    protected const float VHW = 16;   // połowa średnicy żyłki (µm)
+    protected const float VS = 420;   // odstęp między żyłkami (µm)
     public ScNeutro()
     {
         Id = "neutro"; Name = "Neutrofil"; Latin = "Granulocyt obojętnochłonny (Homo sapiens)"; TypeName = "Komórka odporności"; Size = "≈ 12 µm"; Color = Hex("#c9b8d8");
@@ -429,11 +429,11 @@ public sealed class ScNeutro : Scenario
         };
     }
     float Ph(World w, int k) => Hash2(k, 7, w.Seed) * TAU;
-    float Yc(World w, int k, float x) => k * VS + 26 * MathF.Sin(x * TAU / 330 + Ph(w, k));
+    protected float Yc(World w, int k, float x) => k * VS + 26 * MathF.Sin(x * TAU / 330 + Ph(w, k));
     static int VIdx(float y) => (int)MathF.Round(y / VS);
     /// <summary>Środek najbliższej żyłki w danym x (testy, AI).</summary>
     public float VesselY(World w, float x, float y) => Yc(w, VIdx(y), x);
-    bool InVessel(World w, float x, float y, float margin) { int k = VIdx(y); return MathF.Abs(y - Yc(w, k, x)) < VHW + margin; }
+    protected bool InVessel(World w, float x, float y, float margin) { int k = VIdx(y); return MathF.Abs(y - Yc(w, k, x)) < VHW + margin; }
 
     void Bact(World w, Chunk c, List<Ent> loc, int clusters, int chains)
     {
@@ -488,7 +488,7 @@ public sealed class ScNeutro : Scenario
             default: if (Chance(0.25f)) Bact(w, c, loc, 1, 0); break;
         }
     }
-    Neutrophil Diapedesis(World w, float x, float nearY)
+    protected Neutrophil Diapedesis(World w, float x, float nearY)
     {
         int k = VIdx(nearY);
         float side = nearY >= Yc(w, k, x) ? 1 : -1, y = Yc(w, k, x) + side * (VHW + 8);
@@ -629,6 +629,120 @@ public sealed class ScNeutro : Scenario
     }
     public override float Score(World w) => w.Stat("killed");
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new Neutrophil(w, 0, 0, 0)); return (e, 22); }
+}
+
+/// <summary>
+/// Makrofag tkankowy: ten sam świat tkanki co neutrofil, ale inna rola – strażnik i sprzątacz.
+/// Wzywa neutrofile, pochłania drobnoustroje, erytrocyty z wylewów i zużyte (apoptotyczne) neutrofile.
+/// </summary>
+public sealed class ScMacro : ScNeutro
+{
+    public ScMacro()
+    {
+        Id = "macro"; Name = "Makrofag"; Latin = "Makrofag tkankowy (Homo sapiens)"; TypeName = "Komórka odporności (fagocyt)"; Size = "≈ 20–25 µm"; Color = Hex("#cbbf9c");
+        Desc = "Powolny, ale żarłoczny strażnik tkanki. Pochłaniaj bakterie i drożdże, cytokinami wzywaj neutrofile, a potem po nich sprzątaj: zjadaj umierające neutrofile, zanim pękną, i erytrocyty z wylewów.";
+        ViewW = 95; TimeScale = 90; Bio = 0.5f; NeutroLife = 4 * 3600;
+        Mag = "Obiektyw 40× (400×) – time-lapse ×90"; ScoreLabel = "punktów sprzątania";
+        Controls = "WASD / przytrzymaj LPM – pełzanie · dotknij celu, by go otoczyć i sfagocytować · Spacja – cytokiny (wezwanie neutrofili z żyłki)";
+        Goals = new[]
+        {
+            new Goal("Sfagocytuj 8 bakterii lub drożdży", 8, w => w.Stat("m_eng")),
+            new Goal("Wezwij neutrofile cytokinami (Spacja)", 1, w => w.Stat("m_signal")),
+            new Goal("Eferocytoza: pochłoń 3 apoptotyczne neutrofile", 3, w => w.Stat("m_effero")),
+            new Goal("Oczyść wylew: pochłoń 6 erytrocytów (czerwona strefa)", 6, w => w.Stat("m_rbc")),
+            new Goal("Zabij 60 drobnoustrojów", 60, w => w.Stat("m_killed")),
+        };
+        LoseText = "Makrofagi zginęły – tkanka została bez strażnika";
+        Facts = new[]
+        {
+            "Makrofag tkankowy ma ≈ 20–25 µm: pofałdowany brzeg (ruffling), nerkowate jądro, setki lizosomów. W tkance pełza ≈ 0,6 µm/min (tryb mezenchymalny) do ≈ 3 µm/min (ameboidalny) – kilka razy wolniej niż neutrofil.",
+            "Makrofagi tkankowe są strażnikami: po wykryciu bakterii wydzielają chemokiny CXCL1/CXCL2 (u człowieka też IL-8) i cytokiny, które ściągają neutrofile z krwi (De Filippo i in., Blood 2013).",
+            "Neutrofil żyje w tkance kilka–kilkanaście godzin, a fagocytoza przyspiesza jego apoptozę. Komórka apoptotyczna obkurcza się, zaokrągla, a jądro zbija w gęste grudki (piknoza).",
+            "Eferocytoza: makrofag rozpoznaje fosfatydyloserynę na powierzchni apoptotycznej komórki i ją pochłania. Potem wydziela TGF-β, PGE2 i hamuje IL-1β, IL-8, TNF – zapalenie wygasa (Fadok i in., J Clin Invest 1998).",
+            "Nieuprzątnięte komórki apoptotyczne ulegają martwicy wtórnej: pęka błona, a enzymy ziarnistości i DAMP podtrzymują zapalenie i uszkadzają tkankę.",
+            "Erytrofagocytoza: makrofagi zjadają erytrocyty, które wydostały się z naczyń. Oksygenaza hemowa-1 rozkłada hem na biliwerdynę, CO i żelazo; żelazo trafia do ferrytyny i hemosyderyny – złotobrązowych ziaren (syderofagi, zmiana barwy siniaka).",
+            "Candida albicans potrafi w fagosomie przejść w strzępkę. Toksyna kandydalizyna (Moyes i in., Nature 2016) i piroptoza przebijają makrofaga od środka – drożdżaki trzeba strawić szybko.",
+            "Leukocydyny S. aureus (PVL, γ-hemolizyna) niszczą nie tylko neutrofile, ale też monocyty i makrofagi.",
+            "Time-lapse ×90: 1 s gry ≈ 1,5 min w tkance. Trawienie w fagolizosomie trwa od kilkudziesięciu minut (bakterie) do godzin (erytrocyt).",
+            "Gdy makrofag zginie, z krwi przez żyłkę wychodzi monocyt i w tkance różnicuje się w nowego makrofaga (w grze – rezerwa 3).",
+        };
+    }
+    /// <summary>Neutrofile wezwane cytokinami: wychodzą z najbliższej żyłki (diapedeza).</summary>
+    public void Recruit(World w, float x, float y, int n)
+    {
+        int have = w.Count(e => e is Neutrophil nn && !nn.Apoptotic);
+        for (int i = 0; i < n && have + i < 16; i++) Diapedesis(w, x + Rand(-45, 45), y);
+    }
+    public override void GenerateChunk(World w, Chunk c)
+    {
+        base.GenerateChunk(w, c);
+        // po wcześniejszym zapaleniu: neutrofile już w apoptozie (ognisko zakażenia) i świeże wylewy
+        int apo = c.Biome == 2 ? RandI(1, 3) : Math.Abs(c.X) + Math.Abs(c.Y) <= 1 ? 1 : Chance(0.3f) ? 1 : 0;
+        for (int i = 0; i < apo; i++)
+        {
+            var (x, y) = Spot(w, c, 7, new List<Ent>(), 8); if (InVessel(w, x, y, 10)) continue;
+            var n = w.Add(new Neutrophil(w, x, y, Rand(0, TAU))); n.StartApoptosis(); n.Apo = Rand(200, 3000);
+        }
+    }
+    public override void Init(World w)
+    {
+        w.CamX = 40; w.CamY = 95;
+        w.UpdateChunks(true);
+        var me = w.Add(new Macrophage(w, 40, 95, 11.5f)); me.Lineage = true;
+        w.SetPlayer(me);
+        Diapedesis(w, 0, 60); Diapedesis(w, 110, 60);
+        w.Log("Jesteś makrofagiem tkankowym. Zielone na radarze = do pochłonięcia (bakterie, drożdże, umierające neutrofile, erytrocyty poza naczyniem). Spacja – wezwij neutrofile.", "info");
+    }
+    public override void Update(World w, float dt, float gdt)
+    {
+        base.Update(w, dt, gdt);
+        if (w.EverySecond(gdt)) w.Stats["m_score"] = w.Stat("m_killed") + 5 * w.Stat("m_effero") + 3 * w.Stat("m_rbc");
+    }
+    public override List<(string, string)> Hud(World w)
+    {
+        var p = w.Player as Macrophage;
+        return new()
+        {
+            ("Sfagocytowane", N(w.Stat("m_eng"))), ("Zabite drobnoustroje", N(w.Stat("m_killed"))),
+            ("Eferocytoza", N(w.Stat("m_effero"))), ("Erytrocyty → hemosyderyna", N(w.Stat("m_rbc"))),
+            ("Fagosomy", p != null ? $"{p.Phagos.Count} ({Pct(p.Load / Macrophage.MaxLoad)})" : "-"),
+            ("Fenotyp", p == null ? "-" : p.M2 > 0.3f ? "naprawczy (TGF-β, IL-10)" : "prozapalny (TNF, IL-1β)"),
+            ("Cytokiny", p == null ? "-" : p.CytoCD > 0 ? $"za {p.CytoCD:0} s" : "gotowe (Spacja)"),
+            ("Martwica wtórna", N(w.Stat("necro"))), ("Neutrofile", w.Count(e => e is Neutrophil n && !n.Apoptotic).ToString()),
+            ("Rezerwa monocytów", N(3 - w.Stat("mono"))),
+        };
+    }
+    public override List<(string label, float v, Color col)> Bars(World w)
+    {
+        if (w.Player is not Macrophage p) return null;
+        return new()
+        {
+            ("Integralność błony", p.Hp, p.Hp < 0.35f ? Hex("#e05a4a") : Hex("#cbbf9c")),
+            ("Wypełnienie fagosomami", p.Load / Macrophage.MaxLoad, p.Load > 80 ? Hex("#e0b050") : Hex("#9cc0a0")),
+        };
+    }
+    public override int MapKind(World w, Ent e)
+    {
+        if (e.Holder != null) return 0;
+        if (e is Staph s && s.State == St.Free) return 1;
+        if (e is CandidaYeast cy && cy.State == St.Free) return 1;
+        if (e is Neutrophil n) return n.Apoptotic ? 1 : 3;
+        if (e is RBC) return 1;
+        if (e is CandidaHypha) return 2;
+        return e is Macrophage && e != w.Player ? 3 : 0;
+    }
+    public override bool OnPlayerLost(World w, Ent p)
+    {
+        if (w.Stat("mono") >= 3) return false;
+        w.AddStat("mono", 1);
+        float x = p.X, yv = VesselY(w, x, p.Y), side = p.Y >= yv ? 1 : -1;
+        var m = w.Add(new Macrophage(w, x, yv + side * (16 + 14), 11)); m.Lineage = true;
+        w.Player = null; w.SetPlayer(m);
+        w.Log($"Monocyt z krwi przechodzi przez ścianę żyłki i różnicuje się w makrofaga (rezerwa {3 - w.Stat("mono"):0}).", "info");
+        return true;
+    }
+    public override float Score(World w) => w.Stat("m_score");
+    public override (Ent e, float size) Preview(World w) { var e = w.Add(new Macrophage(w, 0, 0, 11)); return (e, 34); }
 }
 
 // =====================================================================
@@ -1002,4 +1116,161 @@ public sealed class ScPara : ScPond
     }
     public override float Score(World w) => w.Stat("bact");
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new Paramecium(w, 0, 0, 0)); return (e, 290); }
+}
+
+/// <summary>
+/// Klejnotka Euglena gracilis – miksotroficzny wiciowiec. Energia pochodzi ze światła, którego natężenie zmienia się
+/// w przestrzeni (cienie rzęsy wodnej, zarośla, ciemny osad, mętna woda) i w czasie (chmury).
+/// </summary>
+public sealed class ScEuglena : ScPond
+{
+    public ScEuglena()
+    {
+        Id = "euglena"; Name = "Klejnotka"; Latin = "Euglena gracilis"; TypeName = "Wiciowiec fotosyntetyzujący (Euglenozoa)"; Size = "≈ 50–85 µm"; Color = Hex("#8fc46a");
+        Desc = "Żyjesz ze światła. Szukaj półcienia – pełne słońce niszczy chloroplasty, a w ciemności kończy się zapas. Gromadź paramylon, dziel się wzdłuż ciała i chowaj w detrytusie przed orzęskami.";
+        ViewW = 330; TimeScale = 0.5f; Bio = 150; Flow = 4; Mag = "Obiektyw 40× (400×)"; ScoreLabel = "podziałów";
+        Controls = "WASD / przytrzymaj LPM – płyń (wić) · Shift – szybciej · Spacja (przytrzymaj) – metabolia: pełzanie i chowanie się w kłaczkach detrytusu";
+        Goals = new[]
+        {
+            new Goal("Znajdź półcień i zgromadź 80% paramylonu", 0.8f, w => w.Stat("paramax")),
+            new Goal("Schowaj się w detrytusie (metabolia – przytrzymaj Spację)", 1, w => w.Stat("hidden")),
+            new Goal("Podziel się podłużnie (populacja 2)", 2, w => w.CountAll(e => e is Protist q && q.S.Photo && q.Lineage)),
+            new Goal("Twoja populacja: 6 klejnotek", 6, w => w.CountAll(e => e is Protist q && q.S.Photo && q.Lineage)),
+        };
+        LoseText = "Twoje klejnotki zginęły";
+        Facts = new[]
+        {
+            "Euglena gracilis: ≈ 35–85 µm, jedna długa wić wychodząca ze zbiorniczka (rezerwuaru) na przednim końcu, ≈ 10 chloroplastów z pirenoidami, czerwona plamka oczna. Pływa ≈ 50–100 µm/s, obracając się wokół długiej osi.",
+            "Fototaksja: plamka oczna (stigma, karotenoidy) przy każdym obrocie zacienia fotoreceptor u nasady wici – ciałko paraflagellarne z fotoaktywowaną cyklazą adenylanową PAC (Iseki i in., Nature 2002; Ntefidou i in., Plant Physiol 2003). Zmiana sygnału koryguje kurs.",
+            "Przy słabym świetle fototaksja jest dodatnia (do światła), przy silnym (> ~10 W/m²) – ujemna (od światła). Tak Euglena utrzymuje się w natężeniu najlepszym do fotosyntezy i unika fotouszkodzeń.",
+            "Zbyt silne światło uszkadza fotoukład II – powstają reaktywne formy tlenu (H₂O₂, rodnik ponadtlenkowy) i chloroplasty bledną (fotoinhibicja). Naprawa trwa w półcieniu.",
+            "Zapasem energii jest paramylon – β-1,3-glukan w postaci jasnych ziaren w cytoplazmie. W ciemności na związkach organicznych może stanowić 50–70% suchej masy komórki.",
+            "Miksotrofia: w ciemności E. gracilis żyje heterotroficznie, wchłaniając rozpuszczone związki organiczne (octan, etanol, glukozę) – osmotrofia, a nie połykanie cząstek.",
+            "Metabolia (ruch euglenoidalny): paski pellikuli ślizgają się po sobie, a wzdłuż ciała biegną fale skurczu. W ciasnych szczelinach Euglena przełącza się z pływania na pełzanie – ok. 1 długość ciała na 10 s (Noselli i in., Nature Physics 2019).",
+            "Podział podłużny: bruzda biegnie od przedniego końca ku tyłowi, a każda córka dostaje połowę organelli. W hodowli E. gracilis dzieli się mniej więcej raz na dobę (w grze szybciej).",
+            "Na wiciowce polują orzęski (Loxodes, Blepharisma, Stentor, Lacrymaria), słonecznice i rozwielitki. Pantofelek i Didinium Euglen nie jedzą.",
+            "Światło w stawie: rzęsa wodna i zarośla rzucają ruchome cienie, osad jest ciemny, woda z bakteriami mętna, a chmury zmieniają oświetlenie w ciągu minut. Pełne słońce to ~1500–2000 µmol fotonów/m²/s.",
+            HabitatFacts[3], LifeFacts[0], LifeFacts[2], LifeFacts[3], LifeFacts[4], LifeFacts[5], LifeFacts[6],
+        };
+    }
+    // ------------------------------------------------ model światła
+    int _cacheSeed = int.MinValue;
+    readonly Dictionary<long, float> _base = new();
+    float Base(World w, int cx, int cy)
+    {
+        if (_cacheSeed != w.Seed) { _base.Clear(); _cacheSeed = w.Seed; }
+        long k = ((long)cx << 32) ^ (uint)cy;
+        if (_base.TryGetValue(k, out float b)) return b;
+        // otwarta woda – pełne światło; zarośla skrętnicy – półcień; osad – mrok; chmury bakterii – mętna woda
+        b = BiomeAt(w, cx, cy) switch { 0 => 1f, 1 => 0.42f, 2 => 0.1f, _ => 0.5f };
+        if (_base.Count > 20000) _base.Clear();
+        _base[k] = b; return b;
+    }
+    public override float Light(World w, float x, float y)
+    {
+        float cs = ChunkSize, fx = x / cs - 0.5f, fy = y / cs - 0.5f;
+        int ix = (int)MathF.Floor(fx), iy = (int)MathF.Floor(fy); float ux = Smooth(fx - ix), uy = Smooth(fy - iy);
+        float b = Lerp(Lerp(Base(w, ix, iy), Base(w, ix + 1, iy), ux), Lerp(Base(w, ix, iy + 1), Base(w, ix + 1, iy + 1), ux), uy);
+        float t = w.T;
+        // cienie liści rzęsy wodnej (Lemna) dryfujących po powierzchni
+        float n = Noise2(x / 300 + t * 0.02f, y / 300 - t * 0.013f, w.Seed + 555);
+        float sh = 1 - 0.78f * Smooth((n - 0.42f) / 0.22f);
+        // chmury: całe pole jaśnieje i ciemnieje w ciągu dziesiątek sekund
+        float cl = 0.84f + 0.16f * Noise1(t * 0.015f + w.Seed * 0.01f);
+        // pełne słońce latem ≈ 2000 µmol fotonów m⁻² s⁻¹ tuż pod powierzchnią
+        return 2000 * b * sh * cl;
+    }
+    public override void GenerateChunk(World w, Chunk c)
+    {
+        var loc = new List<Ent>();
+        Habitat(w, c, loc);
+        int b = c.Biome;
+        for (int i = b == 2 ? RandI(6, 10) : RandI(3, 6); i > 0; i--) { var (x, y) = Spot(w, c, 60, loc, 60); Put(w, loc, new Detritus(w, x, y, Rand(25, 70))); }
+        Many(w, c, loc, b == 0 ? 6 : 3, 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, RandI(1, 2), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, RandI(0, 1), 130, (x, y) => new Paramecium(w, x, y, Rand(0, TAU)));
+        PondLife(w, c, loc);
+    }
+    public override void Init(World w)
+    {
+        w.UpdateChunks(true);
+        PlaceStart(w, (ww, x, y) => { var e = new Protist(ww, Species.Euglena, x, y, Rand(0, TAU)); e.Paramylon = 0.45f; e.Lineage = true; return e; },
+            e => e is Protist q && (q.S == Species.Loxodes || q.S == Species.Blepharisma || q.S == Species.Stentor) || e is Helio || e is Lacrymaria);
+        w.Stats["pop"] = 1;
+        w.Log("Jesteś klejnotką (Euglena gracilis). Plamka oczna czuje kierunek światła – strzałka prowadzi do najlepszego półcienia. Ciemne plamy to cienie rzęsy wodnej.", "info");
+    }
+    public override void Update(World w, float dt, float gdt)
+    {
+        if (!w.EverySecond(gdt)) return;
+        if (w.Count(e => e is Protist q && q.S.Photo && !q.Lineage) < 25) { var (x, y) = SpawnAway(w, 50); w.Add(new Protist(w, Species.Euglena, x, y, Rand(0, TAU))); }
+    }
+    /// <summary>Plamy światła i cienia nad całym kadrem (tak widać je w preparacie przy małej przysłonie).</summary>
+    public override void DrawOver(World w, Painter p, View v)
+    {
+        const int nx = 26, ny = 18;
+        float x0 = v.X0 - 20, y0 = v.Y0 - 20, cw = (v.X1 - v.X0 + 40) / (nx - 1), ch = (v.Y1 - v.Y0 + 40) / (ny - 1);
+        p.Grid(x0, y0, cw, ch, nx, ny, (i, j) => LightCol(Light(w, x0 + i * cw, y0 + j * ch)));
+    }
+    static Color LightCol(float lux)
+    {
+        if (lux < 700) { float d = 1 - lux / 700; return new Color(0.03f, 0.06f, 0.03f, 0.5f * d * d); }
+        float h = Clamp((lux - 700) / 900, 0, 1);
+        return new Color(1f, 0.98f, 0.85f, 0.14f * h);
+    }
+    public override void DrawMinimap(World w, Painter p)
+    {
+        const int n = 34;
+        float cw = w.WinW / (n - 1), ch = w.WinH / (n - 1);
+        p.Grid(w.WinX0, w.WinY0, cw, ch, n, n, (i, j) =>
+        {
+            float l = Light(w, w.WinX0 + i * cw, w.WinY0 + j * ch);
+            return l > 800 ? new Color(1f, 0.95f, 0.6f, 0.35f) : l > 150 ? new Color(0.45f, 0.8f, 0.35f, 0.35f) : new Color(0.05f, 0.08f, 0.05f, 0.45f);
+        });
+    }
+    public override bool FoodPoint(World w, out float x, out float y)
+    {
+        x = y = 0; var p = w.Player; if (p == null) return false;
+        // plamka oczna "wie", gdzie jest najlepsze światło: próbkujemy okolicę i szukamy ~300–450 µmol m⁻² s⁻¹
+        float best = 1e9f;
+        for (int r = 1; r <= 4; r++)
+            for (int k = 0; k < 12; k++)
+            {
+                float a = k * TAU / 12 + r * 0.26f, d = r * ViewW * 0.45f, px = p.X + MathF.Cos(a) * d, py = p.Y + MathF.Sin(a) * d;
+                float s = MathF.Abs(MathF.Log((Light(w, px, py) + 15) / 380)) + d / (ViewW * 6);
+                if (s < best) { best = s; x = px; y = py; }
+            }
+        return true;
+    }
+    public override List<(string, string)> Hud(World w)
+    {
+        var p = w.Player as Protist;
+        string st = p == null ? "-" : p.Div > 0 ? "podział podłużny" : p.Hidden ? "schowana w detrytusie" : p.Meta > 0.5f ? "metabolia (pełzanie)" : "pływanie";
+        return new()
+        {
+            ("Stan", st),
+            ("Światło (µmol/m²/s)", p != null && p.Lux >= 0 ? $"{p.Lux:0}" : "-"),
+            ("Fotosynteza", p != null ? Pct(p.PhotoRate) : "-"),
+            ("Paramylon", p != null ? Pct(Math.Min(1, p.Paramylon)) : "-"),
+            ("Fotouszkodzenie PSII", p != null ? Pct(p.PhotoDmg) : "-"),
+            ("Twoja populacja", w.CountAll(e => e is Protist q && q.S.Photo && q.Lineage).ToString()),
+        };
+    }
+    public override List<(string label, float v, Color col)> Bars(World w)
+    {
+        if (w.Player is not Protist p) return null;
+        var l = new List<(string, float, Color)> { ("Paramylon (zapas)", Math.Min(1, p.Paramylon), p.Paramylon < 0.2f ? Hex("#e0b050") : Hex("#9fd07a")) };
+        if (p.PhotoDmg > 0.02f) l.Add(("Fotouszkodzenie", p.PhotoDmg, Hex("#e05a4a")));
+        if (p.Hunger > 0.01f) l.Add(("Głód", p.Hunger, Hex("#e05a4a")));
+        if (p.Div > 0) l.Add(("Podział", p.Div, Hex("#9cd2ff")));
+        return l;
+    }
+    public override int MapKind(World w, Ent e)
+    {
+        var me = w.Player;
+        if (e is Protist q && me != null && q != me && (q.S == Species.Loxodes || q.S == Species.Blepharisma && q.Length * 0.4f > me.Length)) return 2;
+        if (PondThreat(e, me)) return 2;
+        return e is Protist r && r.S.Photo && r.Lineage && e != me ? 3 : 0;
+    }
+    public override float Score(World w) => w.Stat("pop") - 1;
+    public override (Ent e, float size) Preview(World w) { var e = w.Add(new Protist(w, Species.Euglena, 0, 0, 0)); e.Paramylon = 0.7f; return (e, 110); }
 }

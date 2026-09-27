@@ -177,6 +177,8 @@ public abstract class Ent
     }
     /// <summary>Ciało przepuszczalne dla o (np. sieć kolagenu dla pełzających leukocytów): kontakt stawia opór, ale nie blokuje.</summary>
     public virtual bool Permeable(Ent o) => false;
+    /// <summary>Ukryta przed drapieżnikami (np. Euglena wpełzła w kłaczek detrytusu).</summary>
+    public virtual bool Hidden => false;
 
     public void SetCircle(float r) { NParts = 0; Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = r; }
     public void SetCapsule(float hl, float r)

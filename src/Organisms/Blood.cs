@@ -23,6 +23,9 @@ public sealed class Neutrophil : Ent
     public readonly int MaxPhago = 14;
     public int G = 170, GranLeft;
     public float NetCharge;
+    /// <summary>Wiek w tkance i postęp apoptozy (s czasu biologicznego; 0 = żywy, aktywny).</summary>
+    public float Age, Apo;
+    float _life = -1, _necroAt;
     float _wA = Rand(0, TAU), _wT;
     readonly float[] _gth, _grho, _gsz, _gfT; readonly byte[] _gty; readonly int[] _gfu;
 
@@ -93,6 +96,13 @@ public sealed class Neutrophil : Ent
             Rr[i] = r; area += 0.5f * r * r * (TAU / NN);
         }
         float k = MathF.Sqrt(PI * R0 * R0 / area);
+        if (Apo > 0)
+        {
+            // apoptoza: komórka się zaokrągla i obkurcza (utrata wody), na powierzchni pęcherzyki (blebbing)
+            float ak = ApoK;
+            k *= 1 - 0.2f * ak;
+            for (int i = 0; i < NN; i++) Rr[i] *= 1 + 0.12f * ak * MathF.Pow(Math.Max(0, MathF.Sin(i * TAU / NN * 7 + Seed + t * 0.05f)), 6);
+        }
         for (int i = 0; i < NN; i++) Rr[i] *= k;
         foreach (var p in Phagos)
         {
@@ -108,9 +118,46 @@ public sealed class Neutrophil : Ent
     public override bool Permeable(Ent o) => o is RBC or Platelet or Lymphocyte or MastCell;
     public override bool Collides(Ent o) => !(o is Staph s && s.State != St.Free);
 
+    /// <summary>Stopień zmian apoptotycznych 0..1 (pełne w ~15 min).</summary>
+    public float ApoK => Apo > 0 ? Clamp(Apo / 900, 0, 1) : 0;
+    public bool Apoptotic => Apo > 0;
+    public void StartApoptosis()
+    {
+        if (Apo > 0) return;
+        Apo = 0.01f; _necroAt = Rand(7200, 12600);
+        foreach (var ph in Phagos) if (ph.O.Alive) ph.O.Alive = false; // bakterie w fagosomach są już martwe
+        Phagos.Clear();
+    }
+    /// <summary>Martwica wtórna: nieusunięta komórka apoptotyczna pęka – elastaza, MPO i DAMP uszkadzają otoczenie.</summary>
+    void SecondaryNecrosis()
+    {
+        W.AddStat("necro", 1);
+        W.Query(X, Y, 16, _q);
+        foreach (var o in _q) if (o != this && o.Alive && (o is Macrophage || o is Neutrophil { Apo: 0 })) o.Damage(0.06f);
+        var pl = W.Player;
+        if (pl != null && Hypot(pl.X - X, pl.Y - Y) < 60)
+            W.LogOnce("necro", "Martwica wtórna: nieuprzątnięty apoptotyczny neutrofil pękł – enzymy ziarnistości i DAMP podsycają zapalenie.", "bad", 20);
+        Die(false);
+    }
+
     public override void Step(float dt, float gdt)
     {
         float bdt = dt * W.Bio;
+        if (Holder != null) { Vx = Vy = 0; return; }
+        if (Apo > 0)
+        {
+            Apo += dt; Vx = Vy = 0;
+            Pol = Lerp(Pol, 0, Damp(0.8f, gdt));
+            if (Apo > _necroAt && !W.Preview) { SecondaryNecrosis(); return; }
+            ComputeRest(); return;
+        }
+        if (!IsPlayer && !W.Preview && W.Sc.NeutroLife > 0)
+        {
+            // neutrofil w tkance żyje kilka–kilkanaście godzin; fagocytoza przyspiesza apoptozę (PICD)
+            if (_life < 0) _life = W.Sc.NeutroLife * Rand(0.6f, 1.4f);
+            Age += dt;
+            if (Age > _life) { StartApoptosis(); return; }
+        }
         bool on = false; float tgtA = A, mag = 0;
         if (IsPlayer) { var I = W.Input; on = I.Mag > 0.05f; tgtA = I.Ang; mag = I.Mag; }
         else
@@ -181,6 +228,7 @@ public sealed class Neutrophil : Ent
                 {
                     o.Alive = false; Phagos.RemoveAt(k);
                     if (IsPlayer || Lineage) W.AddStat("killed", 1);
+                    Age += 1200; // apoptoza indukowana fagocytozą
                     continue;
                 }
             }
@@ -221,17 +269,33 @@ public sealed class Neutrophil : Ent
 
     public override void Draw(Painter p, View v)
     {
+        if (Holder is Macrophage) return; // rysuje go makrofag (ciałko apoptotyczne w fagosomie)
         int n = Mem.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
-        p.SoftStroke(sh, true, 2.4f, HaloN);
+        p.SoftStroke(sh, true, 2.4f, Apo > 0 ? Rgb(255, 255, 240, 0.28f + 0.14f * ApoK) : HaloN);
         ToWorld(-1.4f, 0, out float cx, out float cy);
         Span<float> ts = stackalloc float[] { 0f, 0.55f, 1f };
         Span<Color> cs = stackalloc Color[] { Rgb(96, 102, 94, 0.62f), Rgb(112, 118, 108, 0.52f), Rgb(178, 184, 172, 0.22f) };
         p.FillRadial(sh, cx, cy, ts, cs);
         p.Stroke(sh, true, 0.13f, EdgeN);
         p.Local(X, Y, A);
-        for (int i = 0; i < _lobes.Count - 1; i++) p.Line(_lobes[i].X, _lobes[i].Y, _lobes[i + 1].X, _lobes[i + 1].Y, 0.28f, Strand, true);
-        foreach (var l in _lobes) { p.FillEllipse(l.X, l.Y, l.Rx, l.Ry, l.Rot, LobeF); p.Ellipse(l.X, l.Y, l.Rx, l.Ry, l.Rot, 0.12f, LobeE); }
+        float ak = ApoK;
+        if (ak > 0)
+        {
+            // piknoza: płaty jądra kurczą się w gęste, okrągłe grudki chromatyny
+            var pf = Rgb(40, 40, 62, 0.45f + 0.3f * ak);
+            foreach (var l in _lobes)
+            {
+                float lx = l.X * (1 - 0.5f * ak) - 0.3f, ly = l.Y * (1 - 0.5f * ak), rr = Lerp((l.Rx + l.Ry) / 2, Math.Min(l.Rx, l.Ry) * 0.75f, ak);
+                p.FillEllipse(lx, ly, Lerp(l.Rx, rr, ak), Lerp(l.Ry, rr, ak), l.Rot, pf);
+                p.Ellipse(lx, ly, Lerp(l.Rx, rr, ak), Lerp(l.Ry, rr, ak), l.Rot, 0.12f, LobeE);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < _lobes.Count - 1; i++) p.Line(_lobes[i].X, _lobes[i].Y, _lobes[i + 1].X, _lobes[i + 1].Y, 0.28f, Strand, true);
+            foreach (var l in _lobes) { p.FillEllipse(l.X, l.Y, l.Rx, l.Ry, l.Rot, LobeF); p.Ellipse(l.X, l.Y, l.Rx, l.Ry, l.Rot, 0.12f, LobeE); }
+        }
         foreach (var ph in Phagos)
         {
             float r = ph.O.Rr + (ph.Cup ? 0.15f : 0.45f);
@@ -243,8 +307,8 @@ public sealed class Neutrophil : Ent
             byte ty = _gty[i]; if (ty == 0) continue;
             float r0 = RadialUtil.Interp(Rr, NN, _gth[i]) * _grho[i];
             float gx = MathF.Cos(_gth[i]) * r0, gy = MathF.Sin(_gth[i]) * r0;
-            if (ty == 1) p.Dot(gx, gy, _gsz[i], GranB);
-            else if (ty == 2) p.Dot(gx, gy, _gsz[i] * 0.9f, GranD);
+            if (ty == 1) p.Dot(gx * (1 - 0.2f * ak), gy * (1 - 0.2f * ak), _gsz[i], ak > 0 ? Mul(GranB, 1 - 0.5f * ak) : GranB);
+            else if (ty == 2) p.Dot(gx * (1 - 0.2f * ak), gy * (1 - 0.2f * ak), _gsz[i] * 0.9f, GranD);
             else if (_gfu[i] < Phagos.Count)
             {
                 var ph = Phagos[_gfu[i]]; float k = Clamp(1 - _gfT[i] / 1.5f, 0, 1);
@@ -273,6 +337,7 @@ public sealed class RBC : Ent
     public override void Step(float dt, float gdt) { Vx = W.Sc.FlowX; Vy = W.Sc.FlowY; }
     public override void Draw(Painter p, View v)
     {
+        if (Holder is Macrophage) return;
         int n = Mem.Smooth(p.Shape, 2);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
         p.SoftStroke(sh, true, 2.2f, Rgb(255, 255, 240, 0.26f));
