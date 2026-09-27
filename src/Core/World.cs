@@ -86,6 +86,7 @@ public sealed class World
     public readonly Dictionary<string, float> Stats = new();
     public InputState Input = new();
     public TileField Nutri, Amp;
+    public WaterField Water;
     public BactField Bact;
     public int Wave = 1;
     public float CamX, CamY, ViewR = 50;
@@ -126,6 +127,8 @@ public sealed class World
         H = preview ? 1e6f : Infinite ? (2 * AR + 1) * CS : sc.Ht;
         TimeScale = sc.TimeScale; Bio = sc.Bio;
         WinX0 = 0; WinY0 = 0; WinW = W; WinH = H;
+        if (!preview && sc.Water) Water = new WaterField(this);
+        Fx.Flow = (x, y) => { FlowAt(x, y, out float fx, out float fy); SwimFlow(x, y, -1, out float sx, out float sy); return new Vector2(fx + sx, fy + sy); };
     }
 
     public T0 Add<T0>(T0 e) where T0 : Ent { Ents.Add(e); return e; }
@@ -150,6 +153,47 @@ public sealed class World
     /// <summary>Czy encja jest w pobliżu kadru (poza nim część obliczeń kosmetycznych jest pomijana).</summary>
     public bool OnScreen(Ent e, float k = 1.4f) => Preview || (MathF.Abs(e.X - CamX) < ViewR * k + e.R && MathF.Abs(e.Y - CamY) < ViewR * k * 0.7f + e.R);
     public int Frame;
+
+    // ================================================================ hydrodynamika pływaków (przepływ Stokesa)
+    /// <summary>Źródło przepływu: poruszające się ciało (prędkość w µm/s czasu biologicznego, promień zastępczy a).</summary>
+    public struct FlowSrc { public float X, Y, Ux, Uy, A; public int Id; }
+    public readonly List<FlowSrc> Srcs = new();
+    readonly List<FlowSrc> _srcNext = new();
+    /// <summary>
+    /// Prędkość wody w punkcie wywołana przez poruszające się ciała. Pole kuli ciągniętej w lepkim płynie (Stokes):
+    /// u = ¾(a/r)[U + (U·r̂)r̂] + ¼(a/r)³[U − 3(U·r̂)r̂] – z przodu woda jest popychana, z boków opływa ciało.
+    /// Pływak sam się napędza, więc pole dalekie jest słabsze (czynnik 0,55) i zanika do 6a.
+    /// </summary>
+    public void SwimFlow(float x, float y, int selfId, out float ux, out float uy, float size = 0)
+    {
+        ux = uy = 0;
+        for (int i = 0; i < Srcs.Count; i++)
+        {
+            var s = Srcs[i]; if (s.Id == selfId) continue;
+            float rx = x - s.X, ry = y - s.Y, r2 = rx * rx + ry * ry, lim = 6 * s.A;
+            if (r2 > lim * lim) continue;
+            float r = MathF.Sqrt(r2); if (r < s.A) r = s.A;
+            float nx = rx / r, ny = ry / r, dot = s.Ux * nx + s.Uy * ny;
+            float k1 = 0.75f * s.A / r, k3 = 0.25f * s.A * s.A * s.A / (r * r * r);
+            float fx = k1 * (s.Ux + dot * nx) + k3 * (s.Ux - 3 * dot * nx);
+            float fy = k1 * (s.Uy + dot * ny) + k3 * (s.Uy - 3 * dot * ny);
+            float taper = 1 - r / lim, w = 0.55f * taper * taper / (1 + Sq(size / s.A));
+            ux += fx * w; uy += fy * w;
+        }
+    }
+    void CollectFlowSources()
+    {
+        _srcNext.Clear();
+        foreach (var e in Ents)
+        {
+            if (!e.Alive || e.Fixed || e.Holder != null || !e.Solid) continue;
+            float v2 = e.Vx * e.Vx + e.Vy * e.Vy; if (v2 < 1e-6f) continue;
+            float a = Math.Max(e.Radius, e.Length * 0.3f); if (a <= 0) continue;
+            if (!OnScreen(e, 1.8f)) continue;
+            _srcNext.Add(new FlowSrc { X = e.X, Y = e.Y, Ux = e.Vx, Uy = e.Vy, A = a, Id = e.Id });
+        }
+        Srcs.Clear(); Srcs.AddRange(_srcNext);
+    }
     St _lastPS;
 
     public float Stat(string k) => Stats.TryGetValue(k, out var v) ? v : 0;
@@ -259,11 +303,27 @@ public sealed class World
                 c.Active = true; Active.Add(c);
                 foreach (var e in c.Parked) { e.ParkedIn = null; Ents.Add(e); }
                 c.Parked.Clear();
-                if (!c.Generated) { c.Generated = true; Sc.GenerateChunk(this, c); }
-                Sc.OnChunkActivated(this, c);
+                if (!c.Generated)
+                {
+                    // nowe chunki powstają na brzegu okna (poza kadrem) – generowane po jednym na klatkę, bez przycięć
+                    if (force) { c.Generated = true; Sc.GenerateChunk(this, c); Sc.OnChunkActivated(this, c); }
+                    else _pending.Add(c);
+                }
+                else Sc.OnChunkActivated(this, c);
             }
     }
     /// <summary>Zamraża encje leżące w nieaktywnych chunkach (i wszystko, co w nich siedzi – ofiary, fagi na komórkach).</summary>
+    readonly List<Chunk> _pending = new();
+    void GeneratePending()
+    {
+        _pending.RemoveAll(c => !c.Active || c.Generated);
+        if (_pending.Count == 0) return;
+        var t = CamTarget(); float px = t != null ? t.X : CamX, py = t != null ? t.Y : CamY;
+        int bi = 0; float bd = float.MaxValue;
+        for (int i = 0; i < _pending.Count; i++) { float d = Sq(_pending[i].CX - px) + Sq(_pending[i].CY - py); if (d < bd) { bd = d; bi = i; } }
+        var c = _pending[bi]; _pending.RemoveAt(bi);
+        c.Generated = true; Sc.GenerateChunk(this, c); Sc.OnChunkActivated(this, c);
+    }
     void ParkInactive()
     {
         foreach (var e in Ents)
@@ -343,6 +403,7 @@ public sealed class World
         if (Infinite)
         {
             UpdateChunks();
+            GeneratePending();
             _scanT -= gdt;
             if (_scanT <= 0) { _scanT = 0.5f; ParkInactive(); }
             PAdd("chunks", t0); t0 = TS;
@@ -372,6 +433,12 @@ public sealed class World
             e.Integrate(dt);
             if (!Preview)
             {
+                // unoszenie przez wodę poruszaną przez inne pływaki (mniejsze ciała bardziej)
+                if (Srcs.Count > 0 && !e.Fixed && e.Holder == null && e.FlowK > 0 && OnScreen(e, 1.6f))
+                {
+                    SwimFlow(e.X, e.Y, e.Id, out float sx, out float sy, Math.Max(e.Radius, e.Length * 0.3f));
+                    e.X += sx * dt; e.Y += sy * dt;
+                }
                 if (_fx != null && e.FlowK > 0 && !e.Fixed) { FlowAt(e.X, e.Y, out float fx, out float fy); e.X += fx * dt * e.FlowK; e.Y += fy * dt * e.FlowK; }
                 if (!Infinite)
                 {
@@ -384,7 +451,14 @@ public sealed class World
             e.UpdatePrim();
         }
         t0 = TS;
-        Physics.CollideAll(Ents);
+        if (!Preview)
+        {
+            long tw = TS; CollectFlowSources(); PAdd("flow:src", tw); tw = TS;
+            Water?.Update(dt); PAdd("flow:water", tw); tw = TS;
+            Bact?.Advect(this, dt); PAdd("flow:bact", tw);
+        }
+        Fx.FlowScale = Preview ? 0 : TimeScale * Ff;
+        Physics.CollideAll(Ents, Preview ? null : this);
         PAdd("collide", t0); t0 = TS;
         for (int i = 0; i < Ents.Count; i++)
         {
@@ -393,6 +467,7 @@ public sealed class World
             if (e.Mem != null)
             {
                 e.Mem.Lod = !OnScreen(e);
+                if (e.Mem.Lod && !OnScreen(e, 2.6f) && (Frame + e.Id) % 8 != 0) { e.Post(dt, gdt); continue; }
                 e.Mem.Follow(e.X, e.Y, e.A, e.MemK, gdt);
                 if (e.MemS > 0 && OnScreen(e))
                     foreach (var o in e.Nb)
@@ -484,7 +559,12 @@ public sealed class World
     public void Draw(Painter p, View v)
     {
         p.Identity();
+        long tdu = TS;
         Sc.DrawUnder(this, p, v);
+        PAdd("draw:under", tdu); tdu = TS;
+        Water?.Draw(p, v);
+        PAdd("draw:water", tdu);
+        p.Identity();
         _sorted.Clear();
         PhagesVisible = 0;
         foreach (var e in Ents) if (e.Alive && v.Vis(e.X, e.Y, e.R * 1.6f + e.DrawR)) { _sorted.Add(e); if (e.Kind == Kind.Phage) PhagesVisible++; }
@@ -492,11 +572,11 @@ public sealed class World
         foreach (var e in _sorted)
         {
             p.Identity(); p.Alpha = 1;
-            if (Prof) { int v0 = p.VertexCount; e.Draw(p, v); string k = "verts:" + e.GetType().Name; VertT[k] = Math.Max(VertT.TryGetValue(k, out var o) ? o : 0, 0) + (p.VertexCount - v0); }
+            if (Prof) { int v0 = p.VertexCount; long td = TS; e.Draw(p, v); PAdd("draw:" + e.GetType().Name, td); string k = "verts:" + e.GetType().Name; VertT[k] = Math.Max(VertT.TryGetValue(k, out var o) ? o : 0, 0) + (p.VertexCount - v0); }
             else e.Draw(p, v);
         }
         p.Identity(); p.Alpha = 1;
-        Fx.Draw(p, v);
+        long tfx = TS; Fx.Draw(p, v); PAdd("draw:fx", tfx);
         p.Identity();
         Sc.DrawOver(this, p, v);
         if (!Infinite) DrawBounds(p, v);
@@ -539,12 +619,18 @@ public sealed class World
 public static class Physics
 {
     static readonly List<Ent> _buf = new();
+    static float[] _keys = new float[256]; static Ent[] _arr = new Ent[256];
     /// <summary>Kolizje metodą sort &amp; sweep; rozsuwanie proporcjonalne do "masy" (oporu).</summary>
-    public static void CollideAll(List<Ent> ents)
+    public static void CollideAll(List<Ent> ents, World w = null)
     {
         _buf.Clear();
-        foreach (var e in ents) { e.Nb.Clear(); if (e.Alive && e.Solid) _buf.Add(e); }
-        _buf.Sort((a, b) => (a.X - a.R).CompareTo(b.X - b.R));
+        int frame = w?.Frame ?? 0;
+        foreach (var e in ents) { e.Nb.Clear(); if (e.Alive && e.Solid) { _buf.Add(e); e.Near = w == null || w.OnScreen(e, 1.8f); } }
+        int cnt = _buf.Count;
+        if (_keys.Length < cnt) { _keys = new float[cnt * 2]; _arr = new Ent[cnt * 2]; }
+        for (int i = 0; i < cnt; i++) { _arr[i] = _buf[i]; _keys[i] = _buf[i].X - _buf[i].R; }
+        Array.Sort(_keys, _arr, 0, cnt);
+        _buf.Clear(); for (int i = 0; i < cnt; i++) _buf.Add(_arr[i]);
         int n = _buf.Count;
         for (int i = 0; i < n; i++)
         {
@@ -555,6 +641,8 @@ public static class Physics
                 if (b.X - b.R > ax1) break;
                 if (MathF.Abs(a.Y - b.Y) > a.R + b.R) continue;
                 if (a.Fixed && b.Fixed) continue;
+                // daleko od kadru kontakty liczone co 4. klatkę (niewidoczne, 4× taniej)
+                if (!a.Near && !b.Near && ((frame + a.Id + b.Id) & 3) != 0) continue;
                 if (!a.Collides(b) || !b.Collides(a)) continue;
                 a.Nb.Add(b); b.Nb.Add(a);
                 if (!Geo.EntEnt(a, b, out float pen, out float nx, out float ny)) continue;

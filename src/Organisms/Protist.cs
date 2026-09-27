@@ -73,6 +73,14 @@ public sealed class Protist : Ent, ICaptor
     public override float Length => L * LenK;
     public override float Radius => Wd * WidK / 2;
     public override St FreeState => St.Swim;
+    public override void Kill()
+    {
+        if (!Alive) return;
+        ReleaseHeld();
+        if (W.Preview || W.Em) { base.Kill(); return; }
+        Lysis.Start(this, S.Body, S.Edge, S.ChlN > 0 ? S.Chl : S.GranA, S.GranB);
+        Alive = false;
+    }
     public override bool CanControl() => false;
 
     public Protist(World w, Spec s, float x, float y, float a, float scale = 1) : base(w, x, y, a)
@@ -81,7 +89,7 @@ public sealed class Protist : Ent, ICaptor
         L = Rand(s.L0, s.L1) * scale; Wd = L * s.Aspect; Speed = s.Speed * Rand(0.8f, 1.15f);
         NN = L * s.Aspect > 40 || L > 300 ? 56 : 44;
         _rr = new float[NN];
-        Mem = new Membrane(NN) { MaxDef = Wd * 0.35f, Stiff = s.Armor ? 20 : 8, Damping = 0.55f }; MemK = 4; MemS = s.Armor ? 0.3f : 0.75f;
+        Mem = new Membrane(NN) { MaxDef = Wd * 0.45f, Stiff = s.Armor ? 20 : 5.5f, Damping = s.Armor ? 0.7f : 0.45f }; MemK = s.Armor ? 6 : 2.5f; MemS = s.Armor ? 0.3f : 0.9f;
         _head = a;
         Mass = Math.Max(0.5f, L * Wd / 400);
         Edible = s.Edible; Food = s.Food; State = St.Swim;
@@ -350,6 +358,7 @@ public sealed class Protist : Ent, ICaptor
 
     public override void OnTouch(Ent o, float nx, float ny)
     {
+        if (!o.Permeable(this)) Sw.Push(this, o, nx, ny);
         if (State != St.Swim || AvoidCD > 0 || S.Move == Motion.Sessile) return;
         if (o == _target || (S.Eats != null && S.Eats(this, o)) || (S.Victim != null && S.Victim(this, o))) return;
         State = St.Avoid; St0 = Rand(0.25f, 0.5f); AvoidCD = 1.2f;
@@ -370,7 +379,9 @@ public sealed class Protist : Ent, ICaptor
         float lk = LenK, hl = L * lk / 2, hw = Wd * WidK / 2;
         m.Normals();
         // rzęski
-        if (S.Cilia > 0 && !eaten && Contr < 0.8f)
+        float pxLen = L * lk / Math.Max(v.Px, 1e-6f); // długość na ekranie w pikselach
+        bool detail = pxLen > 70, tiny = pxLen < 22;
+        if (S.Cilia > 0 && !eaten && Contr < 0.8f && detail)
         {
             float fx = MathF.Cos(A), fy = MathF.Sin(A), cl = S.Cilia, cw = Math.Max(Math.Min(0.9f, S.Cilia * 0.1f), v.Px * 0.8f);
             var cc = Mul(S.Edge, 0.55f);
@@ -386,7 +397,7 @@ public sealed class Protist : Ent, ICaptor
                 p.Seg(px, py, px + dx / l * cl, py + dy / l * cl, cw, cc);
             }
         }
-        int ns = m.Smooth(p.Shape);
+        int ns = m.Smooth(p.Shape, pxLen > 220 ? 3 : pxLen > 60 ? 2 : 1);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
         p.SoftStroke(sh, true, Clamp(Wd * 0.2f, 1.5f, 14), S.Halo);
         Mem.Centroid(out float bcx, out float bcy);
@@ -423,8 +434,10 @@ public sealed class Protist : Ent, ICaptor
                 p.Stroke(new ReadOnlySpan<Vector2>(buf, 0, 17), false, Math.Max(hw * 0.018f, v.Px), S.StripeC);
             }
         }
-        foreach (var g in _gran) { Pt(g, 1, out float x, out float y); p.Dot(x, y, S.GranR, g.Z > 0 ? S.GranA : S.GranB); }
-        foreach (var c in _chl) { Pt(c, 1, out float x, out float y); p.Dot(x, y, S.ChlR * c.Z, S.Chl); }
+        if (tiny) { p.Alpha = oldA; return; }
+        int gstep = detail ? 1 : 3;
+        for (int gi = 0; gi < _gran.Length; gi += gstep) { var g = _gran[gi]; Pt(g, 1, out float x, out float y); p.Dot(x, y, S.GranR, g.Z > 0 ? S.GranA : S.GranB); }
+        for (int ci = 0; ci < _chl.Length; ci += detail ? 1 : 2) { var c = _chl[ci]; Pt(c, 1, out float x, out float y); p.Dot(x, y, S.ChlR * c.Z * (detail ? 1 : 1.3f), S.Chl); }
         if (S.ChlN > 0 && S.ChlR * v.S > 2.5f) foreach (var c in _chl) if (c.Z > 1.05f) { Pt(c, 1, out float x, out float y); p.Dot(x - S.ChlR * 0.25f, y - S.ChlR * 0.25f, S.ChlR * 0.35f, S.ChlHi); }
         // makronukleus
         var nucF = Rgb(165, 170, 150, 0.45f); var nucE = Rgb(70, 74, 62, 0.5f);
@@ -517,7 +530,7 @@ public static class Species
     {
         Id = "blepharisma", Name = "Blepharisma", Latin = "Blepharisma japonicum", L0 = 180, L1 = 330, Aspect = 0.34f,
         Profile = t => Ell(t) * (1 - 0.4f * Math.Max(0, t)) * 1.15f, Speed = 380, Move = Motion.Ciliate,
-        Body = Rgb(205, 125, 150, 0.5f), Edge = Rgb(110, 40, 70, 0.7f), GranN = 40, ChlN = 260, ChlR = 1.4f, Chl = Rgb(200, 70, 120, 0.45f), ChlHi = Rgb(255, 200, 220, 0.4f),
+        Body = Rgb(205, 125, 150, 0.5f), Edge = Rgb(110, 40, 70, 0.7f), GranN = 30, ChlN = 150, ChlR = 1.7f, Chl = Rgb(200, 70, 120, 0.45f), ChlHi = Rgb(255, 200, 220, 0.4f),
         Cilia = 7, Groove = true, CV = 1, Soft = 0.5f, BactFeed = 45, Food = 1.5f, Toxin = 0.3f, ToxinName = "blefaryzminę (różowy barwnik toksyczny dla drapieżników)",
         Eats = (me, o) => o is Chlamy c && c.State == St.Free || o is Protist q && q != me && q.State == St.Swim && q.Length < me.Length * 0.4f && q.S != Stentor,
         Fact = "Blepharisma (200–500 µm) zawdzięcza różową barwę blefaryzminie – barwnik chroni przed UV i jest toksyczny dla drapieżnych orzęsków. Kanibalizm prowadzi do gigantyzmu: olbrzymy zjadają mniejsze osobniki.",

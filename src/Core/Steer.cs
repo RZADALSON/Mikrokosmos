@@ -21,6 +21,15 @@ public struct Steer
         e.Vx = MathF.Cos(e.A) * V; e.Vy = MathF.Sin(e.A) * V;
     }
 
+    /// <summary>Opór przy pchaniu przeszkody: im cięższa (albo nieruchoma) i im bardziej "na wprost", tym mocniej hamuje.</summary>
+    public void Push(Ent me, Ent o, float nx, float ny)
+    {
+        float front = nx * MathF.Cos(me.A) + ny * MathF.Sin(me.A);
+        if (front <= 0.15f || V <= 0) return;
+        float heavy = o.Fixed ? 1 : o.Mass / (o.Mass + me.Mass);
+        V *= 1 - 0.12f * heavy * front;
+    }
+
     /// <summary>Wygięcie osi ciała (krzywizna toru / 2), ograniczone tak, by końce odchylały się najwyżej o frac szerokości.</summary>
     public float Bend(float length, float width, float refSpeed, float frac = 0.22f)
     {

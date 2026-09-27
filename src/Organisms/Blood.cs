@@ -40,7 +40,7 @@ public sealed class Neutrophil : Ent
         if (!release) foreach (var ph in Phagos) if (ph.O.Alive) { ph.O.Alive = false; }
         if (release)
             foreach (var ph in Phagos) if (ph.O.Alive && ph.O.Dig < 0.6f) { ph.O.State = St.Free; ph.O.Solid = true; ph.O.Dig = 0; ph.O.Holder = null; }
-        W.Fx.Lyse(Mem, new FX.LyseOpt { Pieces = 6, Speed = 3, Life = 7, Lw = 0.12f, C = Rgb(40, 44, 40, 0.7f), Halo = Rgb(255, 255, 240, 0.2f), HasHalo = true, Curl = 0.6f, D = 0.02f, Ring = 8, RingCol = Rgb(255, 255, 240) });
+        Lysis.Start(this, Rgb(112, 118, 108, 0.5f), Rgb(36, 40, 36, 0.75f), Rgb(238, 242, 226, 0.8f), Rgb(30, 34, 30, 0.6f));
         W.Fx.Spill(X, Y, 50, new FX.SpillOpt { Speed = 6, R = 0.15f, Life = 6, R0 = R0 * 0.6f, D = 0.05f, Cols = new[] { Rgb(238, 242, 226, 0.7f), Rgb(30, 34, 30, 0.5f) } });
         W.Sfx("pop", X, Y);
         if (IsPlayer) W.Log(release ? "Leukocydyny S. aureus przebiły błonę – neutrofil ginie, bakterie uciekają z fagosomów!" : "Neutrofil zginął.", "bad");

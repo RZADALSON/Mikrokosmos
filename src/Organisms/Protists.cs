@@ -66,7 +66,7 @@ public sealed class BactField
         bool rebuild = _anyDead;
         Compact();
         // co klatkę porusza się 1/6 cząstek (krok ×6) – ruch Browna i prąd są statystycznie takie same
-        const int STRIDE = 6;
+        const int STRIDE = 9;
         float s = MathF.Sqrt(gdt * STRIDE) * 3, d4 = dt * STRIDE;
         _phase = (_phase + 1) % STRIDE;
         for (int i = _phase; i < N; i += STRIDE)
@@ -76,6 +76,19 @@ public sealed class BactField
             if (!Inside(X[i], Y[i])) { if (_w.Infinite) Absorb(i); else { X[i] = Clamp(X[i], _wx0 + 2, _wx1 - 2); Y[i] = Clamp(Y[i], _wy0 + 2, _wy1 - 2); } }
         }
         if (rebuild || _phase == 0 || _added > 0) { Rebuild(); _added = 0; }
+    }
+    /// <summary>Bakterie w kadrze są unoszone przez wodę poruszaną przez pływaki.</summary>
+    public void Advect(World w, float dt)
+    {
+        if (w.Srcs.Count == 0) return;
+        float hw = w.ViewR * 1.3f, hh = hw * 0.65f, cx = w.CamX, cy = w.CamY;
+        for (int i = 0; i < N; i++)
+        {
+            float x = X[i], y = Y[i];
+            if (_dead[i] != 0 || MathF.Abs(x - cx) > hw || MathF.Abs(y - cy) > hh) continue;
+            w.SwimFlow(x, y, -1, out float ux, out float uy);
+            X[i] = x + ux * dt; Y[i] = y + uy * dt;
+        }
     }
     /// <summary>Prąd pokarmowy: wciąga cząstki w promieniu R ku (mx,my), zjada te bliżej niż eatR. Zwraca liczbę zjedzonych.</summary>
     public int Feed(float mx, float my, float R, float eatR, float pull, Func<bool> canEat)
@@ -176,7 +189,7 @@ public sealed class Paramecium : Ent
             _zoo = new Vector3[300];
             for (int i = 0; i < _zoo.Length; i++) { float t = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.9f; _zoo[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Rand(0.8f, 1.15f)); }
         }
-        Mem = new Membrane(NN) { MaxDef = Wd * 0.35f, Stiff = 9, Damping = 0.55f }; MemK = 4; MemS = 0.8f;
+        Mem = new Membrane(NN) { MaxDef = Wd * 0.45f, Stiff = 6, Damping = 0.45f }; MemK = 2.5f; MemS = 0.9f;
         _head = a;
         Speed = Rand(750, 1050); Mass = 25; State = St.Swim; Roll = Rand(0, TAU); Cph = Rand(0, TAU); Energy = energy;
         _cv = new[] { new Cv { X = 0.27f, Y = -0.12f, Ph = Rand(0, 1) }, new Cv { X = -0.27f, Y = -0.1f, Ph = Rand(0, 1) } };
@@ -184,8 +197,11 @@ public sealed class Paramecium : Ent
         for (int i = 0; i < _gran.Length; i++) { float t = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.8f; _gran[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Chance(0.5f) ? 1 : 0); }
         ComputeRest(); Mem.Follow(x, y, a, 1, 1);
     }
+    float _crSk = -1, _crDiv = -1;
     void ComputeRest()
     {
+        if (Sk == _crSk && Div == _crDiv) return;
+        _crSk = Sk; _crDiv = Div;
         float A2 = L / 2 * Sk, B2 = Wd / 2 * Sk;
         for (int i = 0; i < NN; i++)
         {
@@ -310,6 +326,7 @@ public sealed class Paramecium : Ent
     }
     public override void OnTouch(Ent o, float nx, float ny)
     {
+        if (!o.Permeable(this)) Sw.Push(this, o, nx, ny);
         if (State != St.Swim || AvoidCD > 0) return;
         if (o is Didinium d && d.Prey == this) return;
         if (IsPlayer)
@@ -325,9 +342,7 @@ public sealed class Paramecium : Ent
     {
         if (!Alive) return;
         ReleaseHeld();
-        W.Fx.Lyse(Mem, new FX.LyseOpt { Pieces = 5, Speed = 25, Life = 6, Lw = 1.2f, C = Rgb(40, 46, 40, 0.7f), Halo = Rgb(255, 255, 240, 0.2f), HasHalo = true, Curl = 0.5f, D = 2 });
-        W.Fx.Spill(X, Y, 40, new FX.SpillOpt { Speed = 40, R = 2, Life = 5, R0 = Wd * 0.4f, D = 3, Cols = new[] { Rgb(60, 64, 52, 0.6f), Rgb(220, 225, 205, 0.5f) } });
-        W.Sfx("pop", X, Y);
+        Lysis.Start(this, BodyC, EdgeC, Green ? Rgb(70, 150, 45, 0.7f) : Rgb(70, 76, 60, 0.7f), Rgb(225, 232, 212, 0.6f));
         Alive = false;
     }
     public void Discharge()
@@ -352,7 +367,8 @@ public sealed class Paramecium : Ent
         if (al <= 0.01f) return;
         float oldA = p.Alpha; p.Alpha = al;
         m.Normals();
-        if (!eaten)
+        bool detail = L * sk / Math.Max(v.Px, 1e-6f) > 70;
+        if (!eaten && detail)
         {
             float fx = MathF.Cos(A), fy = MathF.Sin(A), cl = 9 * sk, cw = Math.Max(0.9f, v.Px * 0.8f);
             int n = m.N;
@@ -367,7 +383,7 @@ public sealed class Paramecium : Ent
                 p.Seg(px, py, px + dx / l * cl, py + dy / l * cl, cw, CiliaC);
             }
         }
-        int ns = m.Smooth(p.Shape);
+        int ns = m.Smooth(p.Shape, detail && L * sk / Math.Max(v.Px, 1e-6f) > 220 ? 3 : 2);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
         p.SoftStroke(sh, true, 11, HaloC);
         Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
@@ -437,7 +453,7 @@ public sealed class Didinium : Ent, ICaptor
     {
         Kind = Kind.Didi; Layer = 3; Soft = 0.35f; Edible = true; Food = 1.2f; Name = "Didinium"; Latin = "Didinium nasutum";
         L = len > 0 ? len : Rand(100, 125); Wd = L * 0.78f;
-        Mem = new Membrane(NN) { MaxDef = L * 0.12f, Stiff = 9, Damping = 0.55f }; MemK = 4; MemS = 0.7f;
+        Mem = new Membrane(NN) { MaxDef = L * 0.16f, Stiff = 6, Damping = 0.45f }; MemK = 2.5f; MemS = 0.85f;
         _head = a;
         Speed = Rand(650, 800); Mass = 18; State = St.Swim;
         Roll = Rand(0, TAU); Cph = Rand(0, TAU);
@@ -556,6 +572,7 @@ public sealed class Didinium : Ent, ICaptor
     }
     public override void OnTouch(Ent o, float nx, float ny)
     {
+        Sw.Push(this, o, nx, ny);
         if (State != St.Swim || Stun > 0 || o is not Paramecium pr || (pr.State != St.Swim && pr.State != St.Avoid)) return;
         float front = nx * MathF.Cos(A) + ny * MathF.Sin(A);
         if (front < 0.55f) return;

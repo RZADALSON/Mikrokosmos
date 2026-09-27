@@ -20,6 +20,8 @@ public abstract class Scenario
     public float Wd, Ht, ViewW, TimeScale = 1, Bio = 1, PhageDrift = 20, FlowX, FlowY, Starve = 70, EcoliDouble = 3000;
     public int PhageCap = 150;
     public bool Em, GrowEcoli;
+    /// <summary>Widoczna zawiesina w wodzie (staw, biofilm).</summary>
+    public bool Water;
     /// <summary>Prędkość prądu wody (µm/s czasu biologicznego) i skala wirów (µm).</summary>
     public float Flow, FlowScale = 2000;
     /// <summary>Rozmiar komórki siatki przestrzennej (µm).</summary>

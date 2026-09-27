@@ -204,7 +204,7 @@ public sealed class Helio : Ent, ICaptor
         _rb = Rand(90, 150); _ax = _rb * Rand(0.9f, 1.3f); R = _rb + _ax + 5; Mass = 200;
         _n = 72; _aa = new float[_n]; _al = new float[_n];
         for (int i = 0; i < _n; i++) { _aa[i] = i * TAU / _n + Rand(-0.03f, 0.03f); _al[i] = _ax * Rand(0.75f, 1.1f); }
-        _vac = new Vector3[140];
+        _vac = new Vector3[100];
         for (int i = 0; i < _vac.Length; i++) { float t = Rand(0, TAU), r = Rand(0.55f, 0.95f) * _rb; _vac[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Rand(4, 9)); }
         _dir = Rand(0, TAU); FlowK = 0.6f;
     }
@@ -268,11 +268,12 @@ public sealed class Helio : Ent, ICaptor
         {
             float a = _aa[i] + MathF.Sin(W.T * 0.2f + i) * 0.01f, c = MathF.Cos(a), s = MathF.Sin(a);
             p.Seg(c * _rb * 0.9f, s * _rb * 0.9f, c * (_rb + _al[i]), s * (_rb + _al[i]), aw, ac);
-            for (int g = 1; g <= 3; g++) { float d = _rb + _al[i] * g / 4f; p.Dot(c * d, s * d, 1.4f, Rgb(40, 40, 30, 0.5f)); }
+            if (1.4f / v.Px > 0.8f) for (int g = 1; g <= 3; g++) { float d = _rb + _al[i] * g / 4f; p.Dot(c * d, s * d, 1.4f, Rgb(40, 40, 30, 0.5f)); }
         }
         p.Glow(0, 0, _rb * 1.15f, Rgb(255, 255, 240, 0.18f));
         p.FillCircle(0, 0, _rb, Rgb(165, 170, 150, 0.35f));
-        foreach (var q in _vac) { p.FillCircle(q.X, q.Y, q.Z, Rgb(225, 230, 215, 0.3f)); p.Circle(q.X, q.Y, q.Z, 0.8f, Rgb(70, 74, 60, 0.35f)); }
+        // wodniczki pienistej ektoplazmy: ciemniejsza obwódka + jasny środek (dwie kropki zamiast okręgu z obrysem)
+        foreach (var q in _vac) { p.Dot(q.X, q.Y, q.Z, Rgb(90, 95, 78, 0.35f)); p.Dot(q.X, q.Y, q.Z * 0.78f, Rgb(228, 232, 218, 0.42f)); }
         p.FillCircle(0, 0, _rb * 0.5f, Rgb(120, 125, 105, 0.3f));
         for (int k = 0; k < 14; k++) { float t = k * 2.4f, r = _rb * 0.35f * MathF.Sqrt((k + 0.5f) / 14); p.FillCircle(MathF.Cos(t) * r, MathF.Sin(t) * r, 3.5f, Rgb(95, 100, 85, 0.5f)); }
         p.Circle(0, 0, _rb, 1.2f, Rgb(50, 52, 40, 0.6f));
@@ -510,10 +511,10 @@ public sealed class Daphnia : Ent
         p.FillRadial(cs, -0.05f * L, -0.02f * L, dts, dcs);
         // siateczkowata rzeźba pancerza
         var net = Rgb(120, 105, 60, 0.12f);
-        for (float x = -0.42f; x < 0.18f; x += 0.035f)
-            for (float y = -0.3f; y < 0.26f; y += 0.035f)
+        for (float x = -0.42f; x < 0.18f; x += 0.055f)
+            for (float y = -0.3f; y < 0.26f; y += 0.055f)
             {
-                float ox = (MathF.Round(y / 0.035f) % 2) * 0.0175f;
+                float ox = (MathF.Round(y / 0.055f) % 2) * 0.0275f;
                 float px = (x + ox) * L, py = y * L;
                 if (Sq((px + 0.12f * L) / (0.33f * L)) + Sq(py / (0.3f * L)) > 1) continue;
                 p.Seg(px - L * 0.01f, py, px + L * 0.01f, py, lw * 0.7f, net);
@@ -637,7 +638,7 @@ public sealed class Detritus : Ent
     public override float Radius => _r;
     public Detritus(World w, float x, float y, float r) : base(w, x, y, Rand(0, TAU))
     {
-        Kind = Kind.None; Layer = 1; Name = "detrytus"; Latin = "martwa materia organiczna z bakteriami"; Soft = 0.8f;
+        Kind = Kind.None; Layer = 1; Name = "detrytus"; Latin = "martwa materia organiczna z bakteriami"; Soft = 0.8f; Solid = r > 40;
         _r = r; R = r * 1.3f; Mass = r * r * 0.02f; FlowK = 0.5f; D = 0.2f; Dr = 0.0005f;
         int n = (int)Clamp(r * 0.9f, 20, 90);
         _b = new Vector3[n]; _c = new Color[n];

@@ -140,7 +140,7 @@ public abstract class ScBiofilm : Scenario
 {
     protected ScBiofilm()
     {
-        Wd = 260; Ht = 180; ViewW = 30; TimeScale = 0.25f; Style = ScopeStyle.Phase; Modes = LightModes; GrowEcoli = true; GridCell = 6;
+        Wd = 260; Ht = 180; ViewW = 30; TimeScale = 0.25f; Style = ScopeStyle.Phase; Modes = LightModes; GrowEcoli = true; GridCell = 6; Water = true;
         ChunkSize = 40; ActiveR = 2; ParkCap = 50;
         Mag = "Obiektyw 100× imersyjny (1000×)";
         DebrisN = 1200; DebrisS0 = 0.08f; DebrisS1 = 0.5f; DebrisD = 0.03f; DebrisCols = new[] { Rgb(40, 45, 40, 0.5f), Rgb(255, 255, 240, 0.5f), Rgb(30, 30, 30, 0.5f) };
@@ -636,7 +636,7 @@ public abstract class ScPond : Scenario
     protected bool Ciliates;
     protected ScPond()
     {
-        Style = ScopeStyle.Pond; Modes = LightModes; Wd = 9000; Ht = 6400; GridCell = 250; FlowScale = 2600;
+        Style = ScopeStyle.Pond; Modes = LightModes; Wd = 9000; Ht = 6400; GridCell = 250; FlowScale = 2600; Water = true;
         ChunkSize = 1400; ActiveR = 2; ParkCap = 60;
         BiomeNames = new[] { "Otwarta woda", "Zarośla skrętnicy", "Osad denny", "Chmury bakterii" };
         BiomeColors = new[] { Rgb(90, 140, 160), Rgb(80, 170, 80), Rgb(150, 125, 85), Rgb(190, 170, 100) };

@@ -38,14 +38,24 @@ public static class Geo
         for (int i = 1; i < e.PartCount; i++) { var h = PointPrim(px, py, e.Part(i)); if (h.D < best.D) best = h; }
         return best;
     }
+    static float Bound(Prim p) => p.Cap ? p.R + 0.5f * MathF.Sqrt(Sq(p.Bx - p.Ax) + Sq(p.By - p.Ay)) : p.R;
     /// <summary>Najgłębsza penetracja między dwiema encjami (wszystkie pary części).</summary>
     public static bool EntEnt(Ent a, Ent b, out float pen, out float nx, out float ny)
     {
         pen = 0; nx = ny = 0; bool hit = false;
         int na = a.PartCount, nb = b.PartCount;
+        if (na == 1 && nb == 1) return PrimPrim(a.Prim, b.Prim, out pen, out nx, out ny);
         for (int i = 0; i < na; i++)
+        {
+            var pa = a.Part(i); float ra = Bound(pa);
+            if (Sq(pa.X - b.X) + Sq(pa.Y - b.Y) > Sq(ra + b.R)) continue; // część daleko od całego b
             for (int j = 0; j < nb; j++)
-                if (PrimPrim(a.Part(i), b.Part(j), out float p, out float x, out float y) && p > pen) { pen = p; nx = x; ny = y; hit = true; }
+            {
+                var pb = b.Part(j); float rb = Bound(pb);
+                if (Sq(pa.X - pb.X) + Sq(pa.Y - pb.Y) > Sq(ra + rb)) continue;
+                if (PrimPrim(pa, pb, out float p, out float x, out float y) && p > pen) { pen = p; nx = x; ny = y; hit = true; }
+            }
+        }
         return hit;
     }
 

@@ -15,6 +15,7 @@ public partial class Main : Node
     World _world, _demo;
     bool _paused, _mouseFollow, _mouseDown, _actionEdge, _showFps, _testInput, _nano;
     float _timeMul = 1;
+    double _updMs;
     Control _nanoPick, _settings;
     int _modeIdx;
     float _camX, _camY, _zoom = 1, _tz = 1, _s0 = 1, _hudT, _fpsAcc; int _fpsN;
@@ -58,6 +59,7 @@ public partial class Main : Node
         ShowMenu();
         var args = OS.GetCmdlineUserArgs();
         if (args.Any(a => a.StartsWith("--audio="))) { Audio.Report(args.First(a => a.StartsWith("--audio="))[8..]); GetTree().Quit(); return; }
+        if (args.Any(a => a.StartsWith("--fpstest="))) { _ = FpsTest(args.First(a => a.StartsWith("--fpstest="))[10..]); return; }
         if (args.Contains("--check")) _ = Checks();
         else if (args.Contains("--autotest")) _ = AutoTest(args);
         else if (args.Any(a => a.StartsWith("--shot="))) _ = Shots(args);
@@ -766,7 +768,9 @@ public partial class Main : Node
         ComputeInput();
         var w = _mode == Mode.Game ? _world : _demo;
         if (w == null) return;
+        long tu = System.Diagnostics.Stopwatch.GetTimestamp();
         if (!(_mode == Mode.Game && _paused)) w.Update(_mode == Mode.Game && _nano ? fdt * _timeMul : fdt);
+        _updMs = (System.Diagnostics.Stopwatch.GetTimestamp() - tu) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         UpdateCam(w, fdt);
         _view.QueueRedraw();
         _overlay.QueueRedraw();
@@ -860,7 +864,7 @@ public partial class Main : Node
             Ok(_world.Ents.Any(e => e is Staph s && s.State == St.Caught), "bakteria w zasięgu NET zostaje uwięziona");
 
             // 2. ampicylina → liza przy podziale
-            Start(S("ecoli")); var ec = (EColi)_world.Player;
+            Start(S("ecoli")); var ec = (EColi)_world.Player; Clear(ec, 40);
             _world.Amp.Blob(ec.X, ec.Y, 20, 2); ec.L = ec.L0 * 2 + 0.01f;
             _input.Mag = 0; Run(900);
             Ok(_world.Stat("ampkills") >= 1, "ampicylina lizuje dzielącą się komórkę (liza wybrzuszeniowa)");
@@ -1025,6 +1029,17 @@ public partial class Main : Node
             _input.Mag = 0; _input.Dx = _input.Dy = 0;
             Ok(minD > -pd.Wd * 0.5f || !pd.Alive, $"pantofelek nie wnika w pancerz rozwielitki (najgłębiej {-minD:0} µm)");
 
+            // 21. przepływ wokół pływaka unosi pobliskie obiekty; rozpad komórki
+            Start(S("para")); var sp2 = (Paramecium)_world.Player; Clear(sp2, 1200);
+            sp2.A = 0; var det = _world.Add(new Detritus(_world, sp2.X + sp2.L * 0.9f, sp2.Y + sp2.Wd * 1.2f, 12)); det.D = 0; det.FlowK = 1;
+            float dx0 = det.X;
+            _input.Mag = 1; _input.Ang = 0; _input.Dx = 1; _input.Dy = 0; Run(120); _input.Mag = 0; _input.Dx = 0;
+            Ok(det.X - dx0 > 5, $"woda poruszana przez pantofelka unosi drobiny obok niego (przesunięcie {det.X - dx0:0.0} µm)");
+            var vic = _world.Add(new Protist(_world, Species.Blepharisma, sp2.X - 400, sp2.Y, 0)); Run(2); vic.Kill();
+            Ok(!vic.Alive && _world.Ents.Any(e => e is Lysis), "śmierć komórki uruchamia rozpad (pęcherze → pęknięcie → wypływ cytoplazmy)");
+            Run(150); int bits = _world.Fx.Bits.Count;
+            Ok(bits > 10, $"cytoplazma wypływa przez otwór ({bits} drobin)");
+
             // 17. strzępka Candida niszczona przez sieć NET
             Start(S("neutro")); var nn = _world.Player;
             var hy = _world.Add(new CandidaHypha(_world, nn.X + 4, nn.Y, 0));
@@ -1035,6 +1050,29 @@ public partial class Main : Node
         catch (Exception ex) { fails++; GD.PrintErr("[check] WYJĄTEK " + ex); }
         GD.Print(fails == 0 ? "[check] WSZYSTKO OK" : $"[check] BŁĘDÓW: {fails}");
         GetTree().Quit(fails == 0 ? 0 : 1);
+    }
+
+    /// <summary>Pomiar rzeczywistej płynności (renderowanie na ekranie, zwykła pętla gry).</summary>
+    async Task FpsTest(string id)
+    {
+        for (int i = 0; i < 5; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+        World.Prof = OS.GetCmdlineUserArgs().Contains("--prof");
+        Start(Scenario.All.First(s => s.Id == id));
+        _testInput = true; _input.Mag = 1; _input.Ang = 0.3f; _input.Dx = MathF.Cos(0.3f); _input.Dy = MathF.Sin(0.3f);
+        for (int i = 0; i < 120; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        var sw = System.Diagnostics.Stopwatch.StartNew(); int n = 0; double worst = 0, last = 0, upd = 0, bld = 0;
+        while (sw.Elapsed.TotalSeconds < 6)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame); n++; upd += _updMs; bld += _view.LastBuildMs;
+            double t = sw.Elapsed.TotalMilliseconds;
+            if (t - last > 20) GD.Print($"  [spike] klatka {n}: {t - last:0.0} ms (symulacja {_updMs:0.0}, geometria {_view.LastBuildMs:0.0}, t={t / 1000:0.00}s)");
+            worst = Math.Max(worst, t - last); last = t;
+            if (n % 120 == 0) { float a = Rand(0, TAU); _input.Ang = a; _input.Dx = MathF.Cos(a); _input.Dy = MathF.Sin(a); }
+        }
+        if (World.Prof) foreach (var kv in World.ProfT.OrderByDescending(k => k.Value).Take(16)) GD.Print($"      {kv.Key,-24} {kv.Value / n:0.000} ms/kl");
+        GD.Print($"[fps] {id}: średnio {n / sw.Elapsed.TotalSeconds:0} FPS, najdłuższa klatka {worst:0.0} ms, symulacja {upd / n:0.00} ms, geometria {bld / n:0.00} ms, wierzchołki {_view.LastVertices}, GC0 {GC.CollectionCount(0)}");
+        GetTree().Quit();
     }
 
     async Task Shots(string[] args)
@@ -1064,7 +1102,7 @@ public partial class Main : Node
                         Ent sp = bare switch
                         {
                             "sp-stentor" => new Protist(_world, Species.Stentor, x, y, -0.4f),
-                            "sp-blepharisma" => new Protist(_world, Species.Blepharisma, x, y, 0.3f),
+                            "sp-blepharisma" or "sp-lysis" => new Protist(_world, Species.Blepharisma, x, y, 0.3f),
                             "sp-euglena" => new Protist(_world, Species.Euglena, x, y, 0.3f),
                             "sp-spirostomum" => new Protist(_world, Species.Spirostomum, x, y, 0.2f),
                             "sp-coleps" => new Protist(_world, Species.Coleps, x, y, 0.2f),
@@ -1098,6 +1136,7 @@ public partial class Main : Node
                         if (bare == "turn") { _input.Mag = 1; _input.Ang = f * 0.035f; _input.Dx = MathF.Cos(_input.Ang); _input.Dy = MathF.Sin(_input.Ang); _world.CamX = _world.Player.X; _world.CamY = _world.Player.Y; _world.ViewR = 500; }
                         _world.Update(1f / 60);
                         if (f == frames / 2 && bare != "turn") { _input.Mag = 0; _input.Dx = _input.Dy = 0; }
+                        if (bare == "sp-lysis" && f == frames - 150 && _world.Focus != null) { var fo = _world.Focus; fo.Kill(); _world.Focus = _world.Ents.OfType<Lysis>().LastOrDefault(); }
                     }
                     _testInput = false;
                     _tz = _zoom = zoom;

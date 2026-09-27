@@ -279,10 +279,13 @@ public sealed class Painter
     {
         float pl = PxL;
         if (r < pl * 0.5f) { col.A *= r / (pl * 0.5f); r = pl * 0.5f; }
-        Reserve(7, 18);
+        // liczba boków zależna od wielkości na ekranie – duże kropki nie wyglądają jak sześciokąty
+        float rp = r / pl; int n = rp < 4 ? 6 : rp < 9 ? 8 : 12;
+        Reserve(n + 1, n * 3);
         int c0 = Vx(x, y, col);
-        for (int i = 0; i < 6; i++) { float t = i * (TAU / 6); Vx(x + MathF.Cos(t) * r, y + MathF.Sin(t) * r, col); }
-        for (int i = 0; i < 6; i++) Tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % 6);
+        float step = TAU / n;
+        for (int i = 0; i < n; i++) { float t = i * step; Vx(x + MathF.Cos(t) * r, y + MathF.Sin(t) * r, col); }
+        for (int i = 0; i < n; i++) Tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % n);
     }
     public void Diamond(float x, float y, float rw, float rh, Color col)
     {

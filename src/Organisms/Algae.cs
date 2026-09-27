@@ -331,7 +331,7 @@ public sealed class Amoeba : Ent
     void Starve(bool hunger = true)
     {
         if (!Alive) return;
-        W.Fx.Lyse(Mem, new FX.LyseOpt { Pieces = 7, Speed = 20, Life = 8, Lw = 1.3f, C = Rgb(40, 46, 40, 0.6f), Halo = Rgb(255, 255, 240, 0.2f), HasHalo = true, Curl = 0.4f, D = 2 });
+        Lysis.Start(this, Rgb(128, 136, 120, 0.38f), Rgb(40, 46, 40, 0.55f), Rgb(60, 66, 55, 0.7f), Rgb(232, 238, 222, 0.6f));
         W.Sfx("pop", X, Y);
         if (IsPlayer) W.Log(hunger ? "Ameba zagłodzona – komórka skurczyła się i rozpadła." : "Błona ameby rozerwana – komórka ginie.", "bad");
         foreach (var f in Meals) if (f.O.Alive && f.O.Holder == this) f.O.Unhold();

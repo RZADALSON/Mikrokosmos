@@ -10,6 +10,7 @@ public sealed class EColi : Ent
     public float Wd, L, L0, Speed, Round, Pinch, Opacity = 1, Bund = 1, Wob, Cmem, Rb, Timer;
     public bool Sessile, Dividing, Warned, Resistant, KnownResistant;
     public float Bulge;
+    float _svx, _svy;
     /// <summary>Infekcja obcym fagiem (T7/λ) – czas do lizy (s biologiczne); 0 = brak.</summary>
     public float Foreign; public bool ForeignLambda, Lysogen;
     /// <summary>Liczba fagów związanych z powierzchnią (ograniczona liczba miejsc receptorowych).</summary>
@@ -98,8 +99,13 @@ public sealed class EColi : Ent
         if (!Alive) return;
         Bund = Lerp(Bund, State == St.Tumble ? 0 : 1, Damp(12, gdt));
         if (Sessile) { Vx = Vy = 0; }
-        else if (IsPlayer) Control(dt, gdt);
-        else Ai(dt);
+        else
+        {
+            if (IsPlayer) Control(dt, gdt); else Ai(dt);
+            // wiązka rzęsek formuje się i rozpada w ułamku sekundy – ciąg narasta płynnie
+            float k = Damp(State == St.Tumble ? 14 : 6, dt);
+            _svx += (Vx - _svx) * k; _svy += (Vy - _svy) * k; Vx = _svx; Vy = _svy;
+        }
         if (Inf != null) { float k = 1 - Clamp(Inf.T / Inf.Lat * 1.6f, 0, 1); Vx *= k; Vy *= k; }
         if (Invader != null && Invader.State == St.Attach) { Vx *= 0.7f; Vy *= 0.7f; }
         Grow(bdt);

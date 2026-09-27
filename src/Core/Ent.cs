@@ -48,6 +48,8 @@ public abstract class Ent
     /// Miękkie ciała mogą się w siebie wcisnąć – kontakt rozwiązywany jest częściowo, a membrany się spłaszczają.
     /// </summary>
     public float Soft;
+    /// <summary>W pobliżu kadru (ustawiane co klatkę przed kolizjami).</summary>
+    public bool Near = true;
 
     /// <summary>Opis do skanera (nazwa, rozmiar).</summary>
     public virtual string Info
@@ -86,6 +88,11 @@ public abstract class Ent
         ReleaseHeld();
         float s = Math.Max(Math.Max(Radius, Length * 0.5f), R * 0.3f);
         bool em = W.Em;
+        if (Mem != null && !em && !W.Preview)
+        {
+            Lysis.Start(this, Rgb(125, 130, 115, 0.42f), Rgb(40, 44, 38, 0.7f), Rgb(80, 82, 60, 0.7f), Rgb(225, 230, 210, 0.6f));
+            Alive = false; return;
+        }
         if (Mem != null)
             W.Fx.Lyse(Mem, new FX.LyseOpt
             {

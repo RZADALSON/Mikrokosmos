@@ -16,6 +16,8 @@ public sealed class FX
     public readonly List<Frag> Frags = new();
     public readonly List<RingFx> Rings = new();
     public readonly List<Needle> Needles = new();
+    /// <summary>Prędkość wody w punkcie (µm/s czasu biologicznego) i przelicznik czasu – drobiny i fragmenty błon płyną z wodą.</summary>
+    public Func<float, float, Vector2> Flow; public float FlowScale;
 
     public struct SpillOpt
     {
@@ -94,6 +96,7 @@ public sealed class FX
         {
             var b = Bits[i];
             b.Vx *= dec; b.Vy *= dec; b.X += b.Vx * fdt; b.Y += b.Vy * fdt;
+            if (Flow != null && FlowScale > 0) { var u = Flow(b.X, b.Y); b.X += u.X * fdt * FlowScale; b.Y += u.Y * fdt * FlowScale; }
             if (b.D > 0) { float s = MathF.Sqrt(2 * b.D * fdt); b.X += s * RandN(); b.Y += s * RandN(); }
             b.Life -= fdt;
             if (b.Life <= 0) { Bits[i] = Bits[^1]; Bits.RemoveAt(Bits.Count - 1); }
@@ -102,6 +105,7 @@ public sealed class FX
         {
             var f = Frags[i];
             f.Vx *= dec; f.Vy *= dec; f.X += f.Vx * fdt; f.Y += f.Vy * fdt; f.Va *= dec; f.A += f.Va * fdt;
+            if (Flow != null && FlowScale > 0) { var u = Flow(f.X, f.Y); f.X += u.X * fdt * FlowScale; f.Y += u.Y * fdt * FlowScale; }
             if (f.D > 0) { float s = MathF.Sqrt(2 * f.D * fdt); f.X += s * RandN(); f.Y += s * RandN(); }
             float k = Damp(f.Curl * 1.2f, fdt);
             for (int q = 0; q < f.M; q++) { f.Lx[q] += (f.Tx[q] - f.Lx[q]) * k; f.Ly[q] += (f.Ty[q] - f.Ly[q]) * k; }
