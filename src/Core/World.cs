@@ -621,6 +621,15 @@ public static class Physics
     static readonly List<Ent> _buf = new();
     static float[] _keys = new float[256]; static Ent[] _arr = new Ent[256];
     /// <summary>Kolizje metodą sort &amp; sweep; rozsuwanie proporcjonalne do "masy" (oporu).</summary>
+    /// <summary>Obrót od zderzenia: dθ = (r × Δ) / (ℓ²/4), ℓ – długość ciała (opór obrotowy pręta ~ ℓ³, posuwisty ~ ℓ).</summary>
+    static void Torque(Ent e, float cx, float cy, float dx, float dy)
+    {
+        if (e.Fixed || !e.Rotates) return;
+        float l = Math.Max(e.Length, e.Radius * 2); if (l <= 0) return;
+        float rx = cx - e.X, ry = cy - e.Y;
+        float dth = (rx * dy - ry * dx) / (l * l * 0.25f) * 0.8f;
+        e.A += Clamp(dth, -0.15f, 0.15f);
+    }
     public static void CollideAll(List<Ent> ents, World w = null)
     {
         _buf.Clear();
@@ -659,8 +668,11 @@ public static class Physics
                 // miękkie ciała: część penetracji to ściśnięcie (sprężyste, rozwiązywane powoli), reszta – twardy kontakt
                 float give = (a.Soft * a.Prim.R + b.Soft * b.Prim.R) * 0.3f;
                 float res = pen <= give ? pen * 0.22f : (pen - give) + give * 0.22f;
+                float cX = Geo.ContactX, cY = Geo.ContactY;
                 a.X -= nx * res * wa; a.Y -= ny * res * wa;
                 b.X += nx * res * wb; b.Y += ny * res * wb;
+                Torque(a, cX, cY, -nx * res * wa, -ny * res * wa);
+                Torque(b, cX, cY, nx * res * wb, ny * res * wb);
                 a.UpdatePrim(); b.UpdatePrim();
                 a.OnTouch(b, nx, ny); b.OnTouch(a, -nx, -ny);
             }

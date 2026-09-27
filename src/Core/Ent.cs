@@ -48,6 +48,11 @@ public abstract class Ent
     /// Miękkie ciała mogą się w siebie wcisnąć – kontakt rozwiązywany jest częściowo, a membrany się spłaszczają.
     /// </summary>
     public float Soft;
+    /// <summary>
+    /// Czy zderzenie mimo środka obraca ciało. W cieczy lepkiej obrót jest proporcjonalny do momentu siły
+    /// (brak rozpędu); opór obrotowy wydłużonego ciała rośnie z kwadratem jego długości.
+    /// </summary>
+    public virtual bool Rotates => !Fixed;
     /// <summary>W pobliżu kadru (ustawiane co klatkę przed kolizjami).</summary>
     public bool Near = true;
 

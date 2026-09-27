@@ -23,6 +23,7 @@ public sealed class Nanobot : Ent
     public override void UpdatePrim() => SetCircle(Size * 0.45f);
     public override bool CanControl() => true;
     public override void Kill() { }
+    public override bool Rotates => false;
     public override void Unhold() { Holder = null; Solid = true; State = St.Free; }
 
     /// <summary>Encja pod celownikiem (dla skanera i lasera).</summary>

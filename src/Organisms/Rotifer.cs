@@ -226,6 +226,7 @@ public sealed class Acanth : Ent
         Mem.Radial(_rr);
     }
     public override void UpdatePrim() => SetCircle(Rb * 0.9f);
+    public override bool Rotates => false;
     public override bool Collides(Ent o) => !((o is EColi e && (e.State == St.Cup || e.State == St.Vac)) || (o is Bdello b && (b.State == St.Cup || b.State == St.Vac)));
     public override void Step(float dt, float gdt)
     {

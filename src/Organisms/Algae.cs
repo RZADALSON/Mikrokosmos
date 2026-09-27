@@ -218,6 +218,7 @@ public sealed class Amoeba : Ent
         R = mx + 10;
     }
     public override void UpdatePrim() => RadialParts(_rr, NN, 10);
+    public override bool Rotates => false;
     public override bool Collides(Ent o) => o.State != St.Cup && o.State != St.Vac && o.Holder != this
         && !(o.Edible && o.State is St.Free or St.Swim or St.Avoid && o.Length < Rb * 2.2f && !(o is Amoeba));
 

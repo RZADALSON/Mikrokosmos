@@ -607,37 +607,52 @@ public sealed class Didinium : Ent, ICaptor
         int ns = m.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
         p.SoftStroke(sh, true, 11, Rgb(255, 255, 240, 0.26f));
-        p.FillFan(sh, X, Y, Rgb(128, 124, 104, 0.45f));
+        Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
+        Span<Color> bcs = stackalloc Color[] { Rgb(150, 146, 124, 0.38f), Rgb(128, 124, 104, 0.45f), Rgb(105, 100, 82, 0.55f) };
+        p.FillRadial(sh, X, Y, bts, bcs);
         p.Stroke(sh, true, 1.0f, Rgb(46, 44, 34, 0.7f));
         if (cy > 0) p.Stroke(sh, true, 6 * cy, Rgb(200, 190, 150, 0.7f * cy));
         p.Local(X, Y, A);
         float A2 = L2 / 2, B2 = W2 / 2;
-        foreach (var g in _gran) p.Rect(g.X * A2, g.Y * B2, g.Z > 0 ? 1.6f : 1.3f, g.Z > 0 ? 1.6f : 1.3f, g.Z > 0 ? Rgb(48, 46, 36, 0.35f) : Rgb(235, 230, 210, 0.3f));
-        p.Arc(-L2 * 0.04f, 0, B2 * 0.45f, 0.9f, TAU - 0.9f, 8 * sw, Rgb(78, 76, 62, 0.45f), true);
+        bool detail = L2 / Math.Max(v.Px, 1e-6f) > 70;
+        if (detail) foreach (var g in _gran) p.Dot(g.X * A2, g.Y * B2, g.Z > 0 ? 0.9f : 0.75f, g.Z > 0 ? Rgb(48, 46, 36, 0.35f) : Rgb(235, 230, 210, 0.3f));
+        // makronukleus w kształcie podkowy (charakterystyczny dla Didinium)
+        p.Arc(-L2 * 0.06f, 0, B2 * 0.42f, 0.9f, TAU - 0.9f, 4.5f * sw, Rgb(95, 92, 76, 0.35f), true);
         float cvp = (W.T * 0.12f + Id * 0.37f) % 1;
         p.FillCircle(-A2 * 0.72f, B2 * 0.1f, 7 * Smooth(cvp / 0.9f) * (cvp > 0.9f ? 0 : 1) + 0.1f, Rgb(215, 225, 205, 0.4f));
         if (cy > 0.6f) return;
-        float[] bands = { A2 * 0.36f, -A2 * 0.18f };
-        Span<Vector2> band = stackalloc Vector2[2];
+        // dwa wieńce rzęsek (pektynele) opasujące beczułkę: widoczne jako pas krótkich rzęsek w poprzek ciała
+        // i pęczki wystające poza obrys po obu stronach; fala metachroniczna obiega wieniec
+        float[] bands = { A2 * 0.36f, -A2 * 0.2f };
+        var bc = Rgb(55, 52, 40, 0.45f); float cw = Math.Max(v.Px, 0.8f);
         for (int bi = 0; bi < 2; bi++)
         {
             float x = bands[bi], half = B2 * MathF.Sqrt(Math.Max(0, 1 - MathF.Pow(MathF.Abs(x) / A2, 2.6f))) * 0.98f;
-            band[0] = new(x, -half); band[1] = new(x, half);
-            p.Dashed(band, false, 3, 2, 2.2f, Rgb(50, 48, 38, 0.45f));
-            var cc = Rgb(60, 58, 46, 0.5f); float cw = Math.Max(1, v.Px);
+            const int NC = 26;
+            for (int k = 0; k < NC; k++)
+            {
+                float t = -1 + 2f * k / (NC - 1), y = t * half, bx = x - 3 * t * t; // pas lekko wygięty (walec w rzucie)
+                float ph = MathF.Sin(Cph * 1.2f - k * 0.55f + bi), len = detail ? 6 + 2 * ph : 5;
+                p.Seg(bx, y, bx - len, y + ph * 2.2f, cw, Mul(bc, 0.75f));
+            }
+            if (!detail) continue;
             for (int sd = -1; sd <= 1; sd += 2)
-                for (int k = 0; k < 7; k++)
+                for (int k = 0; k < 8; k++)
                 {
-                    float ph = 0.5f * MathF.Sin(Cph - k * 0.6f + bi);
-                    float ang = sd * (PI / 2 + 0.35f + ph * 0.6f) + (k - 3) * 0.05f * sd;
-                    float bx = x + (k - 3) * 1.4f, by = sd * half;
-                    p.Seg(bx, by, bx + MathF.Cos(ang) * 16, by + MathF.Sin(ang) * 16, cw, cc);
+                    float ph = MathF.Sin(Cph - k * 0.6f + bi);
+                    float ang = sd * (PI / 2 + 0.45f + ph * 0.45f) + (k - 3.5f) * 0.05f * sd;
+                    float bx = x - 3 + (k - 3.5f) * 1.1f, by = sd * half;
+                    p.Seg(bx, by, bx + MathF.Cos(ang) * 15, by + MathF.Sin(ang) * 15, cw, bc);
                 }
         }
-        p.FillEllipse(A2 + L * 0.08f * (1 - Mouth * 0.4f), 0, 6 + Mouth * 14, 6 + Mouth * 20, 0, Rgb(245, 240, 220, 0.25f));
-        var buf = p.Buf2; float mx = A2 + L * 0.13f;
-        for (int k = 0; k <= 8; k++) { float t = k / 8f, u = 1 - t; buf[k] = new Vector2(u * u * mx + 2 * u * t * (A2 - 6) + t * t * mx, u * u * (-3 - Mouth * 16) + t * t * (3 + Mouth * 16)); }
+        // ryjek (proboscis): stożek z kanałem cytofaryngealnym i toksycystami; rozwiera się przy połykaniu
+        float tip = A2 + L * 0.13f;
+        p.FillEllipse(A2 + L * 0.07f * (1 - Mouth * 0.4f), 0, 6 + Mouth * 14, 6 + Mouth * 20, 0, Rgb(245, 240, 220, 0.22f));
+        for (int k = -2; k <= 2; k++) p.Line(A2 - L * 0.12f, k * 1.6f * (1 + Mouth * 4), tip - 1, k * 0.7f * (1 + Mouth * 6), Math.Max(v.Px, 0.6f), Rgb(60, 58, 45, 0.4f));
+        var buf = p.Buf2;
+        for (int k = 0; k <= 8; k++) { float t = k / 8f, u = 1 - t; buf[k] = new Vector2(u * u * tip + 2 * u * t * (A2 - 6) + t * t * tip, u * u * (-3 - Mouth * 16) + t * t * (3 + Mouth * 16)); }
         p.Stroke(new ReadOnlySpan<Vector2>(buf, 0, 9), false, 1.4f, Rgb(40, 38, 30, 0.55f), true);
+        p.FillCircle(tip, 0, 1.8f, Rgb(250, 245, 225, 0.6f));
     }
 }
 

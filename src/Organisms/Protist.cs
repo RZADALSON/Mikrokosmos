@@ -382,6 +382,20 @@ public sealed class Protist : Ent, ICaptor
     float Rr(float th) => RadialUtil.Interp(_rr, NN, th);
     public static Color Shade(Color c, float k, float ak) => new(Math.Min(1, c.R * k), Math.Min(1, c.G * k), Math.Min(1, c.B * k), Math.Min(1, c.A * ak));
     void Pt(Vector3 g, float k, out float x, out float y) { float r = Rr(g.X) * g.Y * k; x = MathF.Cos(g.X) * r; y = MathF.Sin(g.X) * r; }
+    /// <summary>Punkt wewnątrz obrysu z prekomputowanym kątem (bez trygonometrii w każdej klatce).</summary>
+    struct GP { public float C, S, U, Rho, Z; public int I, J; }
+    GP[] _gp, _cp;
+    GP[] Prep(Vector3[] src)
+    {
+        var o = new GP[src.Length];
+        for (int i = 0; i < src.Length; i++)
+        {
+            float f = src[i].X / TAU * NN; f = ((f % NN) + NN) % NN; int a = (int)f; if (a >= NN) a = NN - 1;
+            o[i] = new GP { C = MathF.Cos(src[i].X), S = MathF.Sin(src[i].X), I = a, J = (a + 1) % NN, U = f - a, Rho = src[i].Y, Z = src[i].Z };
+        }
+        return o;
+    }
+    void Pt(in GP g, out float x, out float y) { float r = (_rr[g.I] * (1 - g.U) + _rr[g.J] * g.U) * g.Rho; x = g.C * r; y = g.S * r; }
 
     public override void Draw(Painter p, View v)
     {
@@ -456,9 +470,10 @@ public sealed class Protist : Ent, ICaptor
         }
         if (tiny) { p.Alpha = oldA; return; }
         int gstep = detail ? 1 : 3;
-        for (int gi = 0; gi < _gran.Length; gi += gstep) { var g = _gran[gi]; Pt(g, 1, out float x, out float y); p.Dot(x, y, S.GranR, g.Z > 0 ? S.GranA : S.GranB); }
-        for (int ci = 0; ci < _chl.Length; ci += detail ? 1 : 2) { var c = _chl[ci]; Pt(c, 1, out float x, out float y); p.Dot(x, y, S.ChlR * c.Z * (detail ? 1 : 1.3f), S.Chl); }
-        if (S.ChlN > 0 && S.ChlR * v.S > 2.5f) foreach (var c in _chl) if (c.Z > 1.05f) { Pt(c, 1, out float x, out float y); p.Dot(x - S.ChlR * 0.25f, y - S.ChlR * 0.25f, S.ChlR * 0.35f, S.ChlHi); }
+        _gp ??= Prep(_gran); _cp ??= Prep(_chl);
+        for (int gi = 0; gi < _gp.Length; gi += gstep) { Pt(in _gp[gi], out float x, out float y); p.Dot(x, y, S.GranR, _gp[gi].Z > 0 ? S.GranA : S.GranB); }
+        for (int ci = 0; ci < _cp.Length; ci += detail ? 1 : 2) { Pt(in _cp[ci], out float x, out float y); p.Dot(x, y, S.ChlR * _cp[ci].Z * (detail ? 1 : 1.3f), S.Chl); }
+        if (S.ChlN > 0 && S.ChlR * v.S > 2.5f && detail) for (int ci = 0; ci < _cp.Length; ci++) if (_cp[ci].Z > 1.05f) { Pt(in _cp[ci], out float x, out float y); p.Dot(x - S.ChlR * 0.25f, y - S.ChlR * 0.25f, S.ChlR * 0.35f, S.ChlHi); }
         // pęcherzyki Müllera (Loxodes): czujniki grawitacji wzdłuż brzegu grzbietowego – jasny pęcherzyk z ciemnym ziarnem
         if (S.Muller)
         {

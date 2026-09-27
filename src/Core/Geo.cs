@@ -45,6 +45,7 @@ public static class Geo
         pen = 0; nx = ny = 0; bool hit = false;
         int na = a.PartCount, nb = b.PartCount;
         if (na == 1 && nb == 1) return PrimPrim(a.Prim, b.Prim, out pen, out nx, out ny);
+        float bcx = 0, bcy = 0;
         for (int i = 0; i < na; i++)
         {
             var pa = a.Part(i); float ra = Bound(pa);
@@ -53,9 +54,10 @@ public static class Geo
             {
                 var pb = b.Part(j); float rb = Bound(pb);
                 if (Sq(pa.X - pb.X) + Sq(pa.Y - pb.Y) > Sq(ra + rb)) continue;
-                if (PrimPrim(pa, pb, out float p, out float x, out float y) && p > pen) { pen = p; nx = x; ny = y; hit = true; }
+                if (PrimPrim(pa, pb, out float p, out float x, out float y) && p > pen) { pen = p; nx = x; ny = y; hit = true; bcx = ContactX; bcy = ContactY; }
             }
         }
+        if (hit) { ContactX = bcx; ContactY = bcy; }
         return hit;
     }
 
@@ -95,6 +97,10 @@ public static class Geo
         if (pen <= 0) { nx = ny = 0; return false; }
         if (d < 1e-9f) { vx = 1; vy = 0; d = 1; }
         nx = vx / d; ny = vy / d;
+        // punkt kontaktu – w połowie strefy nachodzenia
+        ContactX = x1 + nx * (a.R - pen * 0.5f); ContactY = y1 + ny * (a.R - pen * 0.5f);
         return true;
     }
+    /// <summary>Punkt kontaktu z ostatniego wykrytego zderzenia (PrimPrim / EntEnt).</summary>
+    public static float ContactX, ContactY;
 }

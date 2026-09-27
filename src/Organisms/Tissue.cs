@@ -34,6 +34,7 @@ public sealed class Macrophage : Ent
         Mem.Radial(_rr);
     }
     public override void UpdatePrim() => RadialParts(_rr, NN, 8);
+    public override bool Rotates => false; // kształt liczony względem kierunku pełzania w układzie świata
     bool Food(Ent o) => o.Alive && o.Holder == null && (o is Staph s && s.State == St.Free || o is CandidaYeast y && y.State == St.Free);
     public override bool Collides(Ent o) => o.Holder != this;
     public override void Step(float dt, float gdt)
@@ -86,31 +87,77 @@ public sealed class Macrophage : Ent
 /// <summary>Fibroblast – wrzecionowata komórka tkanki łącznej (~50–100 µm z wypustkami), produkuje kolagen; pełza bardzo wolno.</summary>
 public sealed class Fibroblast : Ent
 {
-    readonly float _l, _w; float _ph; readonly float _seed;
+    readonly float _l, _w; readonly float _seed;
+    sealed class Proc { public float Ang, Len, W, Ph; }
+    readonly Proc[] _proc;
+    readonly Vector3[] _gran; readonly Vector2[] _chrom;
+    const int NS = 150;
+    readonly float[] _r = new float[NS];
+    float _t;
     public override float Length => _l;
     public override float Radius => _w / 2;
     public Fibroblast(World w, float x, float y, float a) : base(w, x, y, a)
     {
         Kind = Kind.TissueCell; Layer = 1; Name = "fibroblast"; Latin = "fibroblast"; Soft = 0.6f; FlowK = 0;
-        _l = Rand(55, 100); _w = Rand(7, 10); R = _l / 2 + 4; Mass = 80; _seed = Rand(0, 99);
+        _l = Rand(55, 100); _w = Rand(7, 10); R = _l / 2 + 6; Mass = 80; _seed = Rand(0, 99);
+        // dwie główne wypustki wzdłuż osi + 0–3 boczne; w tkance fibroblast jest płaski, gwiaździsto-wrzecionowaty
+        int side = RandI(0, 3);
+        _proc = new Proc[2 + side];
+        _proc[0] = new Proc { Ang = 0, Len = _l * Rand(0.36f, 0.46f), W = Rand(0.1f, 0.14f), Ph = Rand(0, TAU) };
+        _proc[1] = new Proc { Ang = PI + RandN() * 0.15f, Len = _l * Rand(0.34f, 0.46f), W = Rand(0.1f, 0.14f), Ph = Rand(0, TAU) };
+        for (int i = 0; i < side; i++) _proc[2 + i] = new Proc { Ang = Sign() * Rand(0.7f, 2.4f), Len = _l * Rand(0.12f, 0.3f), W = Rand(0.08f, 0.12f), Ph = Rand(0, TAU) };
+        _gran = new Vector3[70];
+        for (int i = 0; i < _gran.Length; i++) { float t = Rand(0, TAU), q = MathF.Sqrt(R01()); _gran[i] = new Vector3(MathF.Cos(t) * q, MathF.Sin(t) * q, Rand(0.15f, 0.3f)); }
+        _chrom = new Vector2[18];
+        for (int i = 0; i < _chrom.Length; i++) { float t = Rand(0, TAU), q = MathF.Sqrt(R01()) * 0.8f; _chrom[i] = new Vector2(MathF.Cos(t) * q, MathF.Sin(t) * q); }
+        Shape();
+    }
+    void Shape()
+    {
+        float a0 = _w * 0.9f, b0 = _w * 0.5f;
+        for (int i = 0; i < NS; i++)
+        {
+            float th = i * TAU / NS, c = MathF.Cos(th), s = MathF.Sin(th);
+            float r = a0 * b0 / MathF.Sqrt(Sq(b0 * c) + Sq(a0 * s));
+            foreach (var p in _proc)
+            {
+                float len = p.Len * (0.92f + 0.08f * MathF.Sin(_t * 0.002f + p.Ph)); // powolne wysuwanie i cofanie
+                r = Math.Max(r, len * Gauss(WrapA(th - p.Ang), p.W) + r * 0.2f);
+            }
+            r *= 1 + 0.04f * Noise1(th * 5 + _seed);
+            _r[i] = r;
+        }
     }
     public override void UpdatePrim() => AxisParts(3, _l / 2, _w / 2, t => MathF.Pow(Math.Max(0, 1 - t * t), 1.6f) + 0.05f, 0);
     public override bool Permeable(Ent o) => o is Neutrophil or Macrophage or Lymphocyte;
-    public override void Step(float dt, float gdt) { _ph += dt * 0.01f; float v = 1f / 60f; Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v; A += RandN() * 0.002f * MathF.Sqrt(dt); }
+    public override void Step(float dt, float gdt)
+    {
+        _t += dt; float v = 1f / 60f; Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v; A += RandN() * 0.002f * MathF.Sqrt(dt);
+        if ((W.Frame + Id) % 10 == 0) Shape();
+    }
     public override void Draw(Painter p, View v)
     {
         p.Local(X, Y, A);
-        var buf = p.Buf2; int n = 0; const int K = 30;
-        for (int k = 0; k <= K; k++) { float t = -1 + 2f * k / K, hw = _w / 2 * MathF.Pow(Math.Max(0, 1 - t * t), 1.6f) + 0.25f; buf[n++] = new Vector2(t * _l / 2, hw + MathF.Sin(t * 4 + _seed) * 0.6f); }
-        for (int k = K; k >= 0; k--) { float t = -1 + 2f * k / K, hw = _w / 2 * MathF.Pow(Math.Max(0, 1 - t * t), 1.6f) + 0.25f; buf[n++] = new Vector2(t * _l / 2, -hw + MathF.Sin(t * 4 + _seed) * 0.6f); }
-        var sh = new ReadOnlySpan<Vector2>(buf, 0, n);
-        p.SoftStroke(sh, true, 2.2f, Rgb(255, 255, 240, 0.26f));
-        p.FillFan(sh, 0, 0, Rgb(150, 145, 128, 0.5f));
-        p.Stroke(sh, true, 0.12f, Rgb(50, 48, 40, 0.5f));
-        for (int k = 0; k < 14; k++) { float t = -0.8f + 1.6f * k / 13; p.Dot(t * _l / 2, MathF.Sin(k * 2.3f + _seed) * _w * 0.15f, 0.25f, Rgb(70, 68, 55, 0.5f)); }
-        p.FillEllipse(0, 0, _w * 0.9f, _w * 0.3f, 0, Rgb(100, 98, 118, 0.5f));
-        p.Ellipse(0, 0, _w * 0.9f, _w * 0.3f, 0, 0.12f, Rgb(50, 50, 64, 0.5f));
-        p.FillCircle(_w * 0.2f, 0, 0.5f, Rgb(40, 40, 52, 0.7f));
+        var sh = p.Buf2;
+        for (int i = 0; i < NS; i++) { float th = i * TAU / NS; sh[i] = new Vector2(MathF.Cos(th) * _r[i], MathF.Sin(th) * _r[i]); }
+        var s = new ReadOnlySpan<Vector2>(sh, 0, NS);
+        float lw = Math.Max(v.Px, 0.1f);
+        p.SoftStroke(s, true, 1.6f, Rgb(255, 255, 240, 0.22f));
+        Span<float> ts = stackalloc float[] { 0f, 0.35f, 1f };
+        Span<Color> cs = stackalloc Color[] { Rgb(150, 146, 132, 0.52f), Rgb(160, 156, 142, 0.42f), Rgb(175, 172, 160, 0.2f) };
+        p.FillRadial(s, 0, 0, ts, cs);
+        p.Stroke(s, true, lw, Rgb(60, 58, 48, 0.4f));
+        // włókienka naprężeniowe (aktyna) wzdłuż osi komórki
+        for (int k = -2; k <= 2; k++) p.Line(-_l * 0.3f, k * _w * 0.08f, _l * 0.3f, k * _w * 0.06f, lw * 0.7f, Rgb(90, 88, 75, 0.18f));
+        // drobnoziarnista cytoplazma (szorstka siateczka śródplazmatyczna, mitochondria)
+        foreach (var g in _gran) p.Dot(g.X * _w * 1.1f, g.Y * _w * 0.45f, g.Z, Rgb(80, 78, 64, 0.45f));
+        // jądro owalne z chromatyną i 1–2 jąderkami
+        float nx = _w * 0.1f;
+        p.FillEllipse(nx, 0, _w * 0.8f, _w * 0.3f, 0, Rgb(115, 112, 128, 0.5f));
+        p.Ellipse(nx, 0, _w * 0.8f, _w * 0.3f, 0, lw, Rgb(60, 58, 72, 0.55f));
+        foreach (var c in _chrom) p.Dot(nx + c.X * _w * 0.7f, c.Y * _w * 0.24f, 0.18f, Rgb(70, 66, 88, 0.45f));
+        p.FillCircle(nx + _w * 0.2f, _w * 0.05f, 0.45f, Rgb(45, 42, 60, 0.75f));
+        p.FillCircle(nx - _w * 0.25f, -_w * 0.06f, 0.32f, Rgb(45, 42, 60, 0.7f));
     }
 }
 
@@ -148,14 +195,20 @@ public sealed class Adipocyte : Ent
 /// </summary>
 public sealed class MastCell : Ent
 {
-    readonly float _r; readonly Vector3[] _g; float _degr; bool _fired;
+    readonly float _r; readonly float _seed;
+    struct Gr { public float X, Y, S, Vx, Vy, Life; public bool Out; }
+    readonly Gr[] _g;
+    bool _fired; float _degr;
+    readonly float[] _rr = new float[48];
     public override float Radius => _r;
     public MastCell(World w, float x, float y) : base(w, x, y, Rand(0, TAU))
     {
         Kind = Kind.TissueCell; Layer = 1; Name = "mastocyt"; Latin = "komórka tuczna"; Soft = 0.5f;
-        _r = Rand(5, 7); R = _r + 1; Mass = 10; FlowK = 0;
-        _g = new Vector3[160];
-        for (int i = 0; i < _g.Length; i++) { float t = Rand(0, TAU), q = MathF.Sqrt(R01()) * 0.88f; _g[i] = new Vector3(MathF.Cos(t) * q, MathF.Sin(t) * q, Rand(0.18f, 0.3f)); }
+        _r = Rand(5, 7); R = _r * 1.6f; Mass = 10; FlowK = 0; _seed = Rand(0, 99);
+        for (int i = 0; i < 48; i++) _rr[i] = _r * (1 + 0.08f * Noise1(i * 0.6f + _seed) + 0.05f * MathF.Cos(i * TAU / 48 * 2));
+        // żywy, niebarwiony mastocyt: szary, gęsto wypełniony drobnymi, silnie załamującymi światło ziarnistościami
+        _g = new Gr[420];
+        for (int i = 0; i < _g.Length; i++) { float t = Rand(0, TAU), q = MathF.Sqrt(R01()) * 0.9f; _g[i] = new Gr { X = MathF.Cos(t) * q, Y = MathF.Sin(t) * q, S = Rand(0.11f, 0.2f), Life = 1 }; }
     }
     public override void Step(float dt, float gdt)
     {
@@ -163,21 +216,45 @@ public sealed class MastCell : Ent
         if (!_fired && W.Near(X, Y, 25, e => e is Staph s && s.State == St.Free) != null)
         {
             _fired = true;
-            W.Fx.Spill(X, Y, 60, new FX.SpillOpt { Speed = 6, R = 0.22f, Life = 8, R0 = _r, D = 0.05f, Cols = new[] { Rgb(70, 50, 90, 0.8f), Rgb(110, 80, 130, 0.7f) } });
             W.AddStat("histamine", 1);
             W.LogOnce("mast", "Mastocyt wykrył bakterie i degranulował – histamina rozszerza naczynia, z żyłki wyjdą kolejne neutrofile.", "info", 30);
         }
-        if (_fired) _degr = Math.Min(1, _degr + dt / 60);
+        if (!_fired) return;
+        _degr = Math.Min(1, _degr + dt / 120);
+        // degranulacja: ziarnistości przechodzą przez błonę i rozpraszają się w tkance (wydzielanie histaminy)
+        for (int i = 0; i < _g.Length; i++)
+        {
+            ref var g = ref _g[i];
+            if (!g.Out && R01() < dt * 0.012f * (Hypot(g.X, g.Y) + 0.2f))
+            {
+                g.Out = true; float l = Math.Max(Hypot(g.X, g.Y), 0.05f);
+                g.Vx = g.X / l * Rand(0.004f, 0.012f); g.Vy = g.Y / l * Rand(0.004f, 0.012f);
+            }
+            if (g.Out) { g.X += g.Vx * dt; g.Y += g.Vy * dt; g.Life = Math.Max(0, g.Life - dt / 300); }
+        }
     }
     public override void Draw(Painter p, View v)
     {
         p.Local(X, Y, A);
-        p.Glow(0, 0, _r * 1.3f, Rgb(255, 255, 240, 0.2f));
-        p.FillCircle(0, 0, _r, Rgb(150, 140, 155, 0.4f));
-        p.Circle(0, 0, _r, 0.14f, Rgb(50, 40, 60, 0.6f));
-        int keep = (int)(_g.Length * (1 - _degr * 0.8f));
-        for (int i = 0; i < keep; i++) p.Dot(_g[i].X * _r, _g[i].Y * _r, _g[i].Z, Rgb(70, 45, 95, 0.75f));
-        p.FillCircle(0, 0, _r * 0.3f, Rgb(120, 110, 135, 0.5f));
+        var sh = p.Buf2;
+        for (int i = 0; i < 48; i++) { float t = i * TAU / 48; sh[i] = new Vector2(MathF.Cos(t) * _rr[i], MathF.Sin(t) * _rr[i]); }
+        var s = new ReadOnlySpan<Vector2>(sh, 0, 48);
+        float lw = Math.Max(v.Px, 0.1f);
+        p.SoftStroke(s, true, 1.8f, Rgb(255, 255, 240, 0.25f));
+        Span<float> ts = stackalloc float[] { 0f, 1f };
+        Span<Color> cs = stackalloc Color[] { Rgb(150, 148, 140, 0.5f), Rgb(125, 122, 115, 0.55f) };
+        p.FillRadial(s, 0, 0, ts, cs);
+        // jądro prawie zasłonięte przez ziarnistości – widać tylko jaśniejszą plamę
+        p.FillEllipse(_r * 0.08f, -_r * 0.05f, _r * 0.38f, _r * 0.32f, 0.4f, Rgb(170, 168, 165, 0.3f));
+        p.Stroke(s, true, lw, Rgb(50, 48, 42, 0.6f));
+        bool hi = 0.2f / v.Px > 1.2f;
+        for (int i = 0; i < _g.Length; i++)
+        {
+            var g = _g[i]; if (g.Life <= 0.02f) continue;
+            float x = g.X * _r, y = g.Y * _r;
+            p.Dot(x, y, g.S, Rgb(50, 47, 52, 0.55f * g.Life));
+            if (hi && (i & 3) == 0) p.Dot(x - g.S * 0.3f, y - g.S * 0.3f, g.S * 0.35f, Rgb(240, 240, 232, 0.55f * g.Life));
+        }
     }
 }
 
