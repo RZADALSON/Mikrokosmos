@@ -454,7 +454,7 @@ public partial class Main : Node
         }
         vs2.AddChild(Row("Głośność ogólna", Sl(Settings.Master, x => Settings.Master = x)));
         vs2.AddChild(Row("Efekty (organizmy)", Sl(Settings.Sfx, x => { Settings.Sfx = x; _audio.Play("pop", 0.8f); })));
-        vs2.AddChild(Row("Tło (woda, mikroskop)", Sl(Settings.Ambient, x => Settings.Ambient = x)));
+        vs2.AddChild(Row("Tło (woda, mikroskop, serce)", Sl(Settings.Ambient, x => Settings.Ambient = x)));
         var mute = new CheckButton { ButtonPressed = Settings.Muted };
         mute.Toggled += on => { Settings.Muted = _audio.Muted = on; Settings.Save(); };
         vs2.AddChild(Row("Wycisz wszystko (N)", mute));
@@ -597,6 +597,7 @@ public partial class Main : Node
         _world.Input = _input;
         _world.OnLog = Log; _world.OnBanner = Banner; _world.OnGameOver = OnGameOver;
         _world.OnSfx = (k, v, pan) => _audio.Play(k, v, pan);
+        _beats = 0;
         _world.OnEnterBiome = c => { if (_world.T > 1) Toast("Strefa: " + _sc.BiomeName(c.Biome)); };
         _world.OnGoal = g =>
         {
@@ -758,6 +759,7 @@ public partial class Main : Node
         _bgMat.SetShaderParameter("resolution", res); _scopeMat.SetShaderParameter("resolution", res);
     }
 
+    int _beats;
     public override void _Process(double delta)
     {
         float fdt = Math.Min((float)delta, 1f / 25);
@@ -773,6 +775,8 @@ public partial class Main : Node
         long tu = System.Diagnostics.Stopwatch.GetTimestamp();
         if (!(_mode == Mode.Game && _paused)) w.Update(_mode == Mode.Game && _nano ? fdt * _timeMul : fdt);
         _updMs = (System.Diagnostics.Stopwatch.GetTimestamp() - tu) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        // bicie serca (światy tkankowe): każde uderzenie w świecie → tony S1/S2
+        if (_mode == Mode.Game && w.HeartBpm > 0 && w.Beats != _beats) { _beats = w.Beats; if (!w.Over) _audio.Heart(0.5f + 0.4f * w.Severity, w.Systole, w.Severity); }
         UpdateCam(w, fdt);
         _view.QueueRedraw();
         _overlay.QueueRedraw();
@@ -1065,6 +1069,18 @@ public partial class Main : Node
             _world.Add(new Net(_world, nn.X + 4, nn.Y, 24));
             Run(1500);
             Ok(!hy.Alive, "sieć NET niszczy strzępkę Candida (za dużą do fagocytozy)");
+
+            // 31–32. serce: przepływ pulsuje z każdym skurczem; zakażenie → gorączka i tachykardia
+            Start(S("neutro")); var hp0 = _world.Player;
+            float vmin = 1e9f, vmax = 0; int b0 = _world.Beats;
+            for (int i = 0; i < 300; i++) { Run(1); vmin = Math.Min(vmin, _world.BloodV); vmax = Math.Max(vmax, _world.BloodV); }
+            int nb = _world.Beats - b0;
+            Ok(nb >= 3 && nb <= 5 && vmax > vmin * 2, $"serce bije ~70/min ({nb} uderzeń w 5 s), krew przyspiesza po skurczu ({vmin:0}–{vmax:0} µm/s)");
+            float hr0 = _world.HeartBpm;
+            for (int i = 0; i < 260; i++) { var st = _world.Add(new Staph(_world, hp0.X + 250 + Rand(-60, 60), hp0.Y + 150 + Rand(-60, 60))); st.Gen = 1000; }
+            float tmax = 0, hmax = 0;
+            for (int i = 0; i < 80; i++) { Run(60); tmax = Math.Max(tmax, _world.TempC); hmax = Math.Max(hmax, _world.HeartBpm); }
+            Ok(tmax > 38.3f && hmax > 95, $"zakażenie → gorączka {tmax:0.0} °C i tętno {hmax:0}/min (było {hr0:0})");
 
             // 24–25. makrofag: eferocytoza apoptotycznego neutrofila i erytrofagocytoza (hemosyderyna)
             Start(S("macro")); var mac = (Macrophage)_world.Player; Clear(mac, 70);

@@ -78,6 +78,12 @@ public sealed class World
     public readonly FX Fx = new();
     public readonly SpatialGrid Grid = new();
     public float T, SimT, TimeScale, Bio, Ff = 1;
+    /// <summary>Krążenie (światy tkankowe): tętno (/min; 0 = brak serca), faza cyklu 0..1, liczba uderzeń,
+    /// temperatura ciała (°C), nasilenie zakażenia 0..1, przebyta droga krwi w żyłkach (µm).</summary>
+    public float HeartBpm, HeartPh, TempC = 36.8f, Severity, BloodS, BloodV;
+    public int Beats;
+    /// <summary>Czas skurczu (odstęp S1–S2, s) dla bieżącego uderzenia.</summary>
+    public float Systole = 0.3f;
     public Ent Player, Focus;
     public bool Over, Preview, ShowField, AllGoals;
     /// <summary>Tryb nanobota (eksploracja): bez celów i końca gry.</summary>

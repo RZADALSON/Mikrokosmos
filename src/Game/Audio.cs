@@ -32,8 +32,8 @@ public partial class Audio : Node
     }
     sealed class Voice
     {
-        public string K; public float T, Dur, Vol, PanL, PanR, Seed, Ph, Ph2;
-        public Svf F1, F2;
+        public string K; public float T, Dur, Vol, PanL, PanR, Seed, Ph, Ph2, Sys;
+        public Svf F1, F2, F3, F4;
     }
     readonly List<Voice> _voices = new();
     readonly Dictionary<string, float> _last = new();
@@ -64,6 +64,17 @@ public partial class Audio : Node
         float dur = kind switch { "pop" => 0.25f, "gulp" => 0.4f, "zap" => 0.12f, "snap" => 0.15f, "tick" => 0.05f, "blip" => 0.6f, "net" => 1.1f, "goal" => 1.4f, "hurt" => 0.3f, _ => 0.2f };
         float p = Clamp(pan, -1, 1) * 0.5f + 0.5f;
         _voices.Add(new Voice { K = kind, Dur = dur, Vol = Clamp(vol, 0, 1), PanL = MathF.Cos(p * PI / 2), PanR = MathF.Sin(p * PI / 2), Seed = Rand(0.85f, 1.15f) });
+    }
+
+    /// <summary>
+    /// Uderzenie serca: S1 ("lub") i po czasie skurczu S2 ("dub"). Słyszane "od środka" tkanki – niskie, stłumione.
+    /// S1 ~150 ms, energia 50–130 Hz; S2 ~120 ms, 75–200 Hz, krótszy i nieco cichszy.
+    /// </summary>
+    /// <param name="force">siła skurczu 0..1 (w gorączce i sepsie krążenie hiperdynamiczne – głośniejszy S1)</param>
+    public void Heart(float vol, float systole, float force)
+    {
+        if (Muted || vol <= 0.01f) return;
+        _voices.Add(new Voice { K = "heart", Dur = systole + 0.35f, Vol = Clamp(vol, 0, 1), PanL = 0.707f, PanR = 0.707f, Seed = Rand(0.96f, 1.04f), Sys = systole, Ph2 = force });
     }
 
     static readonly float[] Arp = { 523.3f, 659.3f, 784f };
@@ -128,6 +139,25 @@ public partial class Audio : Node
                   + (MathF.Sin(v.Ph2) + 0.12f * MathF.Sin(v.Ph2 * 4)) * Env(t - 0.12f, 0.005f, 0.18f) * 0.22f;
                 break;
             }
+            case "heart":
+            {
+                float force = v.Ph2;
+                // S1: niski, dłuższy – zamknięcie zastawek mitralnej i trójdzielnej (dwie składowe blisko siebie)
+                float e1 = Env(t, 0.014f, 0.05f) + 0.55f * Env(t - 0.03f, 0.01f, 0.045f);
+                v.F1.Run(white, 78 * s, 2.2f);
+                float f1 = (52 - 16 * Math.Min(1, t / 0.12f)) * s;
+                v.Ph += TAU * f1 * dt;
+                float s1 = (MathF.Sin(v.Ph) * 0.9f + v.F1.Bp * 2.6f) * e1 * (0.8f + 0.5f * force);
+                // S2: krótszy, wyższy – zamknięcie zastawek aortalnej i płucnej
+                float t2 = t - v.Sys;
+                v.F2.Run(white, 125 * s, 2.6f);
+                float e2 = Env(t2, 0.006f, 0.032f);
+                float s2 = t2 < 0 ? 0 : (MathF.Sin(TAU * (78 - 20 * Math.Clamp(t2 / 0.08f, 0, 1)) * s * t2) * 0.7f + v.F2.Bp * 2.2f) * e2 * 1.0f;
+                // tkanka i klatka piersiowa tłumią wysokie tony: dwa stopnie filtra dolnoprzepustowego ~170 Hz
+                v.F3.Run(s1 + s2, 170, 0.7f); v.F4.Run(v.F3.Lp, 190, 0.7f);
+                o = MathF.Tanh(v.F4.Lp * 1.6f) * 1.2f;
+                break;
+            }
             case "goal":  // cel: łagodne arpeggio (C–E–G)
             {
                 for (int i = 0; i < 3; i++)
@@ -173,7 +203,7 @@ public partial class Audio : Node
             for (int j = _voices.Count - 1; j >= 0; j--)
             {
                 var v = _voices[j];
-                float o = VoiceSample(v, wl, dt) * sfxVol * 0.5f;
+                float o = VoiceSample(v, wl, dt) * (v.K == "heart" ? ambVol * 1.2f : sfxVol) * 0.5f;
                 L += o * v.PanL; R += o * v.PanR;
                 v.T += dt;
                 if (v.T >= v.Dur) _voices.RemoveAt(j);
@@ -187,11 +217,13 @@ public partial class Audio : Node
     public static void Report(string outDir)
     {
         var a = new Audio();
-        foreach (var k in new[] { "ambient", "tem", "pop", "gulp", "zap", "snap", "tick", "hurt", "net", "blip", "goal" })
+        foreach (var k in new[] { "ambient", "tem", "pop", "gulp", "zap", "snap", "tick", "hurt", "net", "blip", "goal", "heart", "heart140" })
         {
             a._voices.Clear(); a._last.Clear(); a._t = 10;
             a.Ambient = k == "ambient" ? 0 : k == "tem" ? 1 : -2; a._amb = k is "ambient" or "tem" ? 1 : 0;
-            if (a.Ambient == -2) a.Play(k, 1, 0);
+            if (k == "heart") a.Heart(0.7f, 0.3f, 0);
+            else if (k == "heart140") a.Heart(1f, 0.18f, 1);
+            else if (a.Ambient == -2) a.Play(k, 1, 0);
             int n = SR * (a.Ambient >= 0 ? 4 : 2); var buf = new Vector2[n];
             for (int o = 0; o < n; o += 4096) { var tmp = new Vector2[Math.Min(4096, n - o)]; a.Mix(tmp, tmp.Length); Array.Copy(tmp, 0, buf, o, tmp.Length); }
             double peak = 0, rms = 0, jump = 0, zc = 0;

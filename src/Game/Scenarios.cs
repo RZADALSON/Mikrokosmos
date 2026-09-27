@@ -421,7 +421,11 @@ public class ScNeutro : Scenario
             "Leukocydyny S. aureus (np. PVL – typowa dla szczepów z zakażeń martwiczych) tworzą pory w błonie neutrofila. Martwy neutrofil uwalnia niestrawione bakterie.",
             "NEToza (Brinkmann i in., Science 2004): neutrofil wyrzuca sieć chromatyny z histonami i elastazą, która wiąże i zabija bakterie – kosztem własnego życia.",
             "S. aureus dzieli się w 3 płaszczyznach („grona”), Streptococcus w jednej – stąd łańcuszki. Ogniska zakażenia to miejsca, gdzie bakterie mnożą się najszybciej.",
-            "Wybroczyna: erytrocyty, które wydostały się z uszkodzonych naczyń do tkanki. W time-lapse ×40 przepływ krwi w żyłkach widać jako rozmyte smugi.",
+            "Wybroczyna: erytrocyty, które wydostały się z uszkodzonych naczyń do tkanki.",
+            "Serce bije w czasie rzeczywistym (tak, jak byś je słyszał), choć tkanka jest pokazana w time-lapse. Prawdziwa krew w żyłce ~30 µm płynie ok. 0,5–2 mm/s – w grze jest spowolniona ok. 4×, żeby było widać pojedyncze krwinki i ich przyspieszenie po każdym skurczu.",
+            "Tony serca: S1 („lub”, zamknięcie zastawek przedsionkowo-komorowych, ~150 ms, najgłośniej 50–130 Hz) i S2 („dub”, zastawki półksiężycowate, ~120 ms, 75–200 Hz). Przy szybkim rytmie skraca się głównie rozkurcz.",
+            "Zakażenie → gorączka → szybsze tętno: ok. 8–10 uderzeń/min na każdy 1 °C (reguła Liebermeistera). W ciężkim zakażeniu tętno > 90/min, a zmienność rytmu serca (HRV) maleje – to zły znak rokowniczy.",
+            "Zapalenie rozszerza naczynia i spowalnia w nich krew; leukocyty zwalniają, toczą się po ścianie żyłki (selektyny), a potem przylegają i wychodzą do tkanki.",
             "Makrofagi tkankowe (~20 µm) pełzają wolniej niż neutrofile, pochłaniają bakterie i drożdże, a po zapaleniu sprzątają martwe neutrofile (eferocytoza).",
             "Mastocyty są wypełnione ziarnistościami z histaminą. Pobudzone przez bakterie degranulują – naczynia się rozszerzają i napływa więcej neutrofili.",
             "Tkanka tłuszczowa: adipocyty 50–150 µm, jedna kropla lipidu i jądro zepchnięte do brzegu. Fibroblasty to wrzecionowate komórki wytwarzające kolagen.",
@@ -510,8 +514,47 @@ public class ScNeutro : Scenario
         int k = VIdx(e.Y); float yc = Yc(w, k, e.X), dy = e.Y - yc, m = VHW + Math.Min(e.Prim.R, 6) * 0.8f;
         if (MathF.Abs(dy) < m) e.Y = yc + (dy >= 0 ? m : -m);
     }
+    float _hrv = 1, _sev;
+    /// <summary>
+    /// Serce i krążenie. Nasilenie zakażenia → gorączka (do ~40 °C) → tachykardia (~8–10 uderzeń/min na 1 °C, reguła
+    /// Liebermeistera) + tachykardia kompensacyjna przy ciężkim zakażeniu. Zmienność rytmu (HRV) maleje wraz z ciężkością.
+    /// Serce bije w czasie rzeczywistym (tak, jak byś je słyszał), niezależnie od time-lapse tkanki.
+    /// </summary>
+    protected void Circulation(World w, float gdt)
+    {
+        if (w.HeartBpm <= 0) { w.HeartBpm = 70; w.TempC = 36.8f; }
+        if (w.EverySecond(gdt))
+        {
+            float load = w.Count(e => e is Staph s && s.State == St.Free) + 15 * w.Count(e => e is CandidaHypha) + 4 * w.Count(e => e is Neutrophil { Apo: > 0 });
+            _sev = Clamp((load - 20) / 300, 0, 1);
+        }
+        // cytokiny (IL-1, IL-6, TNF) narastają szybko, ale utrzymują się długo po opanowaniu zakażenia
+        w.Severity += (_sev - w.Severity) * Damp(_sev > w.Severity ? 0.1f : 0.012f, gdt);
+        float tT = 36.8f + 3.2f * Smooth(w.Severity);
+        float hrT = 70 + 9 * (w.TempC - 36.8f) + 30 * Smooth(Clamp((w.Severity - 0.55f) / 0.45f, 0, 1));
+        w.TempC += (tT - w.TempC) * Damp(1 / 30f, gdt);
+        w.HeartBpm += (hrT - w.HeartBpm) * Damp(1 / 8f, gdt);
+        float per = 60 / w.HeartBpm * _hrv;
+        w.HeartPh += gdt / per;
+        if (w.HeartPh >= 1)
+        {
+            w.HeartPh -= 1; w.Beats++;
+            // zmienność rytmu zatokowego: zdrowe serce ±4%, w ciężkim zakażeniu rytm staje się "sztywny"
+            _hrv = 1 + RandN() * 0.04f * (1 - 0.85f * w.Severity);
+            // skurcz (odstęp S1–S2) skraca się przy szybszym rytmie
+            w.Systole = Clamp(0.42f - 0.0017f * w.HeartBpm, 0.17f, 0.34f);
+            if (w.HeartBpm > 90 && w.TempC > 38) w.LogOnce("tachy", $"Gorączka {w.TempC:0.0} °C i tętno {w.HeartBpm:0}/min – organizm reaguje na zakażenie (kryteria SIRS: >38 °C, >90/min).", "bad", 60);
+        }
+        // fala tętna: krótko po S1 krew w żyłkach przyspiesza, w rozkurczu zwalnia (w żyłkach fala jest stłumiona, ale widoczna)
+        float ts = w.HeartPh * per, pulse = 0.62f + 1.5f * MathF.Exp(-Sq((ts - 0.2f) / 0.11f));
+        float mean = 0.62f + 1.5f * 0.11f * 1.7725f / per;
+        // zapalenie rozszerza naczynia i spowalnia przepływ (zastój, marginacja leukocytów)
+        w.BloodV = 300 * (1 - 0.45f * w.Severity) * pulse / mean;
+        w.BloodS += w.BloodV * gdt;
+    }
     public override void Update(World w, float dt, float gdt)
     {
+        Circulation(w, gdt);
         if (!w.EverySecond(gdt)) return;
         int n = w.Count(e => e is Staph s && s.State == St.Free);
         if (n > 400) w.GameOver($"Infekcja w okolicy wymknęła się spod kontroli ({n} bakterii)");
@@ -548,21 +591,42 @@ public class ScNeutro : Scenario
             quad[0] = top[i]; quad[1] = top[i + 1]; quad[2] = bot[i + 1]; quad[3] = bot[i];
             p.FillFan(quad, (top[i].X + top[i + 1].X) / 2, (top[i].Y + bot[i].Y) / 2, Rgb(170, 110, 100, 0.35f), false);
         }
-        float t = w.T, ph = Ph(w, k);
-        const float period = 1400;
-        float xb = MathF.Floor(x0 / period) * period;
-        for (int j = 0; j < 90; j++)
+        float ph = Ph(w, k), S = w.BloodS;
+        const float BP = 360; const int NB = 72;
+        float xb = MathF.Floor((x0 - 40) / BP) * BP;
+        float Ang(float x) => MathF.Atan(26 * TAU / 330 * MathF.Cos(x * TAU / 330 + ph));
+        // leukocyty toczące się po ścianie (selektyny) – wolniej niż krew; w zapaleniu jest ich więcej (marginacja)
+        int nl = 1 + (int)(3 * w.Severity);
+        for (int j = 0; j < nl; j++)
         {
-            float lane = (j * 0.618f) % 1f * 2 - 1, spd = 900 * (1 - lane * lane);
-            for (float xo = xb; xo < x1 + period; xo += period)
+            float side = Hash2(j, k, w.Seed + 71) < 0.5f ? -1 : 1, off = (Hash2(j, k, w.Seed + 72) * BP + S * 0.035f) % BP;
+            for (float xo = xb; xo < x1 + BP; xo += BP)
             {
-                float x = xo + ((j * 173.3f + t * spd) % period);
-                if (x < x0 - 30 || x > x1 + 30) continue;
-                float yc = Yc(w, k, x), y = yc + lane * VHW * 0.75f, ang = MathF.Atan(26 * TAU / 330 * MathF.Cos(x * TAU / 330 + ph));
-                p.Push(); p.Translate(x, y); p.Rotate(ang);
-                p.Glow(0, 0, 9, Rgb(150, 60, 55, 0.35f));
-                p.FillEllipse(0, 0, 14, 3.2f, 0, Rgb(140, 70, 65, 0.25f));
-                p.Pop();
+                float x = xo + off; if (x < x0 - 8 || x > x1 + 8) continue;
+                float y = Yc(w, k, x) + side * (VHW - 5.6f);
+                p.Glow(x, y, 7, Rgb(255, 255, 240, 0.18f));
+                p.FillCircle(x, y, 5, Rgb(165, 168, 158, 0.55f));
+                p.Circle(x, y, 5, 0.15f, Rgb(50, 52, 46, 0.6f));
+                for (int q = 0; q < 3; q++) p.FillCircle(x + MathF.Cos(q * 2.1f + j) * 1.6f, y + MathF.Sin(q * 2.1f + j) * 1.6f, 1.1f, Rgb(80, 80, 105, 0.5f));
+            }
+        }
+        // erytrocyty: pojedyncze krążki niesione krwią; profil prędkości spłaszczony (przepływ „tłokowy” w mikronaczyniach)
+        float stretch = 1 + w.BloodV / 1400;
+        Span<float> rts = stackalloc float[] { 0f, 0.5f, 0.85f, 1f };
+        Span<Color> rcsF = stackalloc Color[] { Rgb(200, 150, 135, 0.4f), Rgb(160, 90, 80, 0.5f), Rgb(140, 72, 64, 0.62f), Rgb(95, 45, 40, 0.6f) };
+        Span<Color> rcsE = stackalloc Color[] { Rgb(150, 80, 70, 0.6f), Rgb(150, 80, 70, 0.58f), Rgb(130, 65, 58, 0.62f), Rgb(95, 45, 40, 0.6f) };
+        for (int j = 0; j < NB; j++)
+        {
+            float lane = Hash2(j, k, w.Seed + 91) * 2 - 1, tilt = Hash2(j, k, w.Seed + 93);
+            float prof = 1 - 0.55f * lane * lane, off = (Hash2(j, k, w.Seed + 92) * BP + S * prof) % BP;
+            for (float xo = xb; xo < x1 + BP; xo += BP)
+            {
+                float x = xo + off; if (x < x0 - 6 || x > x1 + 6) continue;
+                float y = Yc(w, k, x) + lane * (VHW - 4.2f);
+                float rx = 3.9f * stretch, ry = 3.9f * (0.3f + 0.7f * tilt); // krążek widziany pod różnym kątem
+                // jeden gradient: jaśniejszy dwuwklęsły środek (widoczny, gdy krążek leży płasko), ciemniejszy brzeg
+                int ne = p.EllipsePts(x, y, rx, ry, Ang(x), p.Buf);
+                p.FillRadial(new ReadOnlySpan<Vector2>(p.Buf, 0, ne), x, y, rts, tilt > 0.45f ? rcsF : rcsE);
             }
         }
         var topS = new ReadOnlySpan<Vector2>(top, 0, n + 1); var botS = new ReadOnlySpan<Vector2>(bot, 0, n + 1);
@@ -600,6 +664,7 @@ public class ScNeutro : Scenario
             ("Fagosomy", p != null ? $"{p.Phagos.Count}/{p.MaxPhago}" : "-"), ("Ziarnistości", p != null ? Pct((float)p.GranLeft / p.G) : "-"),
             ("Bakterie w okolicy", w.Count(e => e is Staph s && s.State == St.Free).ToString()), ("Neutrofile", w.Count(e => e is Neutrophil).ToString()),
             ("Rezerwa z krwi", N(5 - w.Stat("reinf"))), ("Fala", w.Wave.ToString()),
+            ("Tętno", $"{w.HeartBpm:0}/min"), ("Temperatura ciała", $"{w.TempC:0.0} °C"),
         };
     }
     public override List<(string label, float v, Color col)> Bars(World w)
@@ -663,6 +728,8 @@ public sealed class ScMacro : ScNeutro
             "Erytrofagocytoza: makrofagi zjadają erytrocyty, które wydostały się z naczyń. Oksygenaza hemowa-1 rozkłada hem na biliwerdynę, CO i żelazo; żelazo trafia do ferrytyny i hemosyderyny – złotobrązowych ziaren (syderofagi, zmiana barwy siniaka).",
             "Candida albicans potrafi w fagosomie przejść w strzępkę. Toksyna kandydalizyna (Moyes i in., Nature 2016) i piroptoza przebijają makrofaga od środka – drożdżaki trzeba strawić szybko.",
             "Leukocydyny S. aureus (PVL, γ-hemolizyna) niszczą nie tylko neutrofile, ale też monocyty i makrofagi.",
+            "Zakażenie → gorączka → szybsze tętno: ok. 8–10 uderzeń/min na każdy 1 °C (reguła Liebermeistera). W ciężkim zakażeniu tętno > 90/min, a zmienność rytmu serca (HRV) maleje.",
+            "Tony serca: S1 („lub”, ~150 ms, 50–130 Hz) i S2 („dub”, ~120 ms, 75–200 Hz). Serce bije w czasie rzeczywistym; krew w żyłkach jest spowolniona ok. 4×, żeby było widać krwinki przyspieszające po każdym skurczu.",
             "Time-lapse ×90: 1 s gry ≈ 1,5 min w tkance. Trawienie w fagolizosomie trwa od kilkudziesięciu minut (bakterie) do godzin (erytrocyt).",
             "Gdy makrofag zginie, z krwi przez żyłkę wychodzi monocyt i w tkance różnicuje się w nowego makrofaga (w grze – rezerwa 3).",
         };
@@ -710,6 +777,7 @@ public sealed class ScMacro : ScNeutro
             ("Cytokiny", p == null ? "-" : p.CytoCD > 0 ? $"za {p.CytoCD:0} s" : "gotowe (Spacja)"),
             ("Martwica wtórna", N(w.Stat("necro"))), ("Neutrofile", w.Count(e => e is Neutrophil n && !n.Apoptotic).ToString()),
             ("Rezerwa monocytów", N(3 - w.Stat("mono"))),
+            ("Tętno", $"{w.HeartBpm:0}/min"), ("Temperatura ciała", $"{w.TempC:0.0} °C"),
         };
     }
     public override List<(string label, float v, Color col)> Bars(World w)

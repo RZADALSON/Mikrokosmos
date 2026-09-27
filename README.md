@@ -39,6 +39,13 @@ Wymagane: Godot 4.7 .NET i .NET SDK 8 (oba zainstalowane przez winget).
 - Strawione erytrocyty zostawiają złotobrązowe ziarna hemosyderyny.
 - Drożdżak, który nie zostanie strawiony na czas, wypuszcza strzępkę i przebija makrofaga (kandydalizyna).
 
+**Serce i krążenie** (neutrofil, makrofag):
+- Serce bije w czasie rzeczywistym i słychać tony S1 („lub”, 50–130 Hz) i S2 („dub”, 75–200 Hz).
+- Zakażenie wywołuje gorączkę (do ok. 40 °C), a gorączka tachykardię: ok. 9 uderzeń/min na 1 °C, więcej przy ciężkim zakażeniu.
+- Przy szybkim rytmie skraca się skurcz, a przy ciężkim zakażeniu maleje zmienność rytmu (HRV).
+- Krwinki w żyłkach płyną jako osobne krążki i przyspieszają po każdym skurczu.
+- W zapaleniu przepływ zwalnia i więcej leukocytów toczy się po ścianie żyłki.
+
 **Klejnotka** (*Euglena gracilis*): energia pochodzi z fotosyntezy.
 - Światło zależy od strefy, dryfujących cieni rzęsy wodnej i chmur (0–2000 µmol/m²/s).
 - Krzywa P–I nasyca się przy ok. 200–400. Powyżej ok. 800 narasta fotoinhibicja.

@@ -243,6 +243,10 @@ public abstract class Scenario
         ("Euglena – fototaksja dodatnia i ujemna zależnie od natężenia (PNAS 2015)", "https://www.pnas.org/doi/10.1073/pnas.1422922112"),
         ("Euglena – fotoinhibicja i reaktywne formy tlenu (Planta)", "https://link.springer.com/article/10.1007/BF00195688"),
         ("Euglena – wzrost i skład komórek w różnych warunkach, paramylon (PLOS One 2018)", "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0195329"),
+        ("Reguła Liebermeistera – tętno a temperatura (LITFL)", "https://litfl.com/liebermeister-rule/"),
+        ("Zmienność rytmu serca a rokowanie w sepsie (PLOS One 2018)", "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0203487"),
+        ("Tony serca S1/S2 – czas trwania i pasmo (Complexity 2017)", "https://onlinelibrary.wiley.com/doi/10.1155/2017/1580414"),
+        ("Prędkość krwinek w mikrokrążeniu (Fiber Optical Anemometry)", "https://www.tandfonline.com/doi/full/10.3109/10731191003670533"),
         ("Noselli i in. 2019 – metabolia jako pełzanie w ciasnocie (arXiv)", "https://arxiv.org/pdf/2005.11952"),
     };
 
