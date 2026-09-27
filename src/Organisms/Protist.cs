@@ -156,11 +156,18 @@ public sealed class Protist : Ent, ICaptor
     }
     public override bool Collides(Ent o) => State is not (St.Cup or St.Vac or St.Caught) && !(o.Holder == this);
 
-    public void ContractNow()
+    /// <summary>Przyzwyczajenie do bodźców (habituacja): powtarzane słabe dotknięcia przestają wywoływać skurcz.</summary>
+    public float Habit;
+    /// <param name="strength">siła bodźca 0..1 (np. masa i prędkość tego, co dotknęło)</param>
+    public void ContractNow(float strength = 1)
     {
         if (S.Contract <= 0) return;
+        if (Contr > 0.05f && strength < 1) return; // jeszcze się nie wyprostował
+        float p = Clamp(strength, 0, 1) * (1 - Habit);
+        if (strength < 1 && R01() > p) { Habit = Math.Min(0.95f, Habit + 0.05f); return; }
+        Habit = Math.Min(0.95f, Habit + 0.25f);
         if (Contr < 0.5f) W.Sfx("snap", X, Y, 0.5f);
-        Contr = 1; _hold = Rand(0.4f, 1.2f);
+        Contr = 1; _hold = S.Move == Motion.Sessile ? Rand(1.5f, 4) : Rand(0.4f, 1.2f);
     }
 
     // ------------------------------------------------------------------ zachowanie
@@ -171,8 +178,10 @@ public sealed class Protist : Ent, ICaptor
         if (State is St.Cup or St.Vac or St.Caught) { Vx = Vy = 0; Compute(); return; }
         if (S.Contract > 0)
         {
+            // skurcz trwa milisekundy, prostowanie – powoli (Stentor kilkadziesiąt sekund)
             if (_hold > 0) _hold -= dt;
-            else Contr = Math.Max(0, Contr - dt / (S.Move == Motion.Sessile ? 8 : 3));
+            else Contr = Math.Max(0, Contr - dt / (S.Move == Motion.Sessile ? 25 : 4));
+            Habit = Math.Max(0, Habit - dt / 90);
         }
         float v = Speed, maxW = 2.2f * S.Turn, acc = 3, tacc = 3.5f;
         switch (S.Move)
@@ -277,7 +286,12 @@ public sealed class Protist : Ent, ICaptor
         foreach (var o in Nb)
         {
             if (!o.Alive || o.Holder != null) continue;
-            if (S.Contract > 0 && !o.Fixed && o.Kind != Kind.None && !(S.Eats != null && S.Eats(this, o)) && o.Mass > Mass * 0.05f) ContractNow();
+            if (S.Contract > 0 && !o.Fixed && o.Kind != Kind.None && !(S.Eats != null && S.Eats(this, o)))
+            {
+                // silny bodziec = duże i szybkie ciało; drobnica tylko "łaskocze"
+                float sp = Hypot(o.Vx, o.Vy) / Math.Max(1, Speed + 200);
+                ContractNow(Clamp(o.Mass / (Mass * 0.4f), 0, 1) * Clamp(0.3f + sp, 0, 1) * 0.6f);
+            }
             if (S.Eats != null && Gut.Count < 4 && S.Eats(this, o) && o.State is not (St.Cup or St.Vac or St.Caught or St.Eaten))
             {
                 float dx = o.X - X, dy = o.Y - Y, d = Math.Max(Hypot(dx, dy), 1e-4f);
@@ -430,7 +444,13 @@ public sealed class Protist : Ent, ICaptor
             var buf = p.Buf2;
             for (int r = -9; r <= 9; r++)
             {
-                for (int k = 0; k <= 16; k++) { float t = -0.95f + 1.9f * k / 16; buf[k] = new Vector2(t * hl, S.Profile(t) * hw * r / 10f); }
+                for (int k = 0; k <= 16; k++)
+                {
+                    float t = -0.92f + 1.76f * k / 16, x = t * hl, y = S.Profile(t) * hw * r / 10.5f;
+                    float d = Hypot(x, y), rm = Rr(MathF.Atan2(y, x)) * 0.94f;
+                    if (d > rm) { x *= rm / d; y *= rm / d; }
+                    buf[k] = new Vector2(x, y);
+                }
                 p.Stroke(new ReadOnlySpan<Vector2>(buf, 0, 17), false, Math.Max(hw * 0.018f, v.Px), S.StripeC);
             }
         }
@@ -469,11 +489,13 @@ public sealed class Protist : Ent, ICaptor
         // wieniec membranelli na tarczy gębowej (Stentor)
         if (S.OralRing && Contr < 0.6f)
         {
-            float w2 = S.Profile(0.98f) * hw;
-            for (int k = 0; k < 26; k++)
+            // membranelle biegną wokół brzegu tarczy gębowej; fala metachroniczna obiega wieniec
+            for (int i = 0; i < NN; i++)
             {
-                float t = k / 25f, y = -w2 + 2 * w2 * t, ph = MathF.Sin(Cph * 1.3f - k * 0.5f);
-                p.Seg(hl, y, hl + hw * 0.22f + ph * hw * 0.06f, y + ph * hw * 0.05f, Math.Max(v.Px, hw * 0.03f), Rgb(40, 60, 70, 0.6f));
+                float th = i * TAU / NN, r0 = _rr[i], x = MathF.Cos(th) * r0, y = MathF.Sin(th) * r0;
+                if (x < hl * 0.72f) continue;
+                float ph = MathF.Sin(Cph * 1.3f - i * 0.9f), len = hw * (0.1f + 0.05f * ph), a = th + ph * 0.35f;
+                p.Seg(x, y, x + MathF.Cos(a) * len, y + MathF.Sin(a) * len, Math.Max(v.Px, hw * 0.02f), Rgb(40, 60, 70, 0.5f));
             }
         }
         // cirry (Euplotes) – "nóżki"

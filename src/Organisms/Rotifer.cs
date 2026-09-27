@@ -93,61 +93,88 @@ public sealed class Rotifer : Ent
         }
     }
 
-    static readonly Color Body = Rgb(150, 150, 128, 0.42f), Edge = Rgb(50, 50, 38, 0.7f), GutC = Rgb(105, 125, 60, 0.55f);
-
+    // profil ciała Philodina (t: 0 = palce stopy, 1 = korona), gładka interpolacja punktów kontrolnych
+    static readonly float[] PT = { 0f, 0.06f, 0.16f, 0.3f, 0.45f, 0.6f, 0.72f, 0.82f, 0.9f, 0.96f, 1f };
+    static readonly float[] PW = { 0.1f, 0.2f, 0.34f, 0.55f, 0.86f, 1f, 0.9f, 0.62f, 0.6f, 0.5f, 0.2f };
     float HalfW(float t)
     {
-        // t: 0 = palce stopy, 1 = korona
-        float f = t < 0.12f ? 0.18f + t / 0.12f * 0.18f : t < 0.35f ? 0.36f + (t - 0.12f) / 0.23f * 0.4f : t < 0.72f ? 0.76f + 0.24f * MathF.Sin((t - 0.35f) / 0.37f * PI) : t < 0.86f ? 0.85f - (t - 0.72f) / 0.14f * 0.33f : 0.52f + (t - 0.86f) / 0.14f * 0.2f;
-        return f * Wd / 2;
+        t = Clamp(t, 0, 1);
+        int i = 0; while (i < PT.Length - 2 && t > PT[i + 1]) i++;
+        float u = (t - PT[i]) / (PT[i + 1] - PT[i]), s = u * u * (3 - 2 * u);
+        return Lerp(PW[i], PW[i + 1], s) * Wd / 2;
     }
+
+    static readonly Color Body = Rgb(165, 165, 140, 0.34f), Edge = Rgb(60, 60, 45, 0.55f), GutC = Rgb(110, 130, 60, 0.5f);
+    readonly float[] _ox = new float[80], _oy = new float[80];
 
     public override void Draw(Painter p, View v)
     {
         float oldA = p.Alpha; p.Alpha = 1 - Dig * 0.9f;
         p.Local(X, Y, A, 1 - Dig * 0.3f);
-        float L = Length; const int N = 36;
-        Span<Vector2> sh = stackalloc Vector2[N * 2];
+        float L = Length, lw = Math.Max(v.Px, Wd * 0.012f);
+        // lekkie wygięcie ciała przy pełzaniu (pijawkowaty ruch)
+        float bend = MathF.Sin(W.T * 2.4f + Id) * 0.04f * (1 - Ext) * Wd;
+        const int N = 40;
         for (int i = 0; i < N; i++)
         {
-            float t = (float)i / (N - 1), x = -L / 2 + L * t;
-            float ridge = 1 + 0.05f * MathF.Sin(t * 40) * (t < 0.4f ? 1 : 0);
-            float hw = HalfW(t) * ridge;
-            sh[i] = new Vector2(x, -hw); sh[N * 2 - 1 - i] = new Vector2(x, hw);
+            float t = (float)i / (N - 1), x = -L / 2 + L * t, hw = HalfW(t), yc = bend * MathF.Sin(t * PI);
+            _ox[i] = x; _oy[i] = yc - hw; _ox[2 * N - 1 - i] = x; _oy[2 * N - 1 - i] = yc + hw;
         }
-        p.SoftStroke(sh, true, 9, Rgb(255, 255, 240, 0.28f));
-        p.FillFan(sh, 0, 0, Body);
-        // pseudosegmenty (teleskopowe)
-        for (int k = 1; k < 6; k++) { float t = k * 0.06f + 0.05f, x = -L / 2 + L * t, hw = HalfW(t); p.Line(x, -hw * 0.95f, x + 2, hw * 0.95f, 0.9f, Rgb(60, 60, 45, 0.35f)); }
-        // żołądek z pokarmem
-        p.FillEllipse(-L * 0.02f, 0, L * 0.17f, Wd * 0.27f, 0, Mul(GutC, 0.4f + Math.Min(0.6f, Gut)));
-        // mastaks (szczęki) – rytmiczne mielenie
-        float jaw = 0.5f + 0.5f * MathF.Sin(Mph);
-        float mx = L * 0.24f;
-        p.FillEllipse(mx, 0, Wd * 0.16f, Wd * 0.14f, 0, Rgb(120, 115, 90, 0.55f));
-        p.Arc(mx - 2, -2 - jaw * 3, Wd * 0.09f, -0.3f, PI + 0.3f, 1.6f, Rgb(40, 38, 28, 0.7f), true);
-        p.Arc(mx - 2, 2 + jaw * 3, Wd * 0.09f, PI - 0.3f, TAU + 0.3f, 1.6f, Rgb(40, 38, 28, 0.7f), true);
-        // oczka (rostrum)
-        p.FillCircle(L * 0.36f, -Wd * 0.08f, 2.2f, Rgb(200, 50, 40, 0.8f));
-        p.FillCircle(L * 0.36f, Wd * 0.08f, 2.2f, Rgb(200, 50, 40, 0.8f));
-        p.Stroke(sh, true, 1.1f, Edge);
-        // palce stopy
-        p.Line(-L / 2, -2, -L / 2 - 10, -6, 2, Edge, true); p.Line(-L / 2, 2, -L / 2 - 10, 6, 2, Edge, true);
-        // korona – dwa "koła" rzęsek
+        int ns = Painter.SmoothClosed(_ox, _oy, 2 * N, p.Shape, 2);
+        var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
+        p.SoftStroke(sh, true, Wd * 0.12f, Rgb(255, 255, 240, 0.26f));
+        Span<float> ts = stackalloc float[] { 0f, 0.7f, 1f };
+        Span<Color> cs = stackalloc Color[] { Rgb(190, 190, 165, 0.26f), Body, Rgb(130, 130, 105, 0.45f) };
+        p.FillRadial(sh, 0, 0, ts, cs);
+        // pseudosegmenty stopy i tułowia: łukowate fałdy kutykuli (teleskopowo chowane przy skurczu)
+        for (int k = 0; k < 6; k++)
+        {
+            float t = 0.07f + k * 0.055f * (0.6f + 0.4f * Ext), x = -L / 2 + L * t, hw = HalfW(t) * 0.95f;
+            p.Arc(x - hw * 0.35f, 0, hw * 1.05f, -1.2f, 1.2f, lw * 0.9f, Rgb(70, 70, 52, 0.35f));
+        }
+        // stopa: dwie ostrogi i palce
+        float fx = -L / 2;
+        p.Line(fx + L * 0.03f, -Wd * 0.05f, fx - Wd * 0.05f, -Wd * 0.1f, lw * 1.4f, Edge, true);
+        p.Line(fx + L * 0.03f, Wd * 0.05f, fx - Wd * 0.05f, Wd * 0.1f, lw * 1.4f, Edge, true);
+        p.Line(fx + L * 0.12f, -HalfW(0.12f) * 0.9f, fx + L * 0.09f, -HalfW(0.12f) * 1.25f, lw * 1.2f, Edge, true);
+        p.Line(fx + L * 0.12f, HalfW(0.12f) * 0.9f, fx + L * 0.09f, HalfW(0.12f) * 1.25f, lw * 1.2f, Edge, true);
+        // żołądek (syncytium) z pokarmem i jelito
+        float gx = -L * 0.02f;
+        p.FillEllipse(gx, bend * 0.8f, L * 0.16f, Wd * 0.25f, 0, Mul(GutC, 0.35f + Math.Min(0.6f, Gut)));
+        for (int k = 0; k < 14; k++) p.Dot(gx + MathF.Cos(k * 2.4f + Id) * L * 0.12f, bend * 0.8f + MathF.Sin(k * 1.7f + Id) * Wd * 0.17f, Wd * 0.025f, Rgb(80, 100, 40, 0.3f + 0.5f * Math.Min(1, Gut)));
+        p.Line(gx - L * 0.16f, 0, -L * 0.3f, 0, Wd * 0.05f, Rgb(120, 125, 90, 0.35f), true);
+        // pęcherz tętniący (protonefrydia) przy końcu jelita
+        float bl = 0.7f + 0.3f * MathF.Sin(W.T * 1.5f + Id);
+        p.FillCircle(-L * 0.3f, Wd * 0.06f, Wd * 0.07f * bl, Rgb(220, 228, 215, 0.4f));
+        // mastaks – szczęki (trophi) rytmicznie mielą
+        float jaw = 0.5f + 0.5f * MathF.Sin(Mph), mx = L * 0.24f;
+        p.FillEllipse(mx, 0, Wd * 0.17f, Wd * 0.14f, 0, Rgb(125, 118, 90, 0.5f));
+        p.Ellipse(mx, 0, Wd * 0.17f, Wd * 0.14f, 0, lw, Rgb(70, 65, 45, 0.5f));
+        p.Arc(mx + Wd * 0.02f, -Wd * 0.02f - jaw * Wd * 0.03f, Wd * 0.08f, 0.2f, PI - 0.2f, lw * 1.6f, Rgb(40, 38, 28, 0.75f), true);
+        p.Arc(mx + Wd * 0.02f, Wd * 0.02f + jaw * Wd * 0.03f, Wd * 0.08f, PI + 0.2f, TAU - 0.2f, lw * 1.6f, Rgb(40, 38, 28, 0.75f), true);
+        for (int k = -2; k <= 2; k++) p.Seg(mx - Wd * 0.03f, k * Wd * 0.018f, mx + Wd * 0.05f, k * Wd * 0.018f * (1 + jaw * 0.4f), lw * 0.6f, Rgb(40, 38, 28, 0.5f));
+        // ryjek z dwiema czerwonymi plamkami ocznymi
+        float rx = L * 0.36f;
+        p.FillEllipse(rx, 0, Wd * 0.1f, Wd * 0.07f, 0, Rgb(170, 170, 145, 0.35f));
+        p.FillCircle(rx - Wd * 0.02f, -Wd * 0.05f, Wd * 0.025f, Rgb(200, 45, 35, 0.85f));
+        p.FillCircle(rx - Wd * 0.02f, Wd * 0.05f, Wd * 0.025f, Rgb(200, 45, 35, 0.85f));
+        p.Stroke(sh, true, lw, Edge);
+        // korona: dwa płaty z wieńcami rzęsek – fala metachroniczna daje złudzenie kręcących się kół
         if (Corona > 0.05f)
         {
-            float cr = Wd * 0.3f * Corona, cx = L / 2 + cr * 0.6f;
+            float cr = Wd * 0.3f * Corona, cx = L / 2 + cr * 0.45f;
             for (int sd = -1; sd <= 1; sd += 2)
             {
-                float cy = sd * Wd * 0.26f * Corona;
-                p.FillCircle(cx, cy, cr, Rgb(170, 175, 150, 0.35f * Corona));
-                p.Circle(cx, cy, cr, 0.9f, Mul(Edge, Corona));
-                const int NC = 22;
+                float cy = sd * Wd * 0.25f * Corona;
+                p.FillCircle(cx, cy, cr, Rgb(185, 188, 165, 0.28f * Corona));
+                p.Circle(cx, cy, cr, lw, Mul(Edge, 0.8f * Corona));
+                p.SoftStroke(new ReadOnlySpan<Vector2>(p.Buf2, 0, p.CirclePts(cx, cy, cr * 1.18f, p.Buf2, 40)), true, cr * 0.25f, Rgb(80, 82, 65, 0.12f * Corona));
+                const int NC = 44;
                 for (int k = 0; k < NC; k++)
                 {
-                    float t = k * TAU / NC + Cph * sd, wave = 0.5f + 0.5f * MathF.Sin(k * 1.4f - Cph * 3);
-                    float r0 = cr, r1 = cr + (6 + 6 * wave) * Corona;
-                    p.Seg(cx + MathF.Cos(t) * r0, cy + MathF.Sin(t) * r0, cx + MathF.Cos(t) * r1, cy + MathF.Sin(t) * r1, Math.Max(1, v.Px), Rgb(55, 58, 45, 0.55f * Corona));
+                    float t = k * TAU / NC, wave = 0.5f + 0.5f * MathF.Sin(k * 0.9f - Cph * 3 * sd);
+                    float a = t + 0.5f * wave * sd, r0 = cr, r1 = cr + Wd * (0.05f + 0.07f * wave) * Corona;
+                    p.Seg(cx + MathF.Cos(t) * r0, cy + MathF.Sin(t) * r0, cx + MathF.Cos(a) * r1, cy + MathF.Sin(a) * r1, Math.Max(v.Px * 0.8f, Wd * 0.01f), Rgb(55, 58, 45, (0.25f + 0.35f * wave) * Corona));
                 }
             }
         }
