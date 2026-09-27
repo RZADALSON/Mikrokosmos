@@ -26,14 +26,14 @@ public sealed class Nanobot : Ent
     public override void Unhold() { Holder = null; Solid = true; State = St.Free; }
 
     /// <summary>Encja pod celownikiem (dla skanera i lasera).</summary>
-    public static Ent Pick(World w, float x, float y, float r, Ent self)
+    public static Ent Pick(World w, float x, float y, float r, Ent self, bool living = false)
     {
         Ent best = null; float bd = float.MaxValue;
         foreach (var e in w.Ents)
         {
-            if (!e.Alive || e == self || e is Net or FlagFrag) continue;
+            if (!e.Alive || e == self || e is Net or FlagFrag || living && e.Kind == Kind.None) continue;
             float d;
-            if (e is ChainSeg || e.Prim.Cap) d = Math.Max(0, Geo.PointPrim(x, y, e.Prim).D);
+            if (e is ChainSeg || e.Prim.Cap || e.NParts > 0) d = Math.Max(0, Geo.PointEnt(x, y, e).D);
             else d = Math.Max(0, Hypot(e.X - x, e.Y - y) - Math.Max(e.Radius, e.Prim.R));
             if (d < r && d < bd) { bd = d; best = e; }
         }
@@ -54,11 +54,11 @@ public sealed class Nanobot : Ent
         {
             if (Beam == null || !Beam.Alive)
             {
-                Beam = I.HasAim ? Pick(W, I.AimX, I.AimY, W.Sc.ViewW * 0.03f, this) : null;
+                Beam = I.HasAim ? Pick(W, I.AimX, I.AimY, W.Sc.ViewW * 0.03f, this, true) : null;
                 if (Beam == null)
                 {
                     float fx = X + MathF.Cos(A) * W.Sc.ViewW * 0.2f, fy = Y + MathF.Sin(A) * W.Sc.ViewW * 0.2f;
-                    Beam = Pick(W, fx, fy, W.Sc.ViewW * 0.25f, this);
+                    Beam = Pick(W, fx, fy, W.Sc.ViewW * 0.25f, this, true);
                 }
                 if (Beam != null && Beam.Kind == Kind.None) Beam = null;
                 _beamT = 0;

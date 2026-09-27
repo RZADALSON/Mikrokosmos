@@ -111,9 +111,65 @@ public abstract class Ent
 
     public bool IsPlayer => W != null && W.Player == this;
 
-    public void SetCircle(float r) { Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = r; }
+    /// <summary>
+    /// Kształt złożony: kilka kapsuł/kół odwzorowujących rysunek (ciało wygięte, stożkowe, z nibynóżkami).
+    /// NParts = 0 → kolizja tylko przez Prim.
+    /// </summary>
+    public Prim[] Parts; public int NParts;
+    public int PartCount => NParts > 0 ? NParts : 1;
+    public Prim Part(int i) => NParts > 0 ? Parts[i] : Prim;
+    protected void UseParts(int n)
+    {
+        if (Parts == null || Parts.Length < n) { Parts = new Prim[n]; for (int i = 0; i < n; i++) Parts[i] = new Prim(); }
+        NParts = n;
+    }
+    /// <summary>Kapsuła części i od punktu lokalnego (x0,y0) do (x1,y1) o promieniu r.</summary>
+    protected void PartCap(int i, float x0, float y0, float x1, float y1, float r)
+    {
+        var p = Parts[i]; ToWorld(x0, y0, out p.Ax, out p.Ay); ToWorld(x1, y1, out p.Bx, out p.By);
+        p.Cap = true; p.R = r; p.X = (p.Ax + p.Bx) / 2; p.Y = (p.Ay + p.By) / 2;
+    }
+    protected void PartCircle(int i, float x, float y, float r)
+    {
+        var p = Parts[i]; ToWorld(x, y, out p.X, out p.Y); p.Cap = false; p.R = r;
+    }
+    /// <summary>Części wzdłuż (wygiętej) osi ciała: profil hw(t) dla t∈[-1,1], oś y = bend·x² + yOff(t).</summary>
+    protected void AxisParts(int n, float hl, float hw, Func<float, float> prof, float bend, Func<float, float> yOff = null)
+    {
+        UseParts(n);
+        for (int k = 0; k < n; k++)
+        {
+            float t0 = -1 + 2f * k / n, t1 = -1 + 2f * (k + 1) / n, tm = (t0 + t1) / 2;
+            float r = Math.Max(hw * 0.08f, hw * Math.Max(prof(tm), 0.6f * Math.Max(prof(t0), prof(t1))) * 0.93f);
+            float x0 = t0 * hl, x1 = t1 * hl;
+            if (k == 0) x0 = Math.Min(-hl + r, x1); if (k == n - 1) x1 = Math.Max(hl - r, x0);
+            float y0 = bend * x0 * x0 + (yOff?.Invoke(x0 / hl) ?? 0), y1 = bend * x1 * x1 + (yOff?.Invoke(x1 / hl) ?? 0);
+            PartCap(k, x0, y0, x1, y1, r);
+        }
+        var m = Parts[n / 2]; Prim.Cap = m.Cap; Prim.Ax = m.Ax; Prim.Ay = m.Ay; Prim.Bx = m.Bx; Prim.By = m.By; Prim.R = m.R; Prim.X = m.X; Prim.Y = m.Y;
+    }
+    /// <summary>Części dla kształtu gwiaździstego rr (kąty lokalne i·2π/nn): rdzeń + "szprychy" w wypukłościach (nibynóżki, płaty).</summary>
+    protected void RadialParts(float[] rr, int nn, int k)
+    {
+        float mn = float.MaxValue; for (int i = 0; i < nn; i++) mn = Math.Min(mn, rr[i]);
+        float r0 = mn * 0.92f;
+        UseParts(k + 1);
+        PartCircle(0, 0, 0, r0);
+        for (int j = 0; j < k; j++)
+        {
+            float th = (j + 0.5f) * TAU / k, rk = RadialUtil.Interp(rr, nn, th);
+            float rs = Clamp(rk * 0.32f, r0 * 0.3f, r0 * 0.85f), d = Math.Max(0, rk * 0.97f - rs);
+            PartCap(j + 1, 0, 0, MathF.Cos(th) * d, MathF.Sin(th) * d, rs);
+        }
+        Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = r0;
+    }
+    /// <summary>Ciało przepuszczalne dla o (np. sieć kolagenu dla pełzających leukocytów): kontakt stawia opór, ale nie blokuje.</summary>
+    public virtual bool Permeable(Ent o) => false;
+
+    public void SetCircle(float r) { NParts = 0; Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = r; }
     public void SetCapsule(float hl, float r)
     {
+        NParts = 0;
         float c = MathF.Cos(A) * hl, s = MathF.Sin(A) * hl;
         Prim.Cap = true; Prim.Ax = X - c; Prim.Ay = Y - s; Prim.Bx = X + c; Prim.By = Y + s; Prim.R = r;
     }

@@ -20,7 +20,7 @@ public sealed class Rotifer : Ent
         Kind = Kind.Rotifer; Layer = 3; Lmax = Rand(300, 440); Wd = Lmax * 0.2f; Mass = 30; R = Lmax / 2 + 20;
         Edible = true; Food = 3; Name = "wrotek"; Latin = "Philodina"; Soft = 0.2f; State = St.Free; St0 = Rand(4, 12); _dir = a;
     }
-    public override void UpdatePrim() => SetCapsule(Length * 0.42f, Wd * 0.45f);
+    public override void UpdatePrim() => AxisParts(3, Length / 2, Wd / 2, t => Math.Max(0.3f, HalfW((t + 1) / 2) / (Wd / 2)), 0);
     public override bool Collides(Ent o) => State == St.Free;
     public override void OnTouch(Ent o, float nx, float ny)
     {

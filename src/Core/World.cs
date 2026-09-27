@@ -398,10 +398,11 @@ public sealed class World
                     foreach (var o in e.Nb)
                     {
                         if (!o.Alive || !o.Solid) continue;
+                        if (e.Permeable(o) || o.Permeable(e)) continue; // inna warstwa tkanki – nie wgniata błony
                         // dwie miękkie komórki: wzajemne spłaszczenie obrysów; inaczej wgniecenie o sztywny kształt
                         if (o.Mem != null && o.Mem.IsRadial && o.Mem.MaxR > 0 && e.Mem.IsRadial && o.Soft > 0 && e.Soft > 0)
                             e.Mem.PushOutMem(o.Mem, e.MemS * Clamp(e.Soft / (e.Soft + o.Soft) * 2, 0.3f, 1));
-                        else e.Mem.PushOut(o.Prim, e.MemS);
+                        else for (int pi = 0; pi < o.PartCount; pi++) e.Mem.PushOut(o.Part(pi), e.MemS);
                     }
             }
             e.Post(dt, gdt);
@@ -556,7 +557,15 @@ public static class Physics
                 if (a.Fixed && b.Fixed) continue;
                 if (!a.Collides(b) || !b.Collides(a)) continue;
                 a.Nb.Add(b); b.Nb.Add(a);
-                if (!Geo.PrimPrim(a.Prim, b.Prim, out float pen, out float nx, out float ny)) continue;
+                if (!Geo.EntEnt(a, b, out float pen, out float nx, out float ny)) continue;
+                if (a.Permeable(b) || b.Permeable(a))
+                {
+                    // przeciskanie się przez sieć włókien: opór zamiast twardej przeszkody
+                    float q = pen * 0.025f; float mA = a.Fixed ? 0 : 1, mB = b.Fixed ? 0 : 1;
+                    a.X -= nx * q * mA; a.Y -= ny * q * mA; b.X += nx * q * mB; b.Y += ny * q * mB;
+                    a.OnTouch(b, nx, ny); b.OnTouch(a, -nx, -ny);
+                    continue;
+                }
                 float ma = a.Fixed ? 1e9f : a.Mass, mb = b.Fixed ? 1e9f : b.Mass;
                 float wa = mb / (ma + mb), wb = ma / (ma + mb);
                 // miękkie ciała: część penetracji to ściśnięcie (sprężyste, rozwiązywane powoli), reszta – twardy kontakt

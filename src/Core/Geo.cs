@@ -31,6 +31,24 @@ public static class Geo
         return h;
     }
 
+    /// <summary>Najbliższa powierzchnia encji (po wszystkich częściach kształtu).</summary>
+    public static PHit PointEnt(float px, float py, Ent e)
+    {
+        PHit best = PointPrim(px, py, e.Part(0));
+        for (int i = 1; i < e.PartCount; i++) { var h = PointPrim(px, py, e.Part(i)); if (h.D < best.D) best = h; }
+        return best;
+    }
+    /// <summary>Najgłębsza penetracja między dwiema encjami (wszystkie pary części).</summary>
+    public static bool EntEnt(Ent a, Ent b, out float pen, out float nx, out float ny)
+    {
+        pen = 0; nx = ny = 0; bool hit = false;
+        int na = a.PartCount, nb = b.PartCount;
+        for (int i = 0; i < na; i++)
+            for (int j = 0; j < nb; j++)
+                if (PrimPrim(a.Part(i), b.Part(j), out float p, out float x, out float y) && p > pen) { pen = p; nx = x; ny = y; hit = true; }
+        return hit;
+    }
+
     static void SegSeg(float p1x, float p1y, float q1x, float q1y, float p2x, float p2y, float q2x, float q2y,
         out float x1, out float y1, out float x2, out float y2)
     {

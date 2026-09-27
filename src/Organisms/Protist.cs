@@ -143,7 +143,8 @@ public sealed class Protist : Ent, ICaptor
     {
         if (State is St.Cup or St.Vac) { SetCircle(Math.Max(0.1f, Radius * 0.5f)); return; }
         float hl = L * LenK / 2, hw = Wd * WidK / 2;
-        SetCapsule(Math.Max(0, hl - hw) * 0.95f, hw * 0.9f);
+        // kształt kolizyjny = profil ciała (stożek Stentora, gruszka Blepharisma, wrzeciono Eugleny), wygięty jak membrana
+        AxisParts(L / Wd > 5 ? 6 : 4, hl, hw, S.Profile, Mem.Bend, S.Bend != 0 ? t => S.Bend * hw * (t * t - 0.35f) : null);
     }
     public override bool Collides(Ent o) => State is not (St.Cup or St.Vac or St.Caught) && !(o.Holder == this);
 
@@ -356,6 +357,7 @@ public sealed class Protist : Ent, ICaptor
 
     // ------------------------------------------------------------------ rysowanie
     float Rr(float th) => RadialUtil.Interp(_rr, NN, th);
+    public static Color Shade(Color c, float k, float ak) => new(Math.Min(1, c.R * k), Math.Min(1, c.G * k), Math.Min(1, c.B * k), Math.Min(1, c.A * ak));
     void Pt(Vector3 g, float k, out float x, out float y) { float r = Rr(g.X) * g.Y * k; x = MathF.Cos(g.X) * r; y = MathF.Sin(g.X) * r; }
 
     public override void Draw(Painter p, View v)
@@ -387,7 +389,10 @@ public sealed class Protist : Ent, ICaptor
         int ns = m.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
         p.SoftStroke(sh, true, Clamp(Wd * 0.2f, 1.5f, 14), S.Halo);
-        p.FillFan(sh, X, Y, S.Body);
+        Mem.Centroid(out float bcx, out float bcy);
+        Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
+        Span<Color> bcs = stackalloc Color[] { Shade(S.Body, 1.12f, 0.85f), S.Body, Shade(S.Body, 0.8f, 1.2f) };
+        p.FillRadial(sh, bcx, bcy, bts, bcs);
         p.Stroke(sh, true, Clamp(Wd * 0.02f, 0.25f, 1.4f), S.Edge);
         if (S.Armor)
         {
@@ -461,13 +466,23 @@ public sealed class Protist : Ent, ICaptor
         // cirry (Euplotes) – "nóżki"
         if (S.Cirri)
         {
-            for (int k = 0; k < 9; k++)
+            // grzbietowe listewki (Euplotes ma podłużne żeberka na grzbiecie)
+            for (int r = -2; r <= 2; r++)
             {
-                float t = -0.55f + k * 0.14f, sd = k % 2 == 0 ? 1 : -1, ph = _walking ? MathF.Sin(Cph * 0.5f + k) : 0;
-                float bx = t * hl, by = sd * hw * 0.35f;
-                p.Line(bx, by, bx - hw * 0.25f + ph * hw * 0.12f, by + sd * hw * 0.25f, hw * 0.045f, Rgb(50, 52, 44, 0.32f), true);
+                var rb = p.Buf2;
+                for (int k = 0; k <= 10; k++) { float t = -0.8f + 1.6f * k / 10; rb[k] = new Vector2(t * hl, S.Profile(t) * hw * r * 0.3f); }
+                p.Stroke(new ReadOnlySpan<Vector2>(rb, 0, 11), false, Math.Max(v.Px, hw * 0.02f), Rgb(60, 62, 50, 0.25f));
             }
-            for (int k = 0; k < 4; k++) p.Line(-hl * 0.85f, (k - 1.5f) * hw * 0.22f, -hl * 1.12f, (k - 1.5f) * hw * 0.36f, hw * 0.045f, Rgb(50, 52, 44, 0.45f), true);
+            // cirry czołowo-brzuszne: grube, krótkie "nóżki" wystające spod ciała, poruszające się przy chodzeniu
+            var cc2 = Rgb(45, 47, 38, 0.6f);
+            for (int k = 0; k < 7; k++)
+            {
+                float t = 0.75f - k * 0.2f, sd = k % 2 == 0 ? 1 : -1, ph = _walking ? MathF.Sin(Cph * 0.6f + k * 1.3f) : 0;
+                float by = sd * S.Profile(t) * hw * 0.92f, bx = t * hl;
+                p.Line(bx, by, bx - hw * 0.12f + ph * hw * 0.1f, by + sd * hw * 0.22f, hw * 0.06f, cc2, true);
+            }
+            // cirry poprzeczne i ogonowe z tyłu
+            for (int k = 0; k < 5; k++) { float yy = (k - 2) * hw * 0.2f, ph = _walking ? MathF.Sin(Cph * 0.6f + k) * hw * 0.05f : 0; p.Line(-hl * 0.8f, yy, -hl * 1.18f + ph, yy * 1.4f, hw * 0.055f, cc2, true); }
         }
         // wici
         if (S.Flag > 0 && !eaten)

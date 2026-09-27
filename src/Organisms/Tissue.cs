@@ -33,7 +33,7 @@ public sealed class Macrophage : Ent
         foreach (var p in _ph) if (p.St < 30) { float ap = MathF.Atan2(p.Ly, p.Lx), need = Hypot(p.Lx, p.Ly) + p.O.Radius + 0.5f; for (int i = 0; i < NN; i++) { float g = Gauss(WrapA(i * TAU / NN - ap), 0.3f); _rr[i] = Math.Max(_rr[i], Lerp(_rr[i], need, g)); } }
         Mem.Radial(_rr);
     }
-    public override void UpdatePrim() => SetCircle(_r0 * 0.9f);
+    public override void UpdatePrim() => RadialParts(_rr, NN, 8);
     bool Food(Ent o) => o.Alive && o.Holder == null && (o is Staph s && s.State == St.Free || o is CandidaYeast y && y.State == St.Free);
     public override bool Collides(Ent o) => o.Holder != this;
     public override void Step(float dt, float gdt)
@@ -94,7 +94,8 @@ public sealed class Fibroblast : Ent
         Kind = Kind.TissueCell; Layer = 1; Name = "fibroblast"; Latin = "fibroblast"; Soft = 0.6f; FlowK = 0;
         _l = Rand(55, 100); _w = Rand(7, 10); R = _l / 2 + 4; Mass = 80; _seed = Rand(0, 99);
     }
-    public override void UpdatePrim() => SetCapsule(_l * 0.25f, _w * 0.45f);
+    public override void UpdatePrim() => AxisParts(3, _l / 2, _w / 2, t => MathF.Pow(Math.Max(0, 1 - t * t), 1.6f) + 0.05f, 0);
+    public override bool Permeable(Ent o) => o is Neutrophil or Macrophage or Lymphocyte;
     public override void Step(float dt, float gdt) { _ph += dt * 0.01f; float v = 1f / 60f; Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v; A += RandN() * 0.002f * MathF.Sqrt(dt); }
     public override void Draw(Painter p, View v)
     {

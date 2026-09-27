@@ -14,7 +14,20 @@ public sealed class Grain : Ent
         for (int i = 0; i < 6; i++) _facets[i] = _pts[RandI(0, n - 1)] * Rand(0.2f, 0.7f);
         Name = "ziarno mineralne";
     }
-    public override void UpdatePrim() => SetCircle(_r * 0.92f);
+    public override void UpdatePrim()
+    {
+        int n = _pts.Length; UseParts(n + 1);
+        float mn = float.MaxValue; foreach (var q in _pts) mn = Math.Min(mn, q.Length());
+        PartCircle(0, 0, 0, mn * 0.95f);
+        float er = _r * 0.1f;
+        for (int i = 0; i < n; i++)
+        {
+            var a = _pts[i]; var b = _pts[(i + 1) % n];
+            var ai = a * (1 - er / Math.Max(a.Length(), 1e-3f)); var bi = b * (1 - er / Math.Max(b.Length(), 1e-3f));
+            PartCap(i + 1, ai.X, ai.Y, bi.X, bi.Y, er);
+        }
+        Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = mn;
+    }
     public override void Draw(Painter p, View v)
     {
         p.Local(X, Y, A);
@@ -36,6 +49,8 @@ public sealed class Collagen : Ent
         Kind = Kind.None; Layer = 0; Fixed = true; FlowK = 0; Name = "włókno kolagenowe"; _hl = len / 2; _rad = rad; R = len / 2 + rad; _ph = Rand(0, TAU);
     }
     public override void UpdatePrim() => SetCapsule(_hl, _rad);
+    /// <summary>Leukocyty i erytrocyty przeciskają się przez sieć kolagenu (tkanka jest trójwymiarowa, włókna tworzą oczka).</summary>
+    public override bool Permeable(Ent o) => o.Soft >= 0.5f && !o.Fixed;
     public override void Draw(Painter p, View v)
     {
         p.Local(X, Y, A);

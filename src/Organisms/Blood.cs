@@ -18,11 +18,12 @@ public static class RadialUtil
 public sealed class Neutrophil : Ent
 {
     public const int NN = 64;
-    public float R0 = 6, Pol = 0.3f, Vmax = 25f / 60f, Seed;
+    public float R0 = 6, Pol = 0.3f, Vmax = 30f / 60f, Seed;
     public readonly float[] Rr = new float[NN];
     public readonly int MaxPhago = 14;
     public int G = 170, GranLeft;
     public float NetCharge;
+    float _wA = Rand(0, TAU), _wT;
     readonly float[] _gth, _grho, _gsz, _gfT; readonly byte[] _gty; readonly int[] _gfu;
 
     public sealed class Phago { public Staph O; public bool Cup = true; public float St, Sx, Sy, Lx, Ly, Tx, Ty; }
@@ -102,7 +103,9 @@ public sealed class Neutrophil : Ent
         }
         Mem.Radial(Rr);
     }
-    public override void UpdatePrim() => SetCircle(R0 * 0.92f);
+    public override void UpdatePrim() => RadialParts(Rr, NN, 6);
+    /// <summary>Drobne komórki (erytrocyty, płytki, limfocyty, mastocyty) leżą w innych warstwach trójwymiarowej tkanki – neutrofil je mija.</summary>
+    public override bool Permeable(Ent o) => o is RBC or Platelet or Lymphocyte or MastCell;
     public override bool Collides(Ent o) => !(o is Staph s && s.State != St.Free);
 
     public override void Step(float dt, float gdt)
@@ -112,9 +115,15 @@ public sealed class Neutrophil : Ent
         if (IsPlayer) { var I = W.Input; on = I.Mag > 0.05f; tgtA = I.Ang; mag = I.Mag; }
         else
         {
-            var b = W.Near(X, Y, 40, e => e is Staph s && s.State == St.Free);
-            if (b != null) { on = true; tgtA = MathF.Atan2(b.Y - Y, b.X - X); mag = 0.8f; }
+            var b = W.Near(X, Y, 90, e => e is Staph s && s.State == St.Free || e is CandidaYeast cy && cy.State == St.Free);
+            if (b != null) { on = true; tgtA = MathF.Atan2(b.Y - Y, b.X - X); mag = 0.9f; }
             else if (W.Preview) { on = true; tgtA = 0; mag = 1; }
+            else
+            {
+                // patrol: trwałe błądzenie przypadkowe (neutrofile w tkance ciągle "przeczesują" okolicę)
+                _wT -= dt; if (_wT <= 0) { _wA += RandN() * 1.1f; _wT = ExpRand(90); }
+                on = true; tgtA = _wA; mag = 0.55f;
+            }
         }
         if (on) A = Turn(A, tgtA, 1.6f * gdt);
         Pol = Lerp(Pol, on ? 1 : 0.25f, Damp(on ? 1.2f : 0.5f, gdt));
@@ -318,7 +327,7 @@ public sealed class Lymphocyte : Ent
     {
         _turnT -= dt;
         if (_turnT <= 0) { A += RandN() * 0.8f; _turnT = ExpRand(90); }
-        float v = 6f / 60f;
+        float v = 12f / 60f;
         Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v;
         Shape();
     }

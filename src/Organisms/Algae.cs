@@ -114,7 +114,7 @@ public sealed class Closterium : Food
         _axis = new Vector2[31];
         for (int i = 0; i <= 30; i++) { float t = -0.85f + 1.7f * i / 30; _axis[i] = new Vector2(t * L / 2, Bend * t * t - Bend * 0.5f); }
     }
-    public override void UpdatePrim() => SetCapsule(L * 0.36f, Wd * 0.45f);
+    public override void UpdatePrim() => AxisParts(4, L / 2, Wd / 2, t => MathF.Sqrt(Math.Max(0, 1 - t * t * 0.92f)), 0, t => Bend * t * t - Bend * 0.5f);
     public override void Step(float dt, float gdt)
     {
         float s = MathF.Sqrt(gdt) * 1.6f;
@@ -173,6 +173,7 @@ public sealed class Amoeba : Ent
     const int G = 460;
     readonly float[] _gth = new float[G], _grho = new float[G], _gsz = new float[G]; readonly byte[] _gty = new byte[G];
     float _nucX, _nucY, _cvX, _cvY, _cvPh;
+    readonly List<Ent> _q = new();
 
     public Amoeba(World w, float x, float y, float rb = 150) : base(w, x, y, 0)
     {
@@ -216,8 +217,9 @@ public sealed class Amoeba : Ent
         float mx = 0; for (int i = 0; i < NN; i++) mx = Math.Max(mx, _rr[i]);
         R = mx + 10;
     }
-    public override void UpdatePrim() => SetCircle(MathF.Sqrt(A0 / PI) * 0.62f);
-    public override bool Collides(Ent o) => o.State != St.Cup && o.State != St.Vac;
+    public override void UpdatePrim() => RadialParts(_rr, NN, 10);
+    public override bool Collides(Ent o) => o.State != St.Cup && o.State != St.Vac && o.Holder != this
+        && !(o.Edible && o.State is St.Free or St.Swim or St.Avoid && o.Length < Rb * 2.2f && !(o is Amoeba));
 
     public override void Step(float dt, float gdt)
     {
@@ -280,9 +282,11 @@ public sealed class Amoeba : Ent
         _cvPh += dt / 90; if (_cvPh >= 1) _cvPh = 0;
         float rearA = MathF.Atan2(-sy, -sx);
         _cvX = Lerp(_cvX, MathF.Cos(rearA) * Rb * 0.45f, Damp(0.05f, dt)); _cvY = Lerp(_cvY, MathF.Sin(rearA) * Rb * 0.45f, Damp(0.05f, dt));
-        // kontakt z pokarmem
-        foreach (var o in Nb)
+        // kontakt z pokarmem (pokarm nie koliduje z ameba – jest otaczany nibynóżkami)
+        W.Query(X, Y, R + 60, _q);
+        foreach (var o in _q)
         {
+            if (o == this || !o.Alive) continue;
             if (!o.Edible || !(o.State is St.Free or St.Swim or St.Avoid) || o.Holder != null) continue;
             float lx = o.X - X, ly = o.Y - Y, d = Hypot(lx, ly);
             bool touch = d < RadialUtil.Interp(_rr, NN, MathF.Atan2(ly, lx)) + o.Radius * 0.2f + o.Length * 0.3f;

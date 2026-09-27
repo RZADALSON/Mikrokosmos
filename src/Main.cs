@@ -866,7 +866,7 @@ public partial class Main : Node
             Ok(_world.Stat("ampkills") >= 1, "ampicylina lizuje dzielącą się komórkę (liza wybrzuszeniowa)");
 
             // 3. Acanthamoeba pożera Bdellovibrio
-            Start(S("bdello")); var bd = _world.Player;
+            Start(S("bdello")); var bd = _world.Player; Clear(bd, 40);
             var ac = _world.Add(new Acanth(_world, bd.X + 12, bd.Y));
             bd.Dr = 0; bd.A = 0;
             for (int i = 0; i < 300 && bd.State == St.Swim; i++) { bd.A = MathF.Atan2(ac.Y - bd.Y, ac.X - bd.X); _input.Mag = 1; _input.Ang = bd.A; _input.Dx = MathF.Cos(bd.A); _input.Dy = MathF.Sin(bd.A); _world.Update(1f / 60); }
@@ -965,7 +965,7 @@ public partial class Main : Node
             Ok(eug.State is St.Cup or St.Vac || !eug.Alive, $"Stentor wciąga wirem i połyka Euglenę (stan: {eug.State}, skurcz {stn.Contr:0.00}, odl. {Hypot(eug.X - fx, eug.Y - fy):0} µm, L={stn.L:0})");
 
             // 15. nanobot dezintegruje organizm laserem
-            Start(S("para"), true); var bot = (Nanobot)_world.Player;
+            Start(S("para"), true); var bot = (Nanobot)_world.Player; Clear(bot, 400);
             var victim = _world.Add(new Protist(_world, Species.Blepharisma, bot.X + 150, bot.Y, 0)); victim.Speed = 0;
             _input.HasAim = true; _input.AimX = victim.X; _input.AimY = victim.Y; _input.ActionHeld = true; _input.Mag = 0;
             Run(60); _input.ActionHeld = false; _input.HasAim = false;
@@ -991,6 +991,39 @@ public partial class Main : Node
             if (pm.State == St.Caught) { _input.Action = true; Run(1); _input.Action = false; }
             Ok(pm.State != St.Caught || pm.TrichCD > 0, "schwytany pantofelek może wystrzelić trichocysty");
             _input.Mag = 0; _input.Dx = 0;
+
+            // 19. neutrofil przeciska się przez tkankę; inne neutrofile patrolują
+            Start(S("neutro")); var np = (Neutrophil)_world.Player;
+            var others = _world.Ents.OfType<Neutrophil>().Where(n => n != np).ToList();
+            var start = others.Select(n => new Vector2(n.X, n.Y)).ToList();
+            float sx0 = np.X, sy0 = np.Y; float dir = np.Y > ((ScNeutro)_sc).VesselY(_world, np.X, np.Y) ? PI / 2 : -PI / 2; // od żyłki w głąb tkanki
+            _input.Mag = 1; _input.Ang = dir; _input.Dx = MathF.Cos(dir); _input.Dy = MathF.Sin(dir);
+            for (int sec = 0; sec < 10; sec++)
+            {
+                Run(60);
+                if (System.Environment.GetEnvironmentVariable("MIKRO_DEBUG") == "1")
+                    GD.Print($"  t={sec} pos=({np.X:0.0},{np.Y:0.0}) v=({np.Vx:0.00},{np.Vy:0.00}) A={np.A:0.00} pol={np.Pol:0.00} hp={np.Hp:0.00} nb=" + string.Join(",", np.Nb.Select(o => o.GetType().Name)));
+            }
+            float moved = Hypot(np.X - sx0, np.Y - sy0), ideal = np.Vmax * _world.TimeScale * 10;
+            Ok(moved > ideal * 0.45f, $"neutrofil przeciska się przez kolagen (przebył {moved:0} µm z ~{ideal:0} µm możliwych)");
+            float om = 0; for (int i = 0; i < others.Count; i++) if (others[i].Alive) om = Math.Max(om, Hypot(others[i].X - start[i].X, others[i].Y - start[i].Y));
+            Ok(om > 15, $"pozostałe neutrofile patrolują tkankę (maks. przesunięcie {om:0} µm w 10 s)");
+            _input.Mag = 0; _input.Dx = _input.Dy = 0;
+
+            // 20. rozwielitka: nie da się wpłynąć w jej pancerz
+            Start(S("para")); var pd = (Paramecium)_world.Player; Clear(pd, 3000);
+            var dap = _world.Add(new Daphnia(_world, pd.X + 1400, pd.Y, 0)); dap.FlowK = 0;
+            float minD = 1e9f;
+            _input.Mag = 1;
+            for (int i = 0; i < 900; i++)
+            {
+                float toward = MathF.Atan2(dap.Y - 0.04f * dap.Length - pd.Y, dap.X - 0.1f * dap.Length - pd.X);
+                _input.Ang = toward; _input.Dx = MathF.Cos(toward); _input.Dy = MathF.Sin(toward);
+                Run(1); if (!pd.Alive) break;
+                var h = Geo.PointEnt(pd.X, pd.Y, dap); minD = Math.Min(minD, h.D);
+            }
+            _input.Mag = 0; _input.Dx = _input.Dy = 0;
+            Ok(minD > -pd.Wd * 0.5f || !pd.Alive, $"pantofelek nie wnika w pancerz rozwielitki (najgłębiej {-minD:0} µm)");
 
             // 17. strzępka Candida niszczona przez sieć NET
             Start(S("neutro")); var nn = _world.Player;

@@ -202,7 +202,7 @@ public sealed class Paramecium : Ent
     public override void UpdatePrim()
     {
         if (State is St.Eaten or St.Cup or St.Vac) { SetCircle(1); return; }
-        SetCapsule(Math.Max(0, (L / 2 - Wd / 2) * Sk * 0.95f), Wd / 2 * Sk * 0.92f);
+        AxisParts(3, L / 2 * Sk, Wd / 2 * Sk, t => MathF.Sqrt(Math.Max(0, 1 - t * t)), Mem.Bend);
     }
     public override bool Collides(Ent o) => State is not (St.Eaten or St.Cup or St.Vac) && !(o is Didinium d && d.Prey == this) && o.Holder != this;
     public override bool CanControl() => State == St.Swim || State == St.Avoid;
@@ -370,7 +370,9 @@ public sealed class Paramecium : Ent
         int ns = m.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
         p.SoftStroke(sh, true, 11, HaloC);
-        p.FillFan(sh, X, Y, BodyC);
+        Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
+        Span<Color> bcs = stackalloc Color[] { Protist.Shade(BodyC, 1.12f, 0.85f), BodyC, Protist.Shade(BodyC, 0.8f, 1.2f) };
+        p.FillRadial(sh, X, Y, bts, bcs);
         p.Stroke(sh, true, 1.0f, EdgeC);
         int n2 = m.SmoothInset(p.Shape2, 2.4f * sk, p.Tx, p.Ty);
         p.Dashed(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 2.4f * sk, 0.8f * sk, 1.4f * sk, TrichC);

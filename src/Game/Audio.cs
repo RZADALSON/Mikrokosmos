@@ -2,9 +2,9 @@ namespace Mikro;
 
 /// <summary>
 /// Proceduralny dźwięk (bez plików), stereo 44,1 kHz. Mikroorganizmy są w rzeczywistości bezgłośne,
-/// więc brzmienie naśladuje nagrania hydrofonowe i dokumenty przyrodnicze: miękki szum wody,
-/// bąbelki, stłumione "puknięcia" pękających błon. Każdy efekt ma łagodny atak (brak trzasków),
-/// jest filtrowany dolnoprzepustowo i ograniczony częstością (seria lizy nie brzmi jak karabin).
+/// więc brzmienie naśladuje nagrania hydrofonowe: spokojny szum wody i krótkie, "mokre" odgłosy zdarzeń.
+/// Efekty nie są tonami – to szum przepuszczony przez rezonansowe filtry pasmowe (jak plusk, mlaśnięcie,
+/// syk), z miękkim atakiem i szybkim wybrzmieniem. Częstość powtórzeń jest ograniczona.
 /// </summary>
 public partial class Audio : Node
 {
@@ -14,21 +14,35 @@ public partial class Audio : Node
     public bool Muted;
     /// <summary>0 = woda (mikroskop świetlny), 1 = próżnia TEM, -1 = menu.</summary>
     public int Ambient = 0;
-    float _amb, _t, _bubbleT = 2;
+    float _amb, _t;
 
+    /// <summary>Filtr stanowy (SVF, topologia TPT) – stabilny także przy przestrajaniu w każdej próbce.</summary>
+    struct Svf
+    {
+        float _ic1, _ic2;
+        public float Bp, Lp;
+        public void Run(float x, float fc, float q)
+        {
+            float g = MathF.Tan(PI * Math.Min(fc, SR * 0.45f) / SR), k = 1 / q;
+            float a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
+            float v3 = x - _ic2, v1 = a1 * _ic1 + a2 * v3, v2 = _ic2 + a2 * _ic1 + a3 * v3;
+            _ic1 = 2 * v1 - _ic1; _ic2 = 2 * v2 - _ic2;
+            Bp = v1; Lp = v2;
+        }
+    }
     sealed class Voice
     {
-        public string K; public float T, Dur, Vol, PanL, PanR, F, Ph, Ph2, Lp, Lp2, Hp, Seed, Delay;
+        public string K; public float T, Dur, Vol, PanL, PanR, Seed, Ph, Ph2;
+        public Svf F1, F2;
     }
     readonly List<Voice> _voices = new();
     readonly Dictionary<string, float> _last = new();
-    // tło: dwa niezależne kanały szumu (szerokość stereo)
-    float _bL, _bR, _lL, _lR, _l2L, _l2R, _mL, _mR, _swell;
+    Svf _aL, _aR, _aL2, _aR2, _oL, _oR;
+    float _drift = 1, _driftT;
     ulong _rng = 0x9E3779B97F4A7C15UL;
-    Vector2[] _buf = new Vector2[4096];
+    readonly Vector2[] _buf = new Vector2[4096];
 
     float Wn() { _rng ^= _rng << 13; _rng ^= _rng >> 7; _rng ^= _rng << 17; return (float)((_rng >> 40) * (1.0 / 16777216.0)) * 2 - 1; }
-    static float Lp(float cutoff) => 1 - MathF.Exp(-TAU * cutoff / SR);
 
     public override void _Ready()
     {
@@ -42,99 +56,86 @@ public partial class Audio : Node
     /// <summary>Efekt dźwiękowy; pan: −1 lewo … 1 prawo.</summary>
     public void Play(string kind, float vol = 1, float pan = 0)
     {
-        if (Muted || vol <= 0.02f) return;
-        float gap = kind switch { "pop" => 0.07f, "zap" => 0.1f, "snap" => 0.09f, "gulp" => 0.15f, "net" => 0.5f, _ => 0.03f };
+        if (Muted || vol <= 0.03f) return;
+        float gap = kind switch { "pop" => 0.12f, "zap" => 0.15f, "snap" => 0.12f, "gulp" => 0.25f, "net" => 0.8f, "hurt" => 0.3f, _ => 0.05f };
         if (_last.TryGetValue(kind, out var lt) && _t - lt < gap) return;
         _last[kind] = _t;
-        if (_voices.Count > 14) return;
-        float dur = kind switch { "pop" => 0.45f, "gulp" => 0.45f, "zap" => 0.22f, "snap" => 0.2f, "tick" => 0.06f, "blip" => 0.55f, "net" => 1.2f, "goal" => 1.3f, "hurt" => 0.3f, "bubble" => 0.25f, _ => 0.2f };
+        if (_voices.Count > 10) return;
+        float dur = kind switch { "pop" => 0.25f, "gulp" => 0.4f, "zap" => 0.12f, "snap" => 0.15f, "tick" => 0.05f, "blip" => 0.6f, "net" => 1.1f, "goal" => 1.4f, "hurt" => 0.3f, _ => 0.2f };
         float p = Clamp(pan, -1, 1) * 0.5f + 0.5f;
-        float seed = Rand(0.85f, 1.18f);
-        _voices.Add(new Voice
-        {
-            K = kind, Dur = dur, Vol = Clamp(vol, 0, 1), PanL = MathF.Cos(p * PI / 2), PanR = MathF.Sin(p * PI / 2), Seed = seed,
-            F = kind switch { "pop" => Rand(170, 300), "bubble" => Rand(280, 700), "gulp" => Rand(95, 125), "snap" => Rand(55, 75), _ => 0 },
-        });
+        _voices.Add(new Voice { K = kind, Dur = dur, Vol = Clamp(vol, 0, 1), PanL = MathF.Cos(p * PI / 2), PanR = MathF.Sin(p * PI / 2), Seed = Rand(0.85f, 1.15f) });
     }
 
-    // obwiednia z miękkim atakiem (bez trzasków)
     static readonly float[] Arp = { 523.3f, 659.3f, 784f };
-    static float Env(float t, float attack, float decay) => (t < attack ? t / attack : 1) * MathF.Exp(-Math.Max(0, t - attack) / decay);
+    // obwiednia z miękkim atakiem (bez trzasków)
+    static float Env(float t, float attack, float decay) => t < 0 ? 0 : (t < attack ? t / attack : 1) * MathF.Exp(-Math.Max(0, t - attack) / decay);
 
     float VoiceSample(Voice v, float white, float dt)
     {
-        float t = v.T - v.Delay; if (t < 0) return 0;
-        float o = 0;
+        float t = v.T, s = v.Seed, o = 0;
         switch (v.K)
         {
-            case "pop":   // pęknięcie błony: bąbel (ton rośnie, gdy się kurczy) + miękki plusk
-            case "bubble":
+            case "pop":   // pęknięcie błony: krótkie, mokre "plip" (rezonans opada) + głuchy dół
             {
-                float e = Env(t, 0.006f, v.K == "pop" ? 0.07f : 0.05f);
-                v.Ph += TAU * v.F * (1 + 1.6f * t / v.Dur) * dt;
-                v.Lp += (white - v.Lp) * Lp(900);
-                v.Lp2 += (v.Lp - v.Lp2) * Lp(900);
-                float splash = v.K == "pop" ? v.Lp2 * 2.2f * Env(t, 0.01f, 0.12f) : 0;
-                o = MathF.Sin(v.Ph) * e * 0.55f + splash;
+                v.F1.Run(white, (900 - 520 * Math.Min(1, t / 0.08f)) * s, 4.5f);
+                v.F2.Run(white, 140, 0.7f);
+                o = v.F1.Bp * Env(t, 0.005f, 0.045f) * 1.8f + v.F2.Lp * Env(t, 0.006f, 0.06f) * 1.4f;
                 break;
             }
-            case "gulp":  // połknięcie: dwa niskie "glup"
+            case "gulp":  // połknięcie: dwa niskie mlaśnięcia
             {
-                float t2 = t > 0.16f ? t - 0.16f : -1;
-                v.Ph += TAU * v.F * (1 + 0.5f * Math.Min(t, 0.16f) / 0.16f) * dt;
-                v.Ph2 += TAU * v.F * 0.8f * (1 + 0.5f * Math.Max(0, t2) / 0.16f) * dt;
-                o = MathF.Sin(v.Ph) * Env(t, 0.012f, 0.06f) * 0.6f + (t2 >= 0 ? MathF.Sin(v.Ph2) * Env(t2, 0.012f, 0.07f) * 0.5f : 0);
+                v.F1.Run(white, (330 - 150 * Math.Min(1, t / 0.15f)) * s, 5);
+                float t2 = t - 0.15f;
+                v.F2.Run(white, (270 - 110 * Math.Clamp(t2 / 0.15f, 0, 1)) * s, 5);
+                o = v.F1.Bp * Env(t, 0.015f, 0.07f) * 2.6f + v.F2.Bp * Env(t2, 0.015f, 0.07f) * 2.0f;
                 break;
             }
-            case "zap":   // wystrzał trichocyst/toksycyst: krótki, stłumiony syk
+            case "zap":   // trichocysty/toksycysty: bardzo krótki, miękki syk
             {
-                v.Lp += (white - v.Lp) * Lp(2200);
-                v.Hp += (v.Lp - v.Hp) * Lp(500);
-                o = (v.Lp - v.Hp) * Env(t, 0.008f, 0.05f) * 1.1f;
+                v.F1.Run(white, 1800 * s, 2.5f);
+                o = v.F1.Bp * Env(t, 0.005f, 0.025f) * 0.8f;
                 break;
             }
             case "snap":  // błyskawiczny skurcz: głuche "tup"
             {
-                v.Ph += TAU * v.F * (1 - 0.35f * t / v.Dur) * dt;
-                v.Lp += (white - v.Lp) * Lp(300);
-                o = (MathF.Sin(v.Ph) * 0.7f + v.Lp * 1.5f) * Env(t, 0.005f, 0.05f);
+                v.F1.Run(white, 160 * s, 2.2f);
+                o = v.F1.Bp * Env(t, 0.004f, 0.04f) * 3.2f;
                 break;
             }
-            case "tick":  // interfejs: cichy, drewniany klik
+            case "tick":  // interfejs: cichy klik
             {
-                v.Ph += TAU * 1150 * dt; v.Ph2 += TAU * 2870 * dt;
-                o = (MathF.Sin(v.Ph) + 0.3f * MathF.Sin(v.Ph2)) * Env(t, 0.002f, 0.012f) * 0.25f;
+                v.F1.Run(white, 1300, 4);
+                o = v.F1.Bp * Env(t, 0.002f, 0.01f) * 0.9f;
                 break;
             }
-            case "blip":  // podział: dwa miękkie tony marimby
+            case "hurt":  // obrażenie / schwytanie: tępe uderzenie
             {
-                v.Ph += TAU * 523.3f * dt; v.Ph2 += TAU * 659.3f * dt;
-                float a = Env(t, 0.004f, 0.18f), b = t > 0.11f ? Env(t - 0.11f, 0.004f, 0.2f) : 0;
-                o = (MathF.Sin(v.Ph) + 0.15f * MathF.Sin(v.Ph * 4)) * a * 0.3f + (MathF.Sin(v.Ph2) + 0.15f * MathF.Sin(v.Ph2 * 4)) * b * 0.3f;
-                break;
-            }
-            case "goal":  // cel: łagodne arpeggio (C–E–G)
-            {
-                var f = Arp;
-                for (int i = 0; i < 3; i++)
-                {
-                    float ti = t - i * 0.13f; if (ti < 0) continue;
-                    float ph = TAU * f[i] * ti;
-                    o += (MathF.Sin(ph) + 0.12f * MathF.Sin(ph * 4)) * Env(ti, 0.004f, 0.35f) * 0.22f;
-                }
+                v.F1.Run(white, 110, 3);
+                v.F2.Run(white, 220, 0.8f);
+                o = v.F1.Bp * Env(t, 0.006f, 0.1f) * 3.5f + v.F2.Lp * Env(t, 0.004f, 0.05f) * 1.2f;
                 break;
             }
             case "net":   // NEToza: narastający szum wyrzucanej sieci
             {
-                float cut = 250 + 900 * Math.Min(1, t / 0.4f);
-                v.Lp += (white - v.Lp) * Lp(cut);
-                o = v.Lp * 1.4f * MathF.Sin(PI * Math.Min(1, t / v.Dur));
+                v.F1.Run(white, 300 + 1100 * Math.Min(1, t / 0.5f), 1.3f);
+                o = v.F1.Bp * 1.2f * MathF.Sin(PI * Math.Min(1, t / v.Dur));
                 break;
             }
-            case "hurt":
+            case "blip":  // podział: dwa miękkie tony marimby (zdarzenie "dobre")
             {
-                v.Ph += TAU * 70 * dt;
-                o = MathF.Sin(v.Ph) * Env(t, 0.01f, 0.08f) * 0.6f;
+                v.Ph += TAU * 523.3f * dt; v.Ph2 += TAU * 659.3f * dt;
+                o = (MathF.Sin(v.Ph) + 0.12f * MathF.Sin(v.Ph * 4)) * Env(t, 0.005f, 0.16f) * 0.22f
+                  + (MathF.Sin(v.Ph2) + 0.12f * MathF.Sin(v.Ph2 * 4)) * Env(t - 0.12f, 0.005f, 0.18f) * 0.22f;
+                break;
+            }
+            case "goal":  // cel: łagodne arpeggio (C–E–G)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    float ti = t - i * 0.14f; if (ti < 0) continue;
+                    float ph = TAU * Arp[i] * ti;
+                    o += (MathF.Sin(ph) + 0.1f * MathF.Sin(ph * 4)) * Env(ti, 0.005f, 0.32f) * 0.17f;
+                }
                 break;
             }
         }
@@ -148,12 +149,6 @@ public partial class Audio : Node
         if (n <= 0) return;
         n = Math.Min(n, _buf.Length);
         Mix(_buf, n);
-        // odległe bąbelki w wodzie (tylko mikroskop świetlny, rzadko i cicho)
-        if (Ambient == 0 && !Muted)
-        {
-            _bubbleT -= (float)delta;
-            if (_bubbleT <= 0) { _bubbleT = Rand(2.5f, 7f); Play("bubble", Rand(0.08f, 0.2f) * Settings.Ambient / Math.Max(0.01f, Settings.Sfx), Rand(-0.8f, 0.8f)); }
-        }
         _pb.PushBuffer(new ReadOnlySpan<Vector2>(_buf, 0, n));
     }
 
@@ -161,46 +156,43 @@ public partial class Audio : Node
     {
         float dt = 1f / SR;
         float master = Muted ? 0 : Settings.Master;
-        float target = Ambient < 0 ? 0.6f : 1;
+        float target = Ambient == -2 ? 0 : Ambient < 0 ? 0.6f : 1;
         float ambVol = Settings.Ambient * master, sfxVol = Settings.Sfx * master;
-        float kLow = Lp(Ambient == 1 ? 140 : 380), kLow2 = Lp(Ambient == 1 ? 90 : 220), kOut = Lp(7000);
+        float cut = Ambient == 1 ? 220 : 600, gainA = Ambient == 1 ? 0.5f : 0.55f;
         for (int i = 0; i < n; i++)
         {
             _t += dt;
             _amb += (target - _amb) * 0.00005f;
-            // tło: szum brązowy → 2× dolnoprzepustowy, powolne "falowanie" głośności
+            // tło: stały, miękki szum wody (dwa niezależne kanały → szerokość stereo), bardzo powolne wahania
+            _driftT -= dt; if (_driftT <= 0) { _driftT = 0.5f; _drift = Clamp(_drift + Rand(-0.04f, 0.04f), 0.85f, 1.1f); }
             float wl = Wn(), wr = Wn();
-            _bL = (_bL + wl * 0.02f) * 0.999f; _bR = (_bR + wr * 0.02f) * 0.999f;
-            _lL += (_bL - _lL) * kLow; _lR += (_bR - _lR) * kLow;
-            _l2L += (_lL - _l2L) * kLow2; _l2R += (_lR - _l2R) * kLow2;
-            _swell = 0.75f + 0.25f * MathF.Sin(_t * 0.21f) * MathF.Sin(_t * 0.057f + 1);
-            float pump = Ambient == 1 ? 0.8f + 0.2f * MathF.Sin(_t * TAU * 1.3f) : 1;
-            float aL = _l2L * 0.45f * _swell * pump * _amb * ambVol, aR = _l2R * 0.45f * _swell * pump * _amb * ambVol;
-            float sL = 0, sR = 0;
-            for (int k = _voices.Count - 1; k >= 0; k--)
+            _aL.Run(wl, cut, 0.6f); _aR.Run(wr, cut, 0.6f);
+            _aL2.Run(_aL.Lp, cut * 0.7f, 0.6f); _aR2.Run(_aR.Lp, cut * 0.7f, 0.6f);
+            float k = gainA * _drift * _amb * ambVol;
+            float L = _aL2.Lp * k, R = _aR2.Lp * k;
+            for (int j = _voices.Count - 1; j >= 0; j--)
             {
-                var v = _voices[k];
+                var v = _voices[j];
                 float o = VoiceSample(v, wl, dt) * sfxVol * 0.5f;
-                sL += o * v.PanL; sR += o * v.PanR;
+                L += o * v.PanL; R += o * v.PanR;
                 v.T += dt;
-                if (v.T >= v.Dur + v.Delay) _voices.RemoveAt(k);
+                if (v.T >= v.Dur) _voices.RemoveAt(j);
             }
-            float L = aL + sL, R = aR + sR;
-            _mL += (L - _mL) * kOut; _mR += (R - _mR) * kOut;
-            // miękki ogranicznik
-            buf[i] = new Vector2(MathF.Tanh(_mL * 1.2f) * 0.85f, MathF.Tanh(_mR * 1.2f) * 0.85f);
+            _oL.Run(L, 8000, 0.7f); _oR.Run(R, 8000, 0.7f);
+            buf[i] = new Vector2(MathF.Tanh(_oL.Lp * 1.1f) * 0.9f, MathF.Tanh(_oR.Lp * 1.1f) * 0.9f);
         }
     }
 
     /// <summary>Test: renderuje każdy efekt do WAV i wypisuje poziomy (szczyt, RMS, największy skok próbki, "jasność").</summary>
     public static void Report(string outDir)
     {
-        var a = new Audio(); a.Ambient = 0;
-        foreach (var k in new[] { "ambient", "pop", "bubble", "gulp", "zap", "snap", "tick", "blip", "goal", "net", "hurt" })
+        var a = new Audio();
+        foreach (var k in new[] { "ambient", "tem", "pop", "gulp", "zap", "snap", "tick", "hurt", "net", "blip", "goal" })
         {
-            a._voices.Clear(); a._last.Clear(); a.Ambient = k == "ambient" ? 0 : -2; a._amb = k == "ambient" ? 1 : 0;
-            if (k != "ambient") a.Play(k, 1, 0);
-            int n = SR * (k == "ambient" ? 4 : 2); var buf = new Vector2[n];
+            a._voices.Clear(); a._last.Clear(); a._t = 10;
+            a.Ambient = k == "ambient" ? 0 : k == "tem" ? 1 : -2; a._amb = k is "ambient" or "tem" ? 1 : 0;
+            if (a.Ambient == -2) a.Play(k, 1, 0);
+            int n = SR * (a.Ambient >= 0 ? 4 : 2); var buf = new Vector2[n];
             for (int o = 0; o < n; o += 4096) { var tmp = new Vector2[Math.Min(4096, n - o)]; a.Mix(tmp, tmp.Length); Array.Copy(tmp, 0, buf, o, tmp.Length); }
             double peak = 0, rms = 0, jump = 0, zc = 0;
             for (int i = 0; i < n; i++) { double s = buf[i].X; peak = Math.Max(peak, Math.Abs(s)); rms += s * s; if (i > 0) { jump = Math.Max(jump, Math.Abs(s - buf[i - 1].X)); if (Math.Sign(s) != Math.Sign(buf[i - 1].X)) zc++; } }

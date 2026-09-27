@@ -307,7 +307,7 @@ public sealed class Lacrymaria : Ent, ICaptor
         Mem.Radial(_rr); Mem.Follow(x, y, a, 1, 1);
         _hx = x; _hy = y; _wand = Rand(0, TAU); Edible = true; Food = 1.2f;
     }
-    public override void UpdatePrim() => SetCapsule(_l * 0.3f, _w * 0.42f);
+    public override void UpdatePrim() => AxisParts(3, _l / 2, _w / 2, t => MathF.Sqrt(Math.Max(0, 1 - t * t)) * (t > 0 ? 1 - 0.55f * t * t : 1), Mem.Bend);
     public override bool Collides(Ent o) => o != _prey;
     float NeckBaseX => X + MathF.Cos(A) * _l * 0.5f;
     float NeckBaseY => Y + MathF.Sin(A) * _l * 0.5f;
@@ -434,12 +434,19 @@ public sealed class Daphnia : Ent
     public override float Radius => _w / 2;
     public Daphnia(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Metazoan; Layer = 5; Name = "rozwielitka"; Latin = "Daphnia pulex"; Soft = 0.05f;
+        Kind = Kind.Metazoan; Layer = 1; Name = "rozwielitka"; Latin = "Daphnia pulex"; Soft = 0.05f;
         _l = Rand(1300, 2200); _w = _l * 0.62f; R = _l * 0.75f; Mass = 3000; _dir = a; FlowK = 0.2f;
         _eggs = new Vector3[RandI(0, 6)];
         for (int i = 0; i < _eggs.Length; i++) _eggs[i] = new Vector3(Rand(-0.25f, 0.05f), Rand(-0.28f, -0.12f), Rand(0.8f, 1.1f));
     }
-    public override void UpdatePrim() => SetCapsule(_l * 0.22f, _l * 0.27f);
+    public override void UpdatePrim()
+    {
+        float L = _l; UseParts(3);
+        PartCap(0, -0.18f * L, -0.04f * L, -0.02f * L, -0.04f * L, 0.29f * L);   // pancerz
+        PartCircle(1, 0.33f * L, -0.01f * L, 0.13f * L);                        // głowa
+        PartCap(2, 0.3f * L, 0.12f * L, 0.34f * L, 0.26f * L, 0.05f * L);       // dziobek
+        Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = 0.3f * L;
+    }
     public override void Step(float dt, float gdt)
     {
         _legPh += gdt * TAU * Math.Min(4 * W.TimeScale, 5);
@@ -472,19 +479,16 @@ public sealed class Daphnia : Ent
         }
         _gut = Math.Max(0, _gut - dt * 0.003f);
     }
-    // kontur skorupki (widok z boku, x do przodu, y<0 grzbiet) w jednostkach L
-    static readonly Vector2[] Carap =
+    // jeden ciągły obrys ciała (widok z boku: x do przodu, y > 0 strona brzuszna) w jednostkach L
+    static readonly Vector2[] Body =
     {
-        new(0.20f, -0.27f), new(0.08f, -0.33f), new(-0.08f, -0.35f), new(-0.24f, -0.31f), new(-0.37f, -0.21f), new(-0.45f, -0.09f),
-        new(-0.47f, 0.00f), new(-0.42f, 0.11f), new(-0.30f, 0.21f), new(-0.12f, 0.27f), new(0.05f, 0.27f), new(0.16f, 0.21f), new(0.20f, 0.10f), new(0.21f, -0.08f),
-    };
-    static readonly Vector2[] Head =
-    {
-        new(0.19f, -0.24f), new(0.27f, -0.27f), new(0.37f, -0.23f), new(0.44f, -0.12f), new(0.45f, 0.00f), new(0.42f, 0.10f), new(0.37f, 0.20f), new(0.33f, 0.30f),
-        new(0.29f, 0.26f), new(0.25f, 0.14f), new(0.20f, 0.06f),
+        new(0.45f, 0.00f), new(0.43f, 0.10f), new(0.38f, 0.22f), new(0.35f, 0.31f), new(0.30f, 0.22f), new(0.22f, 0.22f),
+        new(0.12f, 0.27f), new(-0.05f, 0.29f), new(-0.22f, 0.26f), new(-0.36f, 0.17f), new(-0.45f, 0.05f), new(-0.47f, -0.05f),
+        new(-0.40f, -0.18f), new(-0.27f, -0.29f), new(-0.08f, -0.35f), new(0.08f, -0.33f), new(0.19f, -0.27f), new(0.23f, -0.25f),
+        new(0.30f, -0.28f), new(0.39f, -0.22f), new(0.44f, -0.12f),
     };
     readonly float[] _tx = new float[32], _ty = new float[32];
-    int Curve(Painter p, Vector2[] src, float L, Vector2[] outp)
+    int Curve(Vector2[] src, float L, Vector2[] outp)
     {
         for (int i = 0; i < src.Length; i++) { _tx[i] = src[i].X * L; _ty[i] = src[i].Y * L; }
         return Painter.SmoothClosed(_tx, _ty, src.Length, outp, 4);
@@ -497,11 +501,13 @@ public sealed class Daphnia : Ent
         // kolec ogonowy (spina)
         p.Line(-0.45f * L, -0.05f * L, -0.78f * L, -0.13f * L, L * 0.012f, Rgb(190, 175, 120, 0.5f), true);
         p.Line(-0.45f * L, -0.05f * L, -0.78f * L, -0.13f * L, lw, edge, true);
-        // skorupka
-        int n = Curve(p, Carap, L, p.Shape2);
+        // ciało (głowa + skorupka jednym obrysem), cieniowane od środka
+        int n = Curve(Body, L, p.Shape2);
         var cs = new ReadOnlySpan<Vector2>(p.Shape2, 0, n);
         p.SoftStroke(cs, true, L * 0.012f, Rgb(255, 255, 240, 0.3f));
-        p.FillFan(cs, -0.12f * L, 0, shell);
+        Span<float> dts = stackalloc float[] { 0f, 0.7f, 1f };
+        Span<Color> dcs = stackalloc Color[] { Rgb(225, 215, 170, 0.16f), Rgb(210, 195, 145, 0.24f), Rgb(170, 150, 95, 0.34f) };
+        p.FillRadial(cs, -0.05f * L, -0.02f * L, dts, dcs);
         // siateczkowata rzeźba pancerza
         var net = Rgb(120, 105, 60, 0.12f);
         for (float x = -0.42f; x < 0.18f; x += 0.035f)
@@ -519,7 +525,7 @@ public sealed class Daphnia : Ent
         // komora lęgowa z zarodkami
         foreach (var e in _eggs)
         {
-            float ex = e.X * L, ey = (e.Y - 0.02f) * L, r = L * 0.042f * e.Z;
+            float ex = e.X * L, ey = (e.Y - 0.02f) * L, r = L * 0.028f * e.Z;
             p.FillEllipse(ex, ey, r * 1.2f, r, 0.3f, Rgb(125, 150, 80, 0.5f));
             p.Ellipse(ex, ey, r * 1.2f, r, 0.3f, lw, Rgb(60, 75, 35, 0.55f));
             p.FillCircle(ex + r * 0.35f, ey - r * 0.2f, r * 0.22f, Rgb(40, 40, 40, 0.6f));
@@ -532,24 +538,21 @@ public sealed class Daphnia : Ent
         {
             float x = (0.1f - k * 0.075f) * L, ph = MathF.Sin(_legPh - k * 0.9f);
             float x2 = x - 0.03f * L + ph * 0.025f * L, y2 = 0.22f * L;
-            p.Line(x, 0.04f * L, x2, y2, L * 0.012f, Rgb(175, 160, 105, 0.28f), true);
+            p.Line(x, 0.04f * L, x2, y2, L * 0.007f, Rgb(175, 160, 105, 0.28f), true);
             for (int s = 0; s < 6; s++) { float t = 0.3f + s * 0.12f, sx = Lerp(x, x2, t), sy = Lerp(0.04f * L, y2, t); p.Seg(sx, sy, sx - L * 0.03f, sy + L * 0.008f, lw * 0.5f, Rgb(110, 95, 55, 0.35f)); }
         }
         // jelito z uchyłkami wątrobowymi
         var buf = p.Buf; int gn = 0;
         for (int k = 0; k <= 24; k++) { float t = k / 24f; buf[gn++] = new Vector2((0.3f - t * 0.68f) * L, (-0.06f - 0.05f * MathF.Sin(t * PI) + (t > 0.85f ? (t - 0.85f) * 0.9f : 0)) * L); }
         var gut = new ReadOnlySpan<Vector2>(buf, 0, gn);
-        p.Stroke(gut, false, L * 0.045f, Rgb((int)Lerp(170, 70, _gut), (int)Lerp(160, 120, _gut), (int)Lerp(90, 40, _gut), 0.5f), true);
+        p.Stroke(gut, false, L * 0.026f, Rgb((int)Lerp(170, 70, _gut), (int)Lerp(160, 120, _gut), (int)Lerp(90, 40, _gut), 0.5f), true);
         p.Stroke(gut, false, lw, Rgb(80, 70, 40, 0.5f), true);
         p.Arc(0.33f * L, -0.13f * L, 0.03f * L, PI * 0.3f, PI * 1.6f, L * 0.02f, Rgb((int)Lerp(170, 70, _gut), (int)Lerp(160, 120, _gut), 60, 0.45f), true);
         // serce
         float hb = 0.85f + 0.15f * MathF.Sin(_heart);
         p.FillEllipse(0.13f * L, -0.22f * L, 0.035f * L * hb, 0.022f * L * hb, 0.3f, Rgb(215, 150, 125, 0.55f));
-        // głowa
-        int hn = Curve(p, Head, L, p.Shape);
-        var hs = new ReadOnlySpan<Vector2>(p.Shape, 0, hn);
-        p.FillFan(hs, 0.33f * L, 0, Rgb(215, 200, 150, 0.25f));
-        p.Stroke(hs, true, lw * 1.3f, edge);
+        // granica głowy (bruzda szyjna) – delikatnie
+        p.Arc(0.3f * L, -0.02f * L, 0.14f * L, PI * 0.72f, PI * 1.28f, lw, Rgb(95, 82, 45, 0.3f));
         // oko złożone i przyoczko
         float ex0 = 0.385f * L, ey0 = -0.06f * L, er = 0.05f * L;
         p.Glow(ex0, ey0, er * 1.6f, Rgb(0, 0, 0, 0.25f));

@@ -429,6 +429,8 @@ public sealed class ScNeutro : Scenario
     float Ph(World w, int k) => Hash2(k, 7, w.Seed) * TAU;
     float Yc(World w, int k, float x) => k * VS + 26 * MathF.Sin(x * TAU / 330 + Ph(w, k));
     static int VIdx(float y) => (int)MathF.Round(y / VS);
+    /// <summary>Środek najbliższej żyłki w danym x (testy, AI).</summary>
+    public float VesselY(World w, float x, float y) => Yc(w, VIdx(y), x);
     bool InVessel(World w, float x, float y, float margin) { int k = VIdx(y); return MathF.Abs(y - Yc(w, k, x)) < VHW + margin; }
 
     void Bact(World w, Chunk c, List<Ent> loc, int clusters, int chains)
