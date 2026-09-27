@@ -39,6 +39,8 @@ public sealed class Rotifer : Ent
         Cph += gdt * TAU * 1.2f;
         Mph += gdt * TAU * (_mode == Mode.Feed ? 2.2f : 0.6f);
         if (State != St.Free) { Vx = Vy = 0; Fixed = false; return; }
+        // wyschnięty mech: bdelloid chowa koronę i przechodzi w anhydrobiozę
+        if (W.Sc.Dormant && !W.Preview) { Vx = Vy = 0; Ext = Lerp(Ext, 0, Damp(2, gdt)); Corona = Lerp(Corona, 0, Damp(3, gdt)); return; }
         St0 -= dt;
         Gut = Math.Max(0, Gut - dt * 0.01f);
         switch (_mode)

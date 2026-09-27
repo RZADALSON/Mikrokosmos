@@ -76,6 +76,7 @@ public sealed class Chain : Ent
     public override void Integrate(float dt) { }
     public override void Step(float dt, float gdt)
     {
+        if (W.Sc.Dormant && !W.Preview) { Vx = Vy = 0; Sync(); return; } // wyschnięte podłoże: nicień w anhydrobiozie
         // 1) przesunięcia segmentów z kolizji → punkty ciała
         for (int i = 0; i < N; i++)
         {

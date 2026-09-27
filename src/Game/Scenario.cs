@@ -29,6 +29,8 @@ public abstract class Scenario
     public string ScoreLabel = "wynik";
     /// <summary>Średni czas życia neutrofila w tkance (s czasu biologicznego); 0 = bez apoptozy.</summary>
     public float NeutroLife;
+    /// <summary>Świat w stanie uśpienia (np. wyschnięty mech) – drobne zwierzęta nie poruszają się.</summary>
+    public bool Dormant;
     /// <summary>Natężenie światła PAR w punkcie (µmol fotonów m⁻² s⁻¹); &lt; 0 = scenariusz bez modelu światła.</summary>
     public virtual float Light(World w, float x, float y) => -1;
 
@@ -250,5 +252,5 @@ public abstract class Scenario
         ("Noselli i in. 2019 – metabolia jako pełzanie w ciasnocie (arXiv)", "https://arxiv.org/pdf/2005.11952"),
     };
 
-    public static readonly Scenario[] All = { new ScT4(), new ScBdello(), new ScEcoli(), new ScNeutro(), new ScMacro(), new ScPara(), new ScDidinium(), new ScAmoeba(), new ScEuglena() };
+    public static readonly Scenario[] All = { new ScT4(), new ScBdello(), new ScEcoli(), new ScNeutro(), new ScMacro(), new ScPara(), new ScDidinium(), new ScAmoeba(), new ScEuglena(), new ScTardi() };
 }

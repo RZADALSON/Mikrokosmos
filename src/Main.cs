@@ -1077,10 +1077,23 @@ public partial class Main : Node
             int nb = _world.Beats - b0;
             Ok(nb >= 3 && nb <= 5 && vmax > vmin * 2, $"serce bije ~70/min ({nb} uderzeń w 5 s), krew przyspiesza po skurczu ({vmin:0}–{vmax:0} µm/s)");
             float hr0 = _world.HeartBpm;
-            for (int i = 0; i < 260; i++) { var st = _world.Add(new Staph(_world, hp0.X + 250 + Rand(-60, 60), hp0.Y + 150 + Rand(-60, 60))); st.Gen = 1000; }
+            for (int i = 0; i < 260; i++) { var st = _world.Add(new Staph(_world, hp0.X + 700 + Rand(-60, 60), hp0.Y + 230 + Rand(-60, 60))); st.Gen = 1000; }
             float tmax = 0, hmax = 0;
             for (int i = 0; i < 80; i++) { Run(60); tmax = Math.Max(tmax, _world.TempC); hmax = Math.Max(hmax, _world.HeartBpm); }
             Ok(tmax > 38.3f && hmax > 95, $"zakażenie → gorączka {tmax:0.0} °C i tętno {hmax:0}/min (było {hr0:0})");
+
+            // 33–35. niesporczak: wysysanie glonów, beczułka przeżywa wyschnięcie, bez niej – śmierć
+            Start(S("tardi")); var td = (Tardigrade)_world.Player; var tsc = (ScTardi)_world.Sc;
+            tsc.Algae.Patch(td.X + MathF.Cos(td.A) * (td.L / 2 + 6), td.Y + MathF.Sin(td.A) * (td.L / 2 + 6), 4, 12);
+            _input.Mag = 0; Run(240);
+            Ok(_world.Stat("algae") >= 3, $"niesporczak przebija sztyletami i wysysa glony ({_world.Stat("algae"):0})");
+            var td2 = _world.Add(new Tardigrade(_world, td.X + 400, td.Y, 0)); td2.Energy = 0.8f;
+            td.TunWant = true; td.Energy = 0.8f; Run(600);
+            Ok(td.IsTun, $"Spacja zwija niesporczaka w beczułkę (tun {td.Tun:0.00})");
+            tsc.Moisture = 0; typeof(ScTardi).GetMethod("Desiccate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(tsc, new object[] { _world });
+            td2.TunWant = false;
+            Ok(td.Alive && _world.Stat("survived") >= 1, "beczułka przeżywa wyschnięcie (anhydrobioza)");
+            Ok(!td2.Alive, "niesporczak bez beczułki wysycha na śmierć");
 
             // 24–25. makrofag: eferocytoza apoptotycznego neutrofila i erytrofagocytoza (hemosyderyna)
             Start(S("macro")); var mac = (Macrophage)_world.Player; Clear(mac, 70);
