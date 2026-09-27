@@ -10,6 +10,8 @@ public sealed class EColi : Ent
     public float Wd, L, L0, Speed, Round, Pinch, Opacity = 1, Bund = 1, Wob, Cmem, Rb, Timer;
     public bool Sessile, Dividing, Warned, Resistant, KnownResistant;
     public float Bulge;
+    /// <summary>Infekcja obcym fagiem (T7/λ) – czas do lizy (s biologiczne); 0 = brak.</summary>
+    public float Foreign; public bool ForeignLambda, Lysogen;
     /// <summary>Liczba fagów związanych z powierzchnią (ograniczona liczba miejsc receptorowych).</summary>
     public int Bound;
     public Infection Inf;
@@ -31,11 +33,12 @@ public sealed class EColi : Ent
     Vector2[] _ribo;
 
     public override float Length => L;
+    public override St FreeState => St.Run;
     public float Hl => Math.Max(0, (L - Wd) / 2);
 
     public EColi(World w, float x, float y, float a, float len = 0, float width = 0, float l0 = 0, bool sessile = false, int nf = 0) : base(w, x, y, a)
     {
-        Kind = Kind.EColi; Layer = 2;
+        Kind = Kind.EColi; Layer = 2; Soft = 0.08f; Name = "pałeczka okrężnicy"; Latin = "Escherichia coli";
         Wd = width > 0 ? width : Rand(0.75f, 0.88f);
         L = len > 0 ? len : Rand(2.0f, 2.8f);
         L0 = l0 > 0 ? l0 : Rand(1.9f, 2.2f);
@@ -79,7 +82,7 @@ public sealed class EColi : Ent
         if (Round > 0.5f) SetCircle(Rb);
         else SetCapsule(Hl, Wd / 2 * (1 - Pinch * 0.3f));
     }
-    public bool CanHost() => Alive && Invader == null && Inf == null && Round == 0 && !Dividing && State != St.Dead && State != St.Cup && State != St.Vac;
+    public bool CanHost() => Alive && Invader == null && Inf == null && Foreign <= 0 && Round == 0 && !Dividing && State != St.Dead && State != St.Cup && State != St.Vac;
     public bool CanAdsorb() => Alive && Bound < 8 && State != St.Dead && State != St.Bdelloplast && State != St.Cup && State != St.Vac && (Inf == null || Inf.T / Inf.Lat < 0.8f);
     public override bool CanControl() => Alive && Inf == null && Invader == null && State != St.Bdelloplast && State != St.Cup && State != St.Vac;
     public override bool Collides(Ent o) => !(o is Bdello b && b.Prey == this);
@@ -91,6 +94,7 @@ public sealed class EColi : Ent
         if (State == St.Cup || State == St.Vac) { Vx = Vy = 0; D = 0; Dr = 0; Opacity = 1 - Dig; Rest(); return; }
         if (State == St.Bdelloplast || State == St.Dead) { Vx = Vy = 0; D = 0; Dr = 0; Rest(); return; }
         if (Inf != null) StepInfect(bdt);
+        if (Foreign > 0) { Foreign -= bdt; if (Foreign <= 0) { LyseForeign(); return; } }
         if (!Alive) return;
         Bund = Lerp(Bund, State == St.Tumble ? 0 : 1, Damp(12, gdt));
         if (Sessile) { Vx = Vy = 0; }
@@ -186,8 +190,21 @@ public sealed class EColi : Ent
     }
 
     // ------------------------------------------------------------------ infekcja T4
+    void LyseForeign()
+    {
+        int n = W.Em ? RandI(6, 12) : 3;
+        for (int k = 0; k < n; k++) { ToWorld(Rand(-Hl, Hl), Rand(-Wd, Wd) * 0.3f, out float x, out float y); var q = W.Add(new OtherPhage(W, x, y, ForeignLambda)); q.X += RandN() * 0.1f; }
+        if (IsPlayer) W.Log(ForeignLambda ? "Fag λ przeszedł w cykl lityczny – Twoja komórka pęka!" : "Fag T7 przejął Twoją komórkę – liza!", "bad");
+        Kill();
+    }
     public void StartInfection(PhageT4 ph)
     {
+        if (Foreign > 0)
+        {
+            if (ph.IsPlayer) W.Log($"Ta komórka jest już przejęta przez faga {(ForeignLambda ? "λ" : "T7")} – DNA gospodarza zdegradowane, Twoja infekcja się nie uda. Przejmujesz inny wirion.", "bad");
+            if (ph.IsPlayer) { var alt = W.Near(ph.X, ph.Y, 1e9f, e => e is PhageT4 q && q.State == St.Free); if (alt != null) { W.Player = null; W.SetPlayer(alt); W.Focus = null; } }
+            return;
+        }
         if (Inf != null)
         {
             Inf.Lat += Inf.Base * 0.3f; Inf.Lin++;
@@ -274,6 +291,13 @@ public sealed class EColi : Ent
             }
         }
         W.Sc.OnLysis(W, this, I.ByPlayer);
+    }
+    public override void Kill()
+    {
+        if (!Alive) return;
+        for (int i = 0; i < W.Ents.Count; i++) if (W.Ents[i] is PhageT4 q && q.Host == this) q.Release();
+        ReleaseHeld();
+        LyseBdello();
     }
     public void LyseBdello()
     {

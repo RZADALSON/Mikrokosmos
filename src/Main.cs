@@ -13,7 +13,9 @@ public partial class Main : Node
     Mode _mode = Mode.Menu;
     Scenario _sc;
     World _world, _demo;
-    bool _paused, _mouseFollow, _mouseDown, _actionEdge, _showFps, _testInput;
+    bool _paused, _mouseFollow, _mouseDown, _actionEdge, _showFps, _testInput, _nano;
+    float _timeMul = 1;
+    Control _nanoPick;
     int _modeIdx;
     float _camX, _camY, _zoom = 1, _tz = 1, _s0 = 1, _hudT, _fpsAcc; int _fpsN;
     readonly InputState _input = new();
@@ -193,7 +195,7 @@ public partial class Main : Node
         _hudT -= fdt;
         if (_hudT > 0 || _world == null) return;
         _hudT = 0.12f;
-        var rows = _sc.Hud(_world);
+        var rows = _nano ? NanoRows() : _sc.Hud(_world);
         if (_world.Infinite && _world.Player != null)
         {
             var pl = _world.Player;
@@ -213,7 +215,13 @@ public partial class Main : Node
             _statRows[i].k.Visible = vis; _statRows[i].v.Visible = vis;
             if (vis) { _statRows[i].k.Text = rows[i].Item1; _statRows[i].v.Text = rows[i].Item2; }
         }
-        var bars = _sc.Bars(_world);
+        var bars = _nano ? null : _sc.Bars(_world);
+        var plr = _world.Player;
+        if (!_nano && plr != null && plr.Alive && plr is not Neutrophil && plr.Hp < 0.999f)
+        {
+            bars ??= new();
+            bars.Insert(0, ("Integralność błony", plr.Hp, plr.Hp < 0.35f ? Hex("#e05a4a") : Hex("#9fd0ff")));
+        }
         int nb = bars?.Count ?? 0;
         while (_bars.Count < nb)
         {
@@ -229,7 +237,8 @@ public partial class Main : Node
             var (lab, val, col) = bars[i];
             _bars[i].l.Text = lab.ToUpperInvariant(); _bars[i].b.Value = Clamp(val, 0, 1); _bars[i].f.BgColor = col;
         }
-        var G = _sc.Goals;
+        var G = _nano ? null : _sc.Goals;
+        if (_nano) { _goalHdr.Text = "TRYB EKSPLORACJI"; _goalText.Text = "Brak celów – zwiedzaj, skanuj i porównuj skale (1–7)."; _goalBar.Visible = false; }
         if (G != null)
         {
             if (_world.GoalIdx < G.Length)
@@ -243,6 +252,23 @@ public partial class Main : Node
         }
         _ffLbl.Visible = _world.Ff > 1; _ffLbl.Text = $"▶▶ ×{_world.Ff}";
     }
+
+    List<(string, string)> NanoRows()
+    {
+        var w = _world; var I = _input;
+        string under = "-";
+        if (I.HasAim) { var e = Nanobot.Pick(w, I.AimX, I.AimY, _sc.ViewW * 0.03f, w.Player); if (e != null) under = e.Name; }
+        int alive = 0; var kinds = new HashSet<string>();
+        foreach (var e in w.Ents) if (e.Alive && e != w.Player && e.Kind != Kind.None && e is not ChainSeg) { alive++; kinds.Add(e.Name); }
+        return new()
+        {
+            ("Kadr", _sc.ViewW >= 1000 ? $"{_sc.ViewW / 1000:0.#} mm" : $"{_sc.ViewW:0.#} µm"),
+            ("Tempo czasu", $"×{_timeMul:0.###} ({(_sc.TimeScale >= 1 ? $"time-lapse ×{_sc.TimeScale:0.#}" : $"zwolnione ×{_sc.TimeScale:0.##}")})"),
+            ("Pod kursorem", under), ("Organizmy w okolicy", alive.ToString()), ("Gatunki/typy w okolicy", kinds.Count.ToString()),
+            ("Zdezintegrowane", N0(w.Stat("botkills"))),
+        };
+    }
+    static string N0(float v) => ((int)MathF.Round(v)).ToString();
 
     // ================================================================ menu
     void BuildMenu()
@@ -266,6 +292,7 @@ public partial class Main : Node
         flow.AddThemeConstantOverride("h_separation", 18); flow.AddThemeConstantOverride("v_separation", 18);
         v.AddChild(flow);
         foreach (var sc in Scenario.All) flow.AddChild(MakeCard(sc));
+        flow.AddChild(MakeNanoCard());
         v.AddChild(new Control { CustomMinimumSize = new Vector2(0, 16) });
         v.AddChild(Ui.L("WASD / przytrzymaj LPM – ruch   ·   C – podążanie za kursorem   ·   Shift – szybciej   ·   Spacja – akcja   ·   Kółko – zoom   ·   M – tryb mikroskopu   ·   K – minimapa   ·   I – wiedza   ·   N – dźwięk   ·   F – FPS   ·   V – V-Sync   ·   Esc – pauza", 13, Hex("#aab5a7"), false, HorizontalAlignment.Center, true));
         var foot = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }; foot.AddThemeConstantOverride("separation", 20); v.AddChild(foot);
@@ -303,6 +330,30 @@ public partial class Main : Node
         return b;
     }
 
+    Control MakeNanoCard()
+    {
+        var col = Hex("#8fe3ff");
+        var b = new Button { CustomMinimumSize = new Vector2(300, 376), FocusMode = Control.FocusModeEnum.None };
+        b.AddThemeStyleboxOverride("normal", Ui.Box(new Color(0.05f, 0.08f, 0.1f, 0.82f), new Color(0.55f, 0.85f, 1, 0.25f), 16, 1, 0));
+        b.AddThemeStyleboxOverride("hover", Ui.Box(new Color(0.07f, 0.1f, 0.13f, 0.9f), col, 16, 2, 0));
+        b.AddThemeStyleboxOverride("pressed", Ui.Box(new Color(0.09f, 0.12f, 0.15f, 0.9f), col, 16, 2, 0));
+        b.Pressed += () => { _nanoPick.Visible = true; };
+        var v = Ui.Full(new VBoxContainer()); v.AddThemeConstantOverride("separation", 0); b.AddChild(v);
+        var pvBox = new Control { CustomMinimumSize = new Vector2(0, 172), ClipContents = true }; v.AddChild(pvBox);
+        var sc0 = Scenario.All.First(s => s.Id == "para");
+        pvBox.AddChild(Ui.Full(new PreviewCanvas { Sc = sc0, Make = w => { var e = w.Add(new Nanobot(w, 0, 0)); return (e, e.Size * 3.2f); } }));
+        var m = new MarginContainer(); foreach (var s in new[] { "margin_left", "margin_right" }) m.AddThemeConstantOverride(s, 16);
+        m.AddThemeConstantOverride("margin_top", 12); m.AddThemeConstantOverride("margin_bottom", 14); v.AddChild(m);
+        var tv = new VBoxContainer(); tv.AddThemeConstantOverride("separation", 2); m.AddChild(tv);
+        tv.AddChild(Ui.L("TRYB EKSPLORACJI", 11, col, true));
+        tv.AddChild(Ui.L("Nanobot", 21, null, true));
+        tv.AddChild(Ui.L("maszyna – nie organizm", 13, Ui.Dim));
+        var d = Ui.L("Zwiedzaj dowolny świat w jego skali – od powierzchni E. coli po staw. Silniejszy od wszystkiego: laser dezintegruje każdą komórkę, skaner rozpoznaje organizmy. Bez celów i bez śmierci.", 13, Hex("#d4dbcf"), false, HorizontalAlignment.Left, true);
+        d.CustomMinimumSize = new Vector2(268, 0); tv.AddChild(d);
+        Ui.IgnoreMouse(v);
+        return b;
+    }
+
     void ShowMenu()
     {
         _mode = Mode.Menu; _world = null; _paused = false;
@@ -312,7 +363,7 @@ public partial class Main : Node
             float best = Records.Best(sc.Id); int g = Records.GoalsDone(sc.Id);
             _cardRec[sc.Id].Text = best > 0 || g > 0 ? $"★ Rekord: {best:0} {sc.ScoreLabel} · cele {g}/{sc.Goals?.Length ?? 0}" : "";
         }
-        _menu.Visible = true; _hud.Visible = false; _over.Visible = false; _pause.Visible = false; _info.Visible = false;
+        _menu.Visible = true; _hud.Visible = false; _over.Visible = false; _pause.Visible = false; _info.Visible = false; _nanoPick.Visible = false;
         _filter.Visible = false; _overlay.ShowHud = false;
         EnsureDemo();
         _view.World = _demo; _overlay.World = _demo;
@@ -355,6 +406,27 @@ public partial class Main : Node
         close.Pressed += () => ToggleInfo(false);
         v.AddChild(close);
 
+        // wybór skali dla nanobota
+        _nanoPick = Ui.Full(new Control { Theme = Ui.Theme, Visible = false }); L.AddChild(_nanoPick);
+        _nanoPick.AddChild(Ui.Full(new ColorRect { Color = new Color(0, 0, 0, 0.55f) }));
+        var cn = Ui.Full(new CenterContainer()); _nanoPick.AddChild(cn);
+        var pn = new PanelContainer { CustomMinimumSize = new Vector2(560, 0) }; cn.AddChild(pn);
+        var vn = new VBoxContainer(); vn.AddThemeConstantOverride("separation", 8); pn.AddChild(vn);
+        vn.AddChild(Ui.L("Nanobot – wybierz skalę świata", 24, null, true));
+        vn.AddChild(Ui.L("Rozmiar bota dopasuje się do świata (≈ 1/30 kadru). W grze klawisze 1–7 przełączają skalę.", 13, Ui.Dim, false, HorizontalAlignment.Left, true));
+        int idx = 1;
+        foreach (var s in Scenario.All)
+        {
+            var scn = s; int k = idx++;
+            string scale = scn.ViewW >= 1000 ? $"{scn.ViewW / 1000:0.#} mm" : $"{scn.ViewW:0.#} µm";
+            var btn = new Button { Text = $"  {k}.  {WorldName(scn)} – kadr ≈ {scale}  ", CustomMinimumSize = new Vector2(0, 40), Alignment = HorizontalAlignment.Left };
+            btn.Pressed += () => { _audio.Play("tick"); Start(scn, true); };
+            vn.AddChild(btn);
+        }
+        var cancel = new Button { Text = "  Anuluj  ", SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+        cancel.Pressed += () => _nanoPick.Visible = false;
+        vn.AddChild(cancel);
+
         // koniec gry
         _over = Ui.Full(new Control { Theme = Ui.Theme, Visible = false }); L.AddChild(_over);
         _over.AddChild(Ui.Full(new ColorRect { Color = new Color(0, 0, 0, 0.45f) }));
@@ -369,7 +441,7 @@ public partial class Main : Node
         again.AddThemeStyleboxOverride("normal", Ui.Box(Hex("#cfe6c8"), new Color(0, 0, 0, 0), 10, 0, 10));
         again.AddThemeStyleboxOverride("hover", Ui.Box(Hex("#e2f3dc"), new Color(0, 0, 0, 0), 10, 0, 10));
         again.AddThemeColorOverride("font_color", Hex("#10160f")); again.AddThemeColorOverride("font_hover_color", Hex("#10160f"));
-        again.Pressed += () => Start(_sc);
+        again.Pressed += () => Start(_sc, _nano);
         var menu = new Button { Text = "  Menu  " }; menu.Pressed += ShowMenu;
         hb.AddChild(again); hb.AddChild(menu);
 
@@ -383,10 +455,22 @@ public partial class Main : Node
         Button PB(string t, Action a) { var b = new Button { Text = t, CustomMinimumSize = new Vector2(0, 38) }; b.Pressed += () => { _audio.Play("tick"); a(); }; v3.AddChild(b); return b; }
         PB("Wznów (P / Esc)", () => SetPause(false));
         PB("Wiedza o organizmie (I)", () => { _pause.Visible = false; ToggleInfo(true); });
-        PB("Zacznij od nowa", () => Start(_sc));
+        PB("Zacznij od nowa", () => Start(_sc, _nano));
         PB("Wyjdź do menu", ShowMenu);
         v3.AddChild(Ui.L("N – dźwięk · K – minimapa · M – mikroskop · F11 – pełny ekran", 12, Ui.Dim, false, HorizontalAlignment.Center));
     }
+
+    static string WorldName(Scenario sc) => sc.Id switch
+    {
+        "t4" => "Powierzchnia szkiełka z E. coli (TEM, nanoskala)",
+        "bdello" => "Biofilm E. coli (obiektyw 100×)",
+        "ecoli" => "Biofilm z glukozą i antybiotykiem (100×)",
+        "neutro" => "Tkanka łączna z żyłkami (40×, time-lapse)",
+        "para" => "Staw – orzęski (10×)",
+        "didinium" => "Staw – drapieżniki (10×)",
+        "amoeba" => "Staw – dno i ameby (10×, time-lapse)",
+        _ => sc.Name,
+    };
 
     void ShowInfo(Scenario sc)
     {
@@ -419,7 +503,7 @@ public partial class Main : Node
             if (_mode != Mode.Game || _world == null) return;
             _overTitle.Text = win ? "Zwycięstwo" : "Koniec gry";
             float score = _sc.Score(_world);
-            bool rec = !_testInput && Records.Submit(_sc.Id, score, _world.GoalIdx);
+            bool rec = !_testInput && !_nano && Records.Submit(_sc.Id, score, _world.GoalIdx);
             _overText.Text = text + $"\nWynik: {score:0} {_sc.ScoreLabel}" + (rec ? "  ★ NOWY REKORD!" : $"  (rekord: {Records.Best(_sc.Id):0})");
             foreach (var ch in _overStats.GetChildren()) ch.QueueFree();
             var rows = _sc.Hud(_world); rows.Add(("Czas gry", $"{MathF.Round(_world.T)} s"));
@@ -429,10 +513,13 @@ public partial class Main : Node
     }
 
     // ================================================================ gra
-    void Start(Scenario sc)
+    void Start(Scenario sc) => Start(sc, false);
+    void Start(Scenario sc, bool nano)
     {
-        _sc = sc; _mode = Mode.Game; _paused = false; _modeIdx = 0;
+        _sc = sc; _mode = Mode.Game; _paused = false; _modeIdx = 0; _nano = nano; _timeMul = 1;
+        _nanoPick.Visible = false;
         _world = sc.Create();
+        _world.Nano = nano;
         _world.Input = _input;
         _world.OnLog = Log; _world.OnBanner = Banner; _world.OnGameOver = OnGameOver;
         _world.OnSfx = (k, v) => _audio.Play(k, v);
@@ -447,6 +534,16 @@ public partial class Main : Node
         };
         _audio.Ambient = sc.Em ? 1 : 0;
         sc.Init(_world);
+        if (nano)
+        {
+            // gracz-organizm zastąpiony nanobotem w tym samym miejscu
+            var org = _world.Player;
+            float bx = org != null ? org.X : _world.CamX, by = org != null ? org.Y : _world.CamY;
+            if (org != null) { org.Alive = false; _world.Ents.Remove(org); }
+            _world.Player = null; _world.Focus = null;
+            _world.SetPlayer(_world.Add(new Nanobot(_world, bx, by)));
+            _world.Log($"Nanobot w świecie: {WorldName(sc)}. Spacja / PPM – laser na cel pod kursorem, najedź kursorem na komórkę, by ją zeskanować. 1–7 – zmiana skali, Z/X – tempo czasu.", "info");
+        }
         _tz = _zoom = 1;
         var t = _world.CamTarget();
         _camX = t != null ? t.X : _world.W / 2; _camY = t != null ? t.Y : _world.H / 2;
@@ -456,6 +553,11 @@ public partial class Main : Node
         foreach (var ch in _log.GetChildren()) ch.QueueFree();
         _orgName.Text = sc.Name; _orgLatin.Text = sc.Latin; _orgType.Text = $"{sc.TypeName} · {sc.Size}"; _orgDot.Color = sc.Color;
         _controls.Text = "  " + sc.Controls + " · M – mikroskop · I – wiedza · Esc – pauza  ";
+        if (nano)
+        {
+            _orgName.Text = "Nanobot"; _orgLatin.Text = WorldName(sc); _orgType.Text = $"Tryb eksploracji · Ø {Nanobot.Fmt(((Nanobot)_world.Player).Size)}"; _orgDot.Color = Hex("#8fe3ff");
+            _controls.Text = "  WASD / LPM – lot · Shift – dopalacz · Spacja / PPM – laser · kursor – skaner · 1–7 – skala · Z/X – tempo czasu · M – mikroskop · I – wiedza · Esc – pauza  ";
+        }
         _magLbl.Text = sc.Mag;
         _timeLbl.Text = (sc.TimeScale >= 1 ? $"Time-lapse ×{sc.TimeScale}" : $"Ruch zwolniony ×{sc.TimeScale}") + (sc.Bio > 1 ? $" · procesy życiowe ×{sc.Bio}" : "");
         _hudT = 0;
@@ -494,9 +596,17 @@ public partial class Main : Node
                 if (key == Key.G && _world.Nutri != null) { _world.ShowField = !_world.ShowField; Toast(_world.ShowField ? "Mapa glukozy: WŁ." : "Mapa glukozy: WYŁ."); }
                 if (key == Key.I || key == Key.Tab) ToggleInfo();
                 if (key == Key.C) { _mouseFollow = !_mouseFollow; Toast(_mouseFollow ? "Sterowanie: podążanie za kursorem" : "Sterowanie: WASD / przytrzymaj LPM"); }
-                if (key == Key.R && _world.Over) Start(_sc);
+                if (key == Key.R && _world.Over) Start(_sc, _nano);
+                if (_nano)
+                {
+                    int ki = key switch { Key.Key1 => 0, Key.Key2 => 1, Key.Key3 => 2, Key.Key4 => 3, Key.Key5 => 4, Key.Key6 => 5, Key.Key7 => 6, _ => -1 };
+                    if (ki >= 0 && ki < Scenario.All.Length) { Start(Scenario.All[ki], true); Toast("Skala: " + WorldName(_sc)); }
+                    if (key == Key.Z) { _timeMul = Math.Max(0.125f, _timeMul / 2); Toast($"Tempo czasu ×{_timeMul:0.###}"); }
+                    if (key == Key.X) { _timeMul = Math.Min(8, _timeMul * 2); Toast($"Tempo czasu ×{_timeMul:0.###}"); }
+                }
             }
             else if (key == Key.Escape && _info.Visible) _info.Visible = false;
+            else if (key == Key.Escape && _nanoPick.Visible) _nanoPick.Visible = false;
         }
         if (e is InputEventMouseButton mb && mb.Pressed)
         {
@@ -535,6 +645,11 @@ public partial class Main : Node
         }
         I.Mag = mag; I.Dx = dx * mag; I.Dy = dy * mag;
         if (mag > 0) I.Ang = MathF.Atan2(dy, dx);
+        if (_world != null && !_paused)
+        {
+            float s2 = _s0 * _zoom; var ss2 = ScreenSize; var mp2 = GetViewport().GetMousePosition();
+            I.AimX = _camX + (mp2.X - ss2.X / 2) / s2; I.AimY = _camY + (mp2.Y - ss2.Y / 2) / s2; I.HasAim = true;
+        }
         I.Boost = K(Key.Shift);
         I.Action = _actionEdge; I.ActionHeld = K(Key.Space);
         _actionEdge = false;
@@ -579,7 +694,7 @@ public partial class Main : Node
         ComputeInput();
         var w = _mode == Mode.Game ? _world : _demo;
         if (w == null) return;
-        if (!(_mode == Mode.Game && _paused)) w.Update(fdt);
+        if (!(_mode == Mode.Game && _paused)) w.Update(_mode == Mode.Game && _nano ? fdt * _timeMul : fdt);
         UpdateCam(w, fdt);
         _view.QueueRedraw();
         _overlay.QueueRedraw();
@@ -623,7 +738,7 @@ public partial class Main : Node
                 }
                 if (World.Prof)
                 {
-                    foreach (var kv in World.ProfT.OrderByDescending(k => k.Value).Take(8)) GD.Print($"      {kv.Key,-28} {kv.Value / frames:0.000} ms/kl");
+                    foreach (var kv in World.ProfT.OrderByDescending(k => k.Value).Take(12)) GD.Print($"      {kv.Key,-28} {kv.Value / frames:0.000} ms/kl");
                     foreach (var kv in World.VertT.OrderByDescending(k => k.Value).Take(5)) GD.Print($"      {kv.Key,-28} {kv.Value / Math.Max(1, builds):0} wierzch./kl");
                     World.ProfT.Clear(); World.VertT.Clear();
                 }
@@ -648,7 +763,17 @@ public partial class Main : Node
         _testInput = true;
         int fails = 0;
         void Ok(bool c, string what) { GD.Print((c ? "[check] OK   " : "[check] FAIL ") + what); if (!c) fails++; }
-        void Run(int frames) { for (int i = 0; i < frames; i++) _world.Update(1f / 60); }
+        void Run(int frames)
+        {
+            for (int i = 0; i < frames; i++)
+            {
+                var ct = _world.CamTarget(); if (ct != null) { _world.CamX = ct.X; _world.CamY = ct.Y; }
+                _world.ViewR = _world.Sc.ViewW * 0.6f;
+                _world.Update(1f / 60);
+            }
+        }
+        // usuwa ruchome organizmy wokół encji (izolowany test)
+        void Clear(Ent keep, float r) { foreach (var e in _world.Ents) if (e != keep && e is not Collagen && Hypot(e.X - keep.X, e.Y - keep.Y) < r + e.R) e.Alive = false; _world.Ents.RemoveAll(e => !e.Alive); }
         Scenario S(string id) => Scenario.All.First(s => s.Id == id);
         try
         {
@@ -687,6 +812,7 @@ public partial class Main : Node
 
             // 5. ameba pochłania wrotka
             Start(S("amoeba")); var am = (Amoeba)_world.Player;
+            Clear(am, 900);
             var rot = _world.Add(new Rotifer(_world, am.X + 260, am.Y, PI));
             _input.Mag = 1; _input.Ang = 0; _input.Dx = 1; _input.Dy = 0; Run(900); _input.Mag = 0; _input.Dx = 0;
             Ok(rot.State == St.Cup || rot.State == St.Vac || !rot.Alive, $"ameba pochłania wrotka (stan: {rot.State})");
@@ -694,7 +820,7 @@ public partial class Main : Node
             Ok(_world.Stat("rotifers") >= 1, "wrotek strawiony (statystyka)");
 
             // 6. wirczyk kurczy się przy dotyku
-            Start(S("para")); var vt = _world.Ents.OfType<Vorticella>().FirstOrDefault() ?? _world.Add(new Vorticella(_world, _world.Player.X + 500, _world.Player.Y, 0, 30));
+            Start(S("para")); Clear(_world.Player, 1500); var vt = _world.Add(new Vorticella(_world, _world.Player.X + 500, _world.Player.Y, 0, 30));
             _world.Update(1f / 60);
             float bx0 = vt.BellX, by0 = vt.BellY;
             var chl = _world.Add(new Chlamy(_world, vt.BellX, vt.BellY, 0));
@@ -722,6 +848,68 @@ public partial class Main : Node
             int maxEnts = 0;
             for (int i = 0; i < 40; i++) { bp.X += _world.CS * 1.1f; bp.Y += _world.CS * 0.4f; Run(10); maxEnts = Math.Max(maxEnts, _world.Ents.Count); }
             Ok(maxEnts < 900, $"liczba aktywnych encji ograniczona podczas podróży (maks. {maxEnts}, chunków: {_world.ChunkCount})");
+
+            // 10. miękkie ciała: dwa pantofelki wciśnięte w siebie – membrany się spłaszczają, ciała częściowo nachodzą
+            Start(S("para")); var pa = (Paramecium)_world.Player; Clear(pa, 700);
+            var pb = _world.Add(new Paramecium(_world, pa.X, pa.Y + pa.Wd * 0.95f, 0)); pb.Speed = 0;
+            pa.A = 0; _input.Mag = 0;
+            float maxDef = 0, minGap = 1e9f;
+            for (int i = 0; i < 40; i++)
+            {
+                pa.Y += 1.5f; pb.Y -= 1.5f; Run(1);
+                for (int k = 0; k < pa.Mem.N; k++) maxDef = Math.Max(maxDef, Hypot(pa.Mem.Dx[k], pa.Mem.Dy[k]));
+                if (Geo.PrimPrim(pa.Prim, pb.Prim, out float pen2, out _, out _)) minGap = Math.Min(minGap, -pen2);
+            }
+            Ok(maxDef > 2, $"membrany wgniatają się przy kontakcie (maks. deformacja {maxDef:0.0} µm)");
+            Ok(minGap < -1, $"miękkie ciała mogą się częściowo wcisnąć (nachodzenie rdzeni {-minGap:0.0} µm)");
+
+            // 11. Coleps rani pantofelka (gracza)
+            Start(S("para")); var pc = _world.Player; Clear(pc, 600);
+            for (int k = 0; k < 3; k++) _world.Add(new Protist(_world, Species.Coleps, pc.X + 30 + k * 10, pc.Y + (k - 1) * 30, PI));
+            _input.Mag = 0; Run(400);
+            Ok(pc.Hp < 0.95f || !pc.Alive, $"Coleps gryzie pantofelka (integralność {pc.Hp * 100:0}%)");
+
+            // 12. blefaryzmina: ameba, która połknie Blepharisma, traci integralność błony
+            Start(S("amoeba")); var am2 = (Amoeba)_world.Player; Clear(am2, 900);
+            var bl = _world.Add(new Protist(_world, Species.Blepharisma, am2.X + 120, am2.Y, PI)); bl.Speed = 0;
+            _input.Mag = 1; _input.Ang = 0; _input.Dx = 1; _input.Dy = 0; Run(600); _input.Mag = 0; _input.Dx = 0;
+            Ok(bl.State is St.Cup or St.Vac || !bl.Alive, $"ameba pochłania Blepharisma (stan: {bl.State})");
+            Ok(am2.Hp < 0.99f, $"toksyczna blefaryzmina uszkadza drapieżnika (integralność ameby {am2.Hp * 100:0}%)");
+
+            // 13. T4 na wabiku OMV
+            Start(S("t4")); var t4 = (PhageT4)_world.Player; Clear(t4, 3);
+            var omv = _world.Add(new Omv(_world, t4.X + 0.2f, t4.Y)); omv.D = 0; t4.D = 0; t4.Dr = 0; t4.A = 0;
+            _input.Mag = 1; _input.Ang = 0; _input.Dx = 1; _input.Dy = 0;
+            for (int i = 0; i < 400 && t4.State == St.Free; i++) { t4.A = MathF.Atan2(omv.Y - t4.Y, omv.X - t4.X); _world.Update(1f / 60); }
+            _input.Mag = 0; _input.Dx = 0;
+            Ok(t4.State is St.Attach or St.Debris, $"T4 wiąże się nieodwracalnie z pęcherzykiem OMV (stan: {t4.State})");
+
+            // 14. Stentor wciąga i połyka drobne organizmy
+            Start(S("para")); var pp = _world.Player; Clear(pp, 2000);
+            var stn = _world.Add(new Protist(_world, Species.Stentor, pp.X + 1200, pp.Y, 0, 1));
+            stn.ToWorld(stn.L * 0.55f, 0, out float fx, out float fy);
+            var eug = _world.Add(new Protist(_world, Species.Euglena, fx + 40, fy, 0)); eug.Speed = 0;
+            Run(900);
+            Ok(eug.State is St.Cup or St.Vac || !eug.Alive, $"Stentor wciąga wirem i połyka Euglenę (stan: {eug.State}, skurcz {stn.Contr:0.00}, odl. {Hypot(eug.X - fx, eug.Y - fy):0} µm, L={stn.L:0})");
+
+            // 15. nanobot dezintegruje organizm laserem
+            Start(S("para"), true); var bot = (Nanobot)_world.Player;
+            var victim = _world.Add(new Protist(_world, Species.Blepharisma, bot.X + 150, bot.Y, 0)); victim.Speed = 0;
+            _input.HasAim = true; _input.AimX = victim.X; _input.AimY = victim.Y; _input.ActionHeld = true; _input.Mag = 0;
+            Run(60); _input.ActionHeld = false; _input.HasAim = false;
+            Ok(!victim.Alive && _world.Stat("botkills") >= 1, "nanobot dezintegruje komórkę laserem");
+            Ok(_world.Player == bot && bot.Alive && !_world.Over, "nanobot jest nieśmiertelny i gra się nie kończy");
+
+            // 16. nanobot działa w każdej skali
+            foreach (var s in Scenario.All) { Start(s, true); Run(30); if (!(_world.Player is Nanobot nb2 && nb2.Alive)) { Ok(false, "nanobot w świecie " + s.Id); } }
+            Ok(true, "nanobot uruchamia się we wszystkich 7 skalach");
+
+            // 17. strzępka Candida niszczona przez sieć NET
+            Start(S("neutro")); var nn = _world.Player;
+            var hy = _world.Add(new CandidaHypha(_world, nn.X + 4, nn.Y, 0));
+            _world.Add(new Net(_world, nn.X + 4, nn.Y, 24));
+            Run(1500);
+            Ok(!hy.Alive, "sieć NET niszczy strzępkę Candida (za dużą do fagocytozy)");
         }
         catch (Exception ex) { fails++; GD.PrintErr("[check] WYJĄTEK " + ex); }
         GD.Print(fails == 0 ? "[check] WSZYSTKO OK" : $"[check] BŁĘDÓW: {fails}");
@@ -739,13 +927,43 @@ public partial class Main : Node
         {
             var parts = item.Split(':');
             string id = parts[0]; int mode = parts.Length > 1 ? int.Parse(parts[1]) : 0;
+            float zoom = 1; int at = id.IndexOf('@'); if (at > 0) { zoom = float.Parse(id[(at + 1)..], System.Globalization.CultureInfo.InvariantCulture); id = id[..at]; }
             try
             {
                 if (id == "menu") { ShowMenu(); for (int i = 0; i < 90; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame); }
                 else
                 {
-                    string sid = id switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => id };
-                    Start(Scenario.All.First(s => s.Id == sid));
+                    bool nano = id.StartsWith("nano-"); string bare = nano ? id[5..] : id;
+                    string sid = bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", _ => bare };
+                    Start(Scenario.All.First(s => s.Id == sid), nano);
+                    if (bare.StartsWith("sp-"))
+                    {
+                        var pl = _world.Player; float x = pl.X + _sc.ViewW * 0.12f, y = pl.Y;
+                        Ent sp = bare switch
+                        {
+                            "sp-stentor" => new Protist(_world, Species.Stentor, x, y, -0.4f),
+                            "sp-blepharisma" => new Protist(_world, Species.Blepharisma, x, y, 0.3f),
+                            "sp-euglena" => new Protist(_world, Species.Euglena, x, y, 0.3f),
+                            "sp-spirostomum" => new Protist(_world, Species.Spirostomum, x, y, 0.2f),
+                            "sp-coleps" => new Protist(_world, Species.Coleps, x, y, 0.2f),
+                            "sp-euplotes" => new Protist(_world, Species.Euplotes, x, y, 0.2f),
+                            "sp-bursaria" => new Paramecium(_world, x, y, 0.2f, 0, 0, true),
+                            "sp-lacry" => new Lacrymaria(_world, x, y, 0.2f),
+                            "sp-helio" => new Helio(_world, x, y),
+                            "sp-daphnia" => new Daphnia(_world, x, y, 0.2f),
+                            "sp-volvox" => new Volvox(_world, x, y),
+                            "sp-nema" => new Chain(_world, Chain.Type.Nematode, x, y, 0.2f, 700),
+                            "sp-osc" => new Chain(_world, Chain.Type.Oscillatoria, x, y, 0.2f, 600),
+                            "sp-tetra" => new Protist(_world, Species.Tetrahymena, x, y, 0.2f),
+                            "sp-bodo" => new Protist(_world, Species.Bodo, x, y, 0.2f),
+                            "sp-spirillum" => new Microbe(_world, MicroType.Spirillum, x, y, 0.2f),
+                            "sp-macro" => new Macrophage(_world, x, y),
+                            "sp-candida" => new CandidaHypha(_world, x, y, 0.2f),
+                            "sp-fat" => new Adipocyte(_world, x, y, 40),
+                            _ => null,
+                        };
+                        if (sp != null) { _world.Add(sp); _world.Focus = sp; if (sp is Protist pr) pr.Speed *= 0.2f; }
+                    }
                     if (id == "vort") _world.Focus = _world.Ents.OfType<Vorticella>().FirstOrDefault();
                     if (id == "spiro") _world.Focus = _world.Ents.OfType<SpiroCell>().FirstOrDefault();
                     if (id == "rotifer") _world.Focus = _world.Ents.OfType<Rotifer>().FirstOrDefault();
@@ -755,6 +973,7 @@ public partial class Main : Node
                     _input.Mag = 1; _input.Ang = 0.3f; _input.Dx = MathF.Cos(0.3f); _input.Dy = MathF.Sin(0.3f);
                     for (int f = 0; f < frames; f++) { _world.Update(1f / 60); if (f == frames / 2) { _input.Mag = 0; _input.Dx = _input.Dy = 0; } }
                     _testInput = false;
+                    _tz = _zoom = zoom;
                     var ct = _world.CamTarget(); if (ct != null) { _camX = ct.X; _camY = ct.Y; }
                     for (int i = 0; i < 20; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
                 }

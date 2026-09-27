@@ -28,7 +28,7 @@ public sealed class Diatom : Food
     public override float Length => L;
     public Diatom(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Diatom; Name = "okrzemka Navicula";
+        Kind = Kind.Diatom; Name = "okrzemka"; Latin = "Navicula";
         L = Rand(45, 85); Wd = L * Rand(0.2f, 0.25f); Rr = Wd / 2; R = L / 2 + 4; Mass = 5; Food = 1;
         Glide = Rand(4, 12); Dir = Chance(0.5f) ? 1 : -1; RevT = ExpRand(10);
         _shape = new Vector2[40];
@@ -71,7 +71,7 @@ public sealed class Cosmarium : Food
     readonly Vector2[] _h1, _h2; readonly Vector3[] _dots;
     public Cosmarium(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Cosm; Name = "desmidia Cosmarium";
+        Kind = Kind.Cosm; Name = "desmidia"; Latin = "Cosmarium";
         S = Rand(40, 60); Rr = S * 0.45f; R = S * 0.6f; Mass = 6; Food = 1.2f;
         _h1 = Half(1); _h2 = Half(-1);
         _dots = new Vector3[24];
@@ -107,7 +107,7 @@ public sealed class Closterium : Food
     public override float Length => L;
     public Closterium(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Clost; Name = "desmidia Closterium";
+        Kind = Kind.Clost; Name = "desmidia"; Latin = "Closterium";
         L = Rand(170, 260); Wd = L * 0.11f; Rr = Wd / 2; R = L / 2 + 5; Mass = 12; Food = 2.2f; Bend = L * 0.14f;
         _shape = new Vector2[62];
         for (int i = 0; i <= 30; i++) { float t = -1 + 2f * i / 30, x2 = t * L / 2, y2 = Bend * t * t - Bend * 0.5f, w2 = Wd / 2 * MathF.Sqrt(1 - t * t * 0.92f); _shape[i] = new Vector2(x2, y2 - w2); _shape[61 - i] = new Vector2(x2, y2 + w2); }
@@ -176,7 +176,7 @@ public sealed class Amoeba : Ent
 
     public Amoeba(World w, float x, float y, float rb = 150) : base(w, x, y, 0)
     {
-        Kind = Kind.Amoeba; Layer = 2;
+        Kind = Kind.Amoeba; Layer = 2; Soft = 0.9f; Name = "ameba"; Latin = "Amoeba proteus";
         Rb = rb; A0 = PI * Rb * Rb;
         Mem = new Membrane(NN) { MaxDef = 26 }; MemK = 3; MemS = 0.35f;
         Mass = 70; Seed = Rand(0, 99); AiA = Rand(0, TAU);
@@ -233,7 +233,7 @@ public sealed class Amoeba : Ent
         else
         {
             AiT -= dt; if (AiT <= 0) { AiA += RandN() * 1.2f; AiT = ExpRand(60); }
-            var f = W.Near(X, Y, Rb * 2.5f, e => e.Edible && e.State == St.Free);
+            var f = W.Near(X, Y, Rb * 2.5f, e => e.Edible && e.State is St.Free or St.Swim or St.Avoid && e.Holder == null);
             on = true; ta = f != null ? MathF.Atan2(f.Y - Y, f.X - X) : AiA; mag = 0.7f;
         }
         if (Dividing) on = false;
@@ -283,7 +283,7 @@ public sealed class Amoeba : Ent
         // kontakt z pokarmem
         foreach (var o in Nb)
         {
-            if (!o.Edible || o.State != St.Free) continue;
+            if (!o.Edible || !(o.State is St.Free or St.Swim or St.Avoid) || o.Holder != null) continue;
             float lx = o.X - X, ly = o.Y - Y, d = Hypot(lx, ly);
             bool touch = d < RadialUtil.Interp(_rr, NN, MathF.Atan2(ly, lx)) + o.Radius * 0.2f + o.Length * 0.3f;
             if (touch && o is Rotifer rt) rt.Poke();
@@ -293,7 +293,7 @@ public sealed class Amoeba : Ent
         for (int k = Meals.Count - 1; k >= 0; k--)
         {
             var f = Meals[k]; var o = f.O;
-            if (!o.Alive) { Meals.RemoveAt(k); continue; }
+            if (!o.Alive || o.Holder != this) { Meals.RemoveAt(k); continue; }
             f.St += dt;
             if (f.Cup)
             {
@@ -309,7 +309,8 @@ public sealed class Amoeba : Ent
                 o.Dig = Clamp(f.St / 600, 0, 1);
                 if (f.St >= 600)
                 {
-                    o.Alive = false; Meals.RemoveAt(k); Energy += o.Food; Hunger = Math.Max(0, Hunger - o.Food * 0.35f);
+                    o.ReleaseHeld(); o.Alive = false; Meals.RemoveAt(k); Energy += o.Food; Hunger = Math.Max(0, Hunger - o.Food * 0.35f); Hp = Math.Min(1, Hp + 0.25f);
+                    if (o.IsPlayer) W.Log("Strawiony w wodniczce pokarmowej ameby.", "bad");
                     if (IsPlayer || Lineage) { W.AddStat("eaten", 1); W.AddStat("biomass", o.Food); if (o is Rotifer) W.AddStat("rotifers", 1); }
                     W.Fx.Spill(X + _cvX, Y + _cvY, 8, new FX.SpillOpt { Speed = 30, R = 2, Life = 5, D = 3, Cols = new[] { Rgb(80, 70, 40, 0.6f), Rgb(50, 50, 35, 0.6f) } });
                     A0 += PI * 900 * o.Food;
@@ -322,18 +323,23 @@ public sealed class Amoeba : Ent
         if (Dividing) { Div = Math.Min(1, Div + bdt / 3600); if (Div >= 1) Split(); }
         ComputeRest();
     }
-    void Starve()
+    public override void Kill() => Starve(false);
+    void Starve(bool hunger = true)
     {
+        if (!Alive) return;
         W.Fx.Lyse(Mem, new FX.LyseOpt { Pieces = 7, Speed = 20, Life = 8, Lw = 1.3f, C = Rgb(40, 46, 40, 0.6f), Halo = Rgb(255, 255, 240, 0.2f), HasHalo = true, Curl = 0.4f, D = 2 });
         W.Sfx("pop", X, Y);
-        if (IsPlayer) W.Log("Ameba zagłodzona – komórka skurczyła się i rozpadła.", "bad");
-        foreach (var f in Meals) if (f.O.Alive) { f.O.State = St.Free; f.O.Solid = true; f.O.Holder = null; }
+        if (IsPlayer) W.Log(hunger ? "Ameba zagłodzona – komórka skurczyła się i rozpadła." : "Błona ameby rozerwana – komórka ginie.", "bad");
+        foreach (var f in Meals) if (f.O.Alive && f.O.Holder == this) f.O.Unhold();
         Alive = false;
     }
     void Engulf(Ent o, float lx, float ly)
     {
         W.Sfx("gulp", X, Y, 0.7f);
         o.State = St.Cup; o.Solid = false; o.Holder = this;
+        if (o is Paramecium pm) pm.Captor = null;
+        Protist.Swallowed(this, o);
+        if (o.IsPlayer) W.Log("Ameba otacza Cię nibynóżkami – miseczka pokarmowa się zamyka!", "bad");
         float ang = MathF.Atan2(ly, lx), rin = Rb * Rand(0.25f, 0.45f);
         Meals.Add(new Meal { O = o, Sx = lx, Sy = ly, Lx = lx, Ly = ly, Tx = MathF.Cos(ang) * rin, Ty = MathF.Sin(ang) * rin });
         if (IsPlayer) W.Log("Pseudopodia otaczają ofiarę (miseczka pokarmowa)...", "info");

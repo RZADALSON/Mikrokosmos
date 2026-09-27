@@ -6,7 +6,7 @@ public enum St
     Bind, Contract, Inject, Ghost, Debris, Dead, Bdelloplast, Infected, Capture, Swallow, Digest, Cyst,
 }
 
-public enum Kind { None, EColi, Phage, Bdello, Staph, Neutro, Rbc, Plt, Lympho, Para, Didi, Chlamy, Diatom, Cosm, Clost, Floc, Amoeba, Rotifer, Acanth }
+public enum Kind { None, EColi, Phage, Bdello, Staph, Neutro, Rbc, Plt, Lympho, Para, Didi, Chlamy, Diatom, Cosm, Clost, Floc, Amoeba, Rotifer, Acanth, Protist, Metazoan, Microbe, Particle, TissueCell, Fungus, Bot }
 
 /// <summary>Widoczny obszar świata (µm) + rozmiar piksela.</summary>
 public sealed class View
@@ -41,6 +41,66 @@ public abstract class Ent
     /// <summary>Chunk, w którym encja jest zamrożona (null = aktywna).</summary>
     public Chunk ParkedIn;
     public string Name = "pokarm";
+    /// <summary>Nazwa łacińska (skaner nanobota).</summary>
+    public string Latin = "";
+    /// <summary>
+    /// Miękkość ciała: 0 = sztywne (krzemionka, ziarno, pancerz), 1 = bardzo miękkie (ameba).
+    /// Miękkie ciała mogą się w siebie wcisnąć – kontakt rozwiązywany jest częściowo, a membrany się spłaszczają.
+    /// </summary>
+    public float Soft;
+
+    /// <summary>Opis do skanera (nazwa, rozmiar).</summary>
+    public virtual string Info
+    {
+        get
+        {
+            float s = Math.Max(Length, Radius * 2);
+            string sz = s >= 1000 ? $"{s / 1000:0.0#} mm" : s >= 1 ? $"{s:0.#} µm" : $"{s * 1000:0} nm";
+            return Latin.Length > 0 ? $"{Name} ({Latin}) · {sz}" : $"{Name} · {sz}";
+        }
+    }
+    /// <summary>Stan "wolny" encji (po uwolnieniu z drapieżnika).</summary>
+    public virtual St FreeState => St.Free;
+    /// <summary>Uwolnienie z wnętrza/uchwytu martwego drapieżnika lub gospodarza.</summary>
+    public virtual void Unhold()
+    {
+        Holder = null; Solid = true; Dig = 0;
+        if (State is St.Cup or St.Vac or St.Caught or St.Eaten or St.Capture) State = FreeState;
+    }
+    /// <summary>Uwalnia wszystko, co ta encja trzyma (ofiary w wodniczkach, pasożyty).</summary>
+    public void ReleaseHeld()
+    {
+        foreach (var e in W.Ents) if (e.Alive && e.Holder == this) e.Unhold();
+    }
+    /// <summary>Obrażenia (0..1 = cała integralność). Przy Hp ≤ 0 – śmierć.</summary>
+    public void Damage(float amt)
+    {
+        if (!Alive || amt <= 0) return;
+        Hp -= amt;
+        if (Hp <= 0) { Hp = 0; Kill(); }
+    }
+    /// <summary>Śmierć komórki z efektami (pęknięcie błony, wyciek cytoplazmy).</summary>
+    public virtual void Kill()
+    {
+        if (!Alive) return;
+        ReleaseHeld();
+        float s = Math.Max(Math.Max(Radius, Length * 0.5f), R * 0.3f);
+        bool em = W.Em;
+        if (Mem != null)
+            W.Fx.Lyse(Mem, new FX.LyseOpt
+            {
+                Pieces = RandI(4, 7), Speed = s * 0.5f, Life = 6, Lw = s * 0.025f,
+                C = em ? Rgb(170, 215, 230, 0.9f) : Rgb(40, 46, 40, 0.7f), Halo = Rgb(255, 255, 240, 0.2f), HasHalo = !em,
+                Curl = 0.6f, D = s * s * 0.0004f, Ring = s * 0.8f, RingCol = em ? Rgb(170, 215, 230) : Rgb(255, 255, 240),
+            });
+        W.Fx.Spill(X, Y, 26, new FX.SpillOpt
+        {
+            Speed = s * 0.7f, R = s * 0.035f, Life = 4.5f, R0 = s * 0.6f, D = s * s * 0.0006f,
+            Cols = em ? new[] { Rgb(160, 200, 215, 0.8f), Rgb(120, 160, 180, 0.8f) } : new[] { Rgb(50, 56, 46, 0.65f), Rgb(225, 230, 210, 0.5f) },
+        });
+        W.Sfx("pop", X, Y, 0.8f);
+        Alive = false;
+    }
 
     /// <summary>Promień "ofiary" (jak o.r w wersji web).</summary>
     public virtual float Radius => R;

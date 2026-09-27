@@ -6,6 +6,7 @@ namespace Mikro;
 /// </summary>
 public sealed class Bdello : Ent
 {
+    public override St FreeState => St.Swim;
     const float T_ATTACH = 300, T_ENTER = 600, T_GROW = 9600, T_SEPT = 1200;
     public float L, Wd = 0.32f, Speed, Ph, Roll, RevT, St0, Len, Spin, Hunger;
     public int NProg;
@@ -17,7 +18,7 @@ public sealed class Bdello : Ent
 
     public Bdello(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Bdello; Layer = 3;
+        Kind = Kind.Bdello; Layer = 3; Name = "Bdellovibrio"; Latin = "Bdellovibrio bacteriovorus";
         L = Rand(0.85f, 1.1f); State = St.Swim;
         Speed = Rand(40, 65); Mass = 0.35f; D = 0.06f; Dr = 0.12f; R = L / 2 + 0.15f;
         Ph = Rand(0, TAU); Roll = Rand(0, TAU); RevT = ExpRand(3); Len = L;

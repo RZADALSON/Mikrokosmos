@@ -32,8 +32,10 @@ public sealed class Neutrophil : Ent
     readonly List<Ent> _q = new();
 
     /// <summary>Śmierć komórki; niestrawione bakterie wydostają się na zewnątrz.</summary>
+    public override void Kill() => Die(true);
     public void Die(bool release)
     {
+        if (!Alive) return;
         if (!release) foreach (var ph in Phagos) if (ph.O.Alive) { ph.O.Alive = false; }
         if (release)
             foreach (var ph in Phagos) if (ph.O.Alive && ph.O.Dig < 0.6f) { ph.O.State = St.Free; ph.O.Solid = true; ph.O.Dig = 0; ph.O.Holder = null; }
@@ -56,7 +58,7 @@ public sealed class Neutrophil : Ent
 
     public Neutrophil(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Neutro; Layer = 2;
+        Kind = Kind.Neutro; Layer = 2; Soft = 0.75f; Name = "neutrofil"; Latin = "granulocyt obojętnochłonny";
         Mem = new Membrane(NN) { MaxDef = 2.2f }; MemK = 5; MemS = 0.45f;
         Mass = 12; R = R0 * 1.75f; Seed = Rand(0, 100);
         int nl = RandI(3, 5);
@@ -131,6 +133,8 @@ public sealed class Neutrophil : Ent
             }
             if (!IsPlayer && Hp < 0.25f && near > 12) { NetOsis(); return; }
         }
+        // strzępki Candida: za duże do fagocytozy – neutrofil atakuje je degranulacją z zewnątrz
+        if (!W.Preview) foreach (var o in _q) if (o is CandidaHypha hy && hy.Alive && hy.Near(X, Y, R0 + 2)) { hy.Hurt(gdt * 0.004f); break; }
         float v = Vmax * mag * Smooth(Pol) * (1 - fill * 0.5f) * (0.4f + 0.6f * Hp);
         Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v;
         if (Phagos.Count < MaxPhago)
@@ -247,7 +251,7 @@ public sealed class RBC : Ent
     public float Rr, El;
     public RBC(World w, float x, float y) : base(w, x, y, Rand(0, TAU))
     {
-        Kind = Kind.Rbc; Layer = 1;
+        Kind = Kind.Rbc; Layer = 1; Soft = 0.85f; Name = "erytrocyt";
         Rr = Rand(3.7f, 4.05f); El = Rand(0, 0.08f);
         Mem = new Membrane(36) { MaxDef = 2.4f }; MemK = 3; MemS = 0.85f;
         var rr = new float[36];
@@ -277,7 +281,7 @@ public sealed class Platelet : Ent
     readonly float Rr; readonly float[] _shape = new float[9];
     public Platelet(World w, float x, float y) : base(w, x, y, Rand(0, TAU))
     {
-        Kind = Kind.Plt; Layer = 1; Rr = Rand(1.0f, 1.5f); R = Rr + 0.3f; Mass = 0.4f; D = 0.01f; Dr = 0.02f;
+        Kind = Kind.Plt; Layer = 1; Name = "płytka krwi"; Rr = Rand(1.0f, 1.5f); R = Rr + 0.3f; Mass = 0.4f; D = 0.01f; Dr = 0.02f;
         for (int i = 0; i < 9; i++) _shape[i] = Rr * Rand(0.8f, 1.15f);
     }
     public override void Step(float dt, float gdt) { Vx = W.Sc.FlowX; Vy = W.Sc.FlowY; }
@@ -299,7 +303,7 @@ public sealed class Lymphocyte : Ent
     readonly float Rr, _seed; float _turnT; readonly float[] _rr = new float[40];
     public Lymphocyte(World w, float x, float y) : base(w, x, y, Rand(0, TAU))
     {
-        Kind = Kind.Lympho; Layer = 1; Rr = Rand(3.6f, 4.1f); R = Rr + 0.8f; Mass = 5; D = 0.003f;
+        Kind = Kind.Lympho; Layer = 1; Soft = 0.5f; Name = "limfocyt"; Rr = Rand(3.6f, 4.1f); R = Rr + 0.8f; Mass = 5; D = 0.003f;
         Mem = new Membrane(40) { MaxDef = 1.5f }; MemK = 4; MemS = 0.6f; _seed = Rand(0, 99);
         Shape(); Mem.Follow(x, y, A, 1, 1);
     }

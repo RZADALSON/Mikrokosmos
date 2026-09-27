@@ -18,7 +18,7 @@ public sealed class Rotifer : Ent
     public Rotifer(World w, float x, float y, float a) : base(w, x, y, a)
     {
         Kind = Kind.Rotifer; Layer = 3; Lmax = Rand(300, 440); Wd = Lmax * 0.2f; Mass = 30; R = Lmax / 2 + 20;
-        Edible = true; Food = 3; Name = "wrotek (Philodina)"; State = St.Free; St0 = Rand(4, 12); _dir = a;
+        Edible = true; Food = 3; Name = "wrotek"; Latin = "Philodina"; Soft = 0.2f; State = St.Free; St0 = Rand(4, 12); _dir = a;
     }
     public override void UpdatePrim() => SetCapsule(Length * 0.42f, Wd * 0.45f);
     public override bool Collides(Ent o) => State == St.Free;
@@ -173,7 +173,7 @@ public sealed class Acanth : Ent
 
     public Acanth(World w, float x, float y) : base(w, x, y, 0)
     {
-        Kind = Kind.Acanth; Layer = 2; Rb = Rand(10, 14); Mass = 20; R = Rb * 1.8f;
+        Kind = Kind.Acanth; Layer = 2; Soft = 0.55f; Latin = "Acanthamoeba castellanii"; Rb = Rand(10, 14); Mass = 20; R = Rb * 1.8f;
         Mem = new Membrane(NN) { MaxDef = 2 }; MemK = 4; MemS = 0.5f; _dir = Rand(0, TAU); _seed = Rand(0, 99);
         for (int i = 0; i < 12; i++) _spikes.Add(new Spike { Ang = Rand(0, TAU), Len = Rand(0, 5), Tgt = Rand(2, 6) });
         for (int i = 0; i < _gran.Length; i++) { float t = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.7f; _gran[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Chance(0.5f) ? 1 : 0); }

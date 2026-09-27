@@ -33,6 +33,9 @@ public sealed class ScT4 : Scenario
             "Liza: holiny perforują błonę wewnętrzną, endolizyna tnie peptydoglikan, spaniny rozrywają błonę zewnętrzną – komórka pęka eksplozywnie, zwykle na biegunie.",
             "Nadkażenie wywołuje inhibicję lizy (LIN); DNA drugiego faga jest blokowane (wykluczenie nadkażenia, białka Imm/Sp).",
             "Ruch zwolniony 20× (×0,05), infekcja przyspieszona. Szkiełko jest nieskończone – mikrokolonie leżą rozproszone po powierzchni.",
+            "Pęcherzyki błony zewnętrznej (OMV, 20–250 nm) odrywają się od E. coli i działają jak wabiki: T4 wiąże się z nimi szybko i nieodwracalnie, marnując swoje DNA (Manning i Kuehn 2011).",
+            "Konkurencja: fag T7 (krótki ogonek, cykl ~15 min, degraduje DNA gospodarza) i fag λ (długi giętki ogonek – często lizogenia zamiast lizy). Komórka przejęta przez innego faga jest dla T4 stracona.",
+            "Bakterie Gram-dodatnie (np. Bacillus) mają grubą ścianę peptydoglikanową i nie mają LPS ani OmpC – T4 nie ma się do czego przyczepić.",
         };
     }
     static void Colony(World w, Chunk c, List<Ent> loc, int n, float resist)
@@ -56,6 +59,11 @@ public sealed class ScT4 : Scenario
             case 3: Colony(w, c, loc, RandI(4, 7), 0.65f); break;
         }
         if (Chance(0.4f)) w.Add(new PhageT4(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S), Rand(0, TAU)));
+        // pęcherzyki błony zewnętrznej (wabiki), konkurencyjne fagi, szczątki rzęsek, bakterie Gram-dodatnie
+        for (int i = RandI(1, 3) + (c.Biome is 0 or 3 ? 3 : 0); i > 0; i--) w.Add(new Omv(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S)));
+        if (Chance(0.35f)) w.Add(new OtherPhage(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S), Chance(0.5f)));
+        if (Chance(0.2f)) w.Add(new FlagFrag(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S)));
+        if (c.Biome is 1 or 2 && Chance(0.35f)) { var (x, y) = Spot(w, c, 2, loc, 1); Put(w, loc, new Microbe(w, MicroType.Bacillus, x, y, Rand(0, TAU), RandI(1, 2))); }
     }
     public override void Init(World w)
     {
@@ -77,6 +85,7 @@ public sealed class ScT4 : Scenario
     {
         w.Ff = (w.Focus != null && w.Input.ActionHeld) ? 6 : 1;
         if (!w.EverySecond(gdt)) return;
+        int op = 0; foreach (var e in w.Ents) if (e is OtherPhage o && o.State == St.Free && ++op > 40) o.Alive = false;
         int tot = w.Count(e => e is PhageT4 q && q.State == St.Free);
         if (tot > PhageCap)
         {
@@ -140,6 +149,30 @@ public abstract class ScBiofilm : Scenario
     protected static void Grains(World w, Chunk c, List<Ent> loc, int n) { for (int i = 0; i < n; i++) { var (x, y) = Spot(w, c, 10, loc, 6); Put(w, loc, new Grain(w, x, y, Rand(3, 11))); } }
     protected static void Acanths(World w, Chunk c, List<Ent> loc, int n) { for (int i = 0; i < n; i++) { var (x, y) = Spot(w, c, 15, loc, 8); Put(w, loc, new Acanth(w, x, y)); } }
     protected static void Glucose(World w, Chunk c, int n, float amt) { for (int i = 0; i < n; i++) w.Nutri.Blob(c.X0 + Rand(4, c.S - 4), c.Y0 + Rand(4, c.S - 4), Rand(5, 12), amt * Rand(0.6f, 1.1f)); }
+    /// <summary>Mieszkańcy biofilmu poza E. coli: inne bakterie, drożdże, wiciowce Bodo, rzadko olbrzymie orzęski Tetrahymena.</summary>
+    protected static void Neighbours(World w, Chunk c, List<Ent> loc)
+    {
+        int b = c.Biome; bool start = c.X == 0 && c.Y == 0;
+        for (int i = RandI(1, 3); i > 0; i--) { var (x, y) = Spot(w, c, 2, loc); Put(w, loc, new Microbe(w, MicroType.Pseudomonas, x, y, Rand(0, TAU))); }
+        for (int i = b == 3 ? RandI(2, 4) : RandI(0, 1); i > 0; i--) { var (x, y) = Spot(w, c, 6, loc, 3); Put(w, loc, new Microbe(w, MicroType.Bacillus, x, y, Rand(0, TAU), Chance(0.4f) ? 1 : RandI(2, 5))); }
+        if (Chance(b == 3 ? 0.7f : 0.3f))
+        {
+            var (x, y) = Spot(w, c, 5, loc, 5); int n = RandI(3, 6); float a0 = Rand(0, TAU);
+            for (int k = 0; k < n; k++) Put(w, loc, new Microbe(w, MicroType.Caulobacter, x, y, 0, 1, a0 + k * TAU / n + Rand(-0.2f, 0.2f)));
+        }
+        if (Chance(b == 1 ? 0.8f : 0.2f)) { var (x, y) = Spot(w, c, 20, loc, 10); Put(w, loc, new Microbe(w, MicroType.Spirillum, x, y, Rand(0, TAU))); }
+        if (Chance(b == 0 ? 0.5f : 0.15f)) for (int i = RandI(1, 3); i > 0; i--) { var (x, y) = Spot(w, c, 4, loc, 3); Put(w, loc, new Microbe(w, MicroType.Yeast, x, y, Rand(0, TAU))); }
+        if (!start && Chance(b == 0 ? 0.6f : 0.35f)) for (int i = RandI(1, 2); i > 0; i--) { var (x, y) = Spot(w, c, 5, loc, 3); Put(w, loc, new Protist(w, Species.Bodo, x, y, Rand(0, TAU))); }
+        if (Math.Abs(c.X) + Math.Abs(c.Y) > 1 && Chance(b == 1 ? 0.25f : 0.07f)) { var (x, y) = Spot(w, c, 30, loc, 15); Put(w, loc, new Protist(w, Species.Tetrahymena, x, y, Rand(0, TAU))); }
+    }
+    protected static void Visitors(World w)
+    {
+        if (w.T > 30 && Chance(0.02f) && w.Count(e => e is Protist p && p.S == Species.Tetrahymena) < 2) { var (x, y) = SpawnAwayS(w, 30); w.Add(new Protist(w, Species.Tetrahymena, x, y, Rand(0, TAU))); }
+        if (w.Count(e => e is Protist p && p.S == Species.Bodo) < 5 && Chance(0.3f)) { var (x, y) = SpawnAwayS(w, 5); w.Add(new Protist(w, Species.Bodo, x, y, Rand(0, TAU))); }
+    }
+    protected static (float, float) SpawnAwayS(World w, float r) => w.Sc.SpawnAway(w, r);
+    protected const string BiofilmLife = "W biofilmie żyją też: Pseudomonas (jedna rzęska biegunowa, ≈ 40–50 µm/s), Bacillus (Gram+, łańcuszki, jasne przetrwalniki), Caulobacter (trzonek z lepkim holdfastem – rozetki), olbrzymi krętek Spirillum volutans (14–60 µm, pęki ~50 rzęsek na obu biegunach), drożdże.";
+    protected const string GrazerFact = "Drapieżcy bakterii: wiciowiec Bodo saltans (3–8 µm, „podskakuje”, zagarnia bakterie krótką wicią) i orzęsek Tetrahymena (30–70 µm) – prąd z jego aparatu gębowego wciąga tysiące bakterii na godzinę. Dla Ciebie to olbrzymy.";
     protected static int FreeEcoli(World w) => w.Count(e => e is EColi c && c.State != St.Dead && c.State != St.Bdelloplast && c.State != St.Cup && c.State != St.Vac);
     protected const string AcanthFact = "Acanthamoeba: trofozoit ≈ 12–35 µm z kolczastymi akantopodiami (do ~8 µm), jądro z dużym ciemnym jąderkiem. Pożera bakterie przez fagocytozę – spotyka je głównie przypadkiem, pełzając powoli.";
     protected static void PlacePlayer(World w, Func<World, float, float, Ent> make)
@@ -175,7 +208,7 @@ public sealed class ScBdello : ScBiofilm
             "Ofiara ginie i zaokrągla się w bdeloplast. Bdellovibrio rośnie w niej jako długi filament, trawiąc zawartość komórki.",
             "Filament dzieli się na 2 (małe ofiary) lub 3–6+ (duże ofiary) potomków, które lizują resztki komórki i odpływają.",
             "Komórki w fazie ataku nie rosną – bez ofiary tracą energię (w grze pasek „Energia”).",
-            AcanthFact,
+            AcanthFact, GrazerFact, BiofilmLife,
             "Cały cykl trwa ≈ 3–4 h. W grze: ruch zwolniony 4× (×0,25), cykl życiowy mocno przyspieszony. Liczba Reynoldsa ≈ 10⁻⁴ – brak bezwładności.",
         };
     }
@@ -190,6 +223,7 @@ public sealed class ScBdello : ScBiofilm
             case 2: Glucose(w, c, 1, 0.3f); Acanths(w, c, loc, 2); Ecoli(w, c, loc, RandI(4, 6)); break;
             case 3: Grains(w, c, loc, RandI(4, 6)); Ecoli(w, c, loc, RandI(5, 7)); break;
         }
+        Neighbours(w, c, loc);
         if (Chance(0.12f)) { var (x, y) = Spot(w, c, 2, loc); Put(w, loc, new Bdello(w, x, y, Rand(0, TAU))); }
     }
     public override void Init(World w)
@@ -206,6 +240,7 @@ public sealed class ScBdello : ScBiofilm
         w.Ff = (p != null && p.State != St.Swim && w.Input.ActionHeld) ? 5 : 1;
         if (!w.EverySecond(gdt)) return;
         if (FreeEcoli(w) < 70) for (int i = 0; i < 2; i++) { var (x, y) = SpawnAway(w, 2); w.Add(new EColi(w, x, y, Rand(0, TAU))); }
+        Visitors(w);
     }
     public override List<(string, string)> Hud(World w)
     {
@@ -221,7 +256,7 @@ public sealed class ScBdello : ScBiofilm
     public override int MapKind(World w, Ent e)
     {
         if (e is EColi c && c.CanHost()) return 1;
-        if (e is Acanth) return 2;
+        if (e is Acanth || e is Protist) return 2;
         return e is Bdello && e.Lineage && e != w.Player ? 3 : 0;
     }
     public override void DrawMinimap(World w, Painter p) => w.Nutri.DrawMap(p, w.WinX0, w.WinY0, w.WinX0 + w.WinW, w.WinY0 + w.WinH, Rgb(255, 140, 20), 0.35f);
@@ -252,7 +287,7 @@ public sealed class ScEcoli : ScBiofilm
             "Pływa „bieg i koziołek”: bieg ≈ 1 s przy ≈ 20–30 µm/s, koziołek ≈ 0,1 s (obrót średnio ≈ 68°). Chemotaksja wydłuża biegi w górę gradientu. W grze sterowanie jest uproszczeniem.",
             "W bogatej pożywce dzieli się co ≈ 20 min: wydłuża się, nukleoid się rozdziela, pierścień FtsZ zaciska przegrodę.",
             "Ampicylina (β-laktam) blokuje białka PBP budujące peptydoglikan. Najbardziej wrażliwy jest podział: w miejscu przegrody powstaje wybrzuszenie, które pęcznieje, aż komórka pęka (liza wybrzuszeniowa). Czerwona mapa = stężenie ampicyliny.",
-            AcanthFact,
+            AcanthFact, GrazerFact, BiofilmLife,
             "Mapy glukozy i ampicyliny to wizualizacje pomocnicze (cząsteczek nie widać w mikroskopie); dyfuzja w grze jest spowolniona.",
         };
     }
@@ -272,8 +307,10 @@ public sealed class ScEcoli : ScBiofilm
                 Glucose(w, c, 2, 0.6f); Ecoli(w, c, loc, 3); Acanths(w, c, loc, 1);
                 for (int i = 0; i < 2; i++) { var (x, y) = Spot(w, c, 2, loc); Put(w, loc, new Bdello(w, x, y, Rand(0, TAU))); }
                 for (int i = 0; i < 2; i++) w.Add(new PhageT4(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S), Rand(0, TAU)));
+                if (Chance(0.4f)) { var (x, y) = Spot(w, c, 30, loc, 15); Put(w, loc, new Protist(w, Species.Tetrahymena, x, y, Rand(0, TAU))); }
                 break;
         }
+        Neighbours(w, c, loc);
     }
     public override void Init(World w)
     {
@@ -296,6 +333,7 @@ public sealed class ScEcoli : ScBiofilm
             if (w.Count(e => e is EColi c && c.State != St.Dead && !c.Lineage) < 45) { var (x, y) = SpawnAway(w, 2); w.Add(new EColi(w, x, y, Rand(0, TAU))); }
             if (w.Count(e => e is PhageT4 q && q.State == St.Free) < 6) { var (x, y) = SpawnAway(w, 1); w.Add(new PhageT4(w, x, y, Rand(0, TAU))); }
             if (w.T > 45 && w.Count(e => e is Bdello) < 5 && Chance(0.05f)) { var (x, y) = SpawnAway(w, 3); w.Add(new Bdello(w, x, y, Rand(0, TAU))); }
+            Visitors(w);
             int pop = Pop(w);
             if (pop > w.Stat("maxpop")) w.Stats["maxpop"] = pop;
         }
@@ -326,7 +364,7 @@ public sealed class ScEcoli : ScBiofilm
     }
     public override int MapKind(World w, Ent e)
     {
-        if (e is Bdello || e is Acanth) return 2;
+        if (e is Bdello || e is Acanth || e is Protist) return 2;
         return e is EColi c && c.Lineage && e != w.Player && c.State != St.Dead ? 3 : 0;
     }
     public override bool FoodPoint(World w, out float x, out float y)
@@ -382,6 +420,10 @@ public sealed class ScNeutro : Scenario
             "NEToza (Brinkmann i in., Science 2004): neutrofil wyrzuca sieć chromatyny z histonami i elastazą, która wiąże i zabija bakterie – kosztem własnego życia.",
             "S. aureus dzieli się w 3 płaszczyznach („grona”), Streptococcus w jednej – stąd łańcuszki. Ogniska zakażenia to miejsca, gdzie bakterie mnożą się najszybciej.",
             "Wybroczyna: erytrocyty, które wydostały się z uszkodzonych naczyń do tkanki. W time-lapse ×40 przepływ krwi w żyłkach widać jako rozmyte smugi.",
+            "Makrofagi tkankowe (~20 µm) pełzają wolniej niż neutrofile, pochłaniają bakterie i drożdże, a po zapaleniu sprzątają martwe neutrofile (eferocytoza).",
+            "Mastocyty są wypełnione ziarnistościami z histaminą. Pobudzone przez bakterie degranulują – naczynia się rozszerzają i napływa więcej neutrofili.",
+            "Tkanka tłuszczowa: adipocyty 50–150 µm, jedna kropla lipidu i jądro zepchnięte do brzegu. Fibroblasty to wrzecionowate komórki wytwarzające kolagen.",
+            "Candida albicans: drożdżaki (4–6 µm) można sfagocytować, ale strzępki są za duże. Neutrofile rozpoznają rozmiar drobnoustroju i na duże strzępki wyrzucają sieci NET (Branzk i in., Nat Immunol 2014) – przytrzymaj Spację przy strzępce.",
         };
     }
     float Ph(World w, int k) => Hash2(k, 7, w.Seed) * TAU;
@@ -412,7 +454,28 @@ public sealed class ScNeutro : Scenario
         for (int i = 0; i < rbc; i++) { var (x, y) = Spot(w, c, 4.5f, loc, 5); if (!InVessel(w, x, y, 6)) Put(w, loc, new RBC(w, x, y)); }
         for (int i = 0; i < plt; i++) { var (x, y) = Spot(w, c, 1.5f, loc, 2); if (!InVessel(w, x, y, 3)) Put(w, loc, new Platelet(w, x, y)); }
         if (Chance(0.2f)) { var (x, y) = Spot(w, c, 5, loc, 6); if (!InVessel(w, x, y, 6)) Put(w, loc, new Lymphocyte(w, x, y)); }
+        // komórki własne tkanki: tłuszczowe, fibroblasty, mastocyty, makrofagi
+        if (c.Biome == 0 && Chance(0.4f) && Math.Abs(c.X) + Math.Abs(c.Y) > 1)
+        {
+            var (cx, cy) = Spot(w, c, 50, loc, 30);
+            for (int k = RandI(4, 8); k > 0; k--)
+            {
+                float r = Rand(26, 48), x = cx + RandN() * 40, y = cy + RandN() * 40;
+                if (InVessel(w, x, y, r + 4)) continue;
+                bool ok = true; foreach (var e in loc) if (e.Solid && Hypot(e.X - x, e.Y - y) < e.R + r * 0.9f) { ok = false; break; }
+                if (ok) Put(w, loc, new Adipocyte(w, x, y, r));
+            }
+        }
+        for (int i = RandI(1, 2) + (c.Biome == 1 ? 2 : 0); i > 0; i--) { var (x, y) = Spot(w, c, 30, loc, 10); if (!InVessel(w, x, y, 14)) Put(w, loc, new Fibroblast(w, x, y, Rand(0, TAU))); }
+        for (int i = RandI(0, 2); i > 0; i--) { var (x, y) = Spot(w, c, 7, loc, 8); if (!InVessel(w, x, y, 8)) Put(w, loc, new MastCell(w, x, y)); }
+        if (Chance(c.Biome == 2 ? 0.9f : 0.35f)) { var (x, y) = Spot(w, c, 12, loc, 10); if (!InVessel(w, x, y, 12)) Put(w, loc, new Macrophage(w, x, y)); }
         if (Math.Abs(c.X) + Math.Abs(c.Y) <= 1) { Bact(w, c, loc, RandI(1, 2), 0); return; }
+        // Candida: drożdżaki w ognisku zakażenia, czasem już ze strzępką
+        if (c.Biome == 2 && Chance(0.35f))
+        {
+            var (x, y) = Spot(w, c, 6, loc, 8);
+            if (!InVessel(w, x, y, 8)) { for (int k = RandI(3, 6); k > 0; k--) w.Add(new CandidaYeast(w, x + RandN() * 3, y + RandN() * 3)); if (Chance(0.5f)) w.Add(new CandidaHypha(w, x + 5, y, Rand(0, TAU))); }
+        }
         switch (c.Biome)
         {
             case 2: Bact(w, c, loc, RandI(5, 8), RandI(1, 3)); break;
@@ -452,6 +515,15 @@ public sealed class ScNeutro : Scenario
             w.Wave++;
             w.Banner($"Fala {w.Wave}", "Kolejne bakterie przedostają się do tkanki...");
             foreach (var c in w.Active) if (Chance(0.25f + w.Wave * 0.04f)) Bact(w, c, new List<Ent>(), RandI(1, 1 + w.Wave), w.Wave > 2 ? 1 : 0);
+        }
+        if (w.Stat("histamine") > w.Stat("histDone") && w.Player != null)
+        {
+            w.AddStat("histDone", 1);
+            if (w.Count(e => e is Neutrophil) < 9)
+            {
+                Diapedesis(w, w.Player.X + Rand(-80, 80), w.Player.Y);
+                w.LogOnce("hist", "Histamina z mastocytu → rozszerzenie naczyń: z żyłki wychodzą kolejne neutrofile.", "good", 30);
+            }
         }
         int neut = w.Count(e => e is Neutrophil);
         if (neut < 5 && (w.T % 35f) < gdt * 1.5f && w.Player != null)
@@ -535,7 +607,8 @@ public sealed class ScNeutro : Scenario
     public override int MapKind(World w, Ent e)
     {
         if (e is Staph s && s.State == St.Free) return 1;
-        return e is Neutrophil && e != w.Player ? 3 : 0;
+        if (e is CandidaYeast cy && cy.State == St.Free || e is CandidaHypha) return 1;
+        return (e is Neutrophil || e is Macrophage) && e != w.Player ? 3 : 0;
     }
     public override bool OnPlayerLost(World w, Ent p)
     {
@@ -594,6 +667,52 @@ public abstract class ScPond : Scenario
                 break;
         }
     }
+    /// <summary>
+    /// Pełna fauna i flora stawu (jak w prawdziwej kropli wody): wiciowce, orzęski, słonecznice, nicienie, sinice,
+    /// toczki, a na otwartej wodzie czasem rozwielitka. Ilości zależą od strefy.
+    /// </summary>
+    protected static void PondLife(World w, Chunk c, List<Ent> loc)
+    {
+        int b = c.Biome; bool start = Math.Abs(c.X) + Math.Abs(c.Y) <= 1;
+        void P(Spec s, int n, float r, float scale = 1) { for (int i = 0; i < n; i++) { var (x, y) = Spot(w, c, r, loc, r); Put(w, loc, new Protist(w, s, x, y, Rand(0, TAU), scale)); } }
+        P(Species.Euglena, b <= 1 ? RandI(4, 7) : RandI(1, 3), 50);
+        for (int i = b == 2 ? RandI(6, 10) : RandI(2, 5); i > 0; i--) { var (x, y) = Spot(w, c, 60, loc, 60); Put(w, loc, new Detritus(w, x, y, Rand(15, b == 2 ? 70 : 45))); }
+        P(Species.Blepharisma, b == 3 ? RandI(1, 3) : Chance(0.5f) ? 1 : 0, 150);
+        if (!start && Chance(0.12f)) P(Species.Blepharisma, 1, 260, 1.7f); // kanibal-olbrzym
+        for (int i = b == 1 ? RandI(1, 3) : Chance(0.4f) ? 1 : 0; i > 0; i--) { var (x, y) = Spot(w, c, 80, loc, 80); Put(w, loc, new Paramecium(w, x, y, Rand(0, TAU), 0, 0, true)); }
+        P(Species.Spirostomum, b == 2 ? RandI(1, 2) : Chance(0.3f) ? 1 : 0, 500);
+        P(Species.Euplotes, b == 2 ? RandI(2, 3) : Chance(0.3f) ? 1 : 0, 70);
+        P(Species.Tetrahymena, b == 3 ? RandI(1, 3) : Chance(0.4f) ? 1 : 0, 40);
+        P(Species.Stentor, b is 1 or 2 ? RandI(1, 2) : Chance(0.25f) ? 1 : 0, 500);
+        if (!start && Chance(b is 2 or 3 ? 0.5f : 0.25f))
+        {
+            var (x, y) = Spot(w, c, 60, loc, 100);
+            for (int k = RandI(3, 5); k > 0; k--) Put(w, loc, new Protist(w, Species.Coleps, x + RandN() * 50, y + RandN() * 50, Rand(0, TAU)));
+        }
+        if (!start && Chance(b is 2 or 3 ? 0.35f : 0.15f)) { var (x, y) = Spot(w, c, 150, loc, 150); Put(w, loc, new Lacrymaria(w, x, y, Rand(0, TAU))); }
+        if (Chance(b <= 1 ? 0.3f : 0.1f)) { var (x, y) = Spot(w, c, 260, loc, 260); Put(w, loc, new Helio(w, x, y)); }
+        if (b == 0 && Chance(0.45f)) for (int i = RandI(1, 2); i > 0; i--) { var (x, y) = Spot(w, c, 250, loc, 250); Put(w, loc, new Volvox(w, x, y)); }
+        if (!start && b == 0 && Chance(0.1f)) { var (x, y) = Spot(w, c, 700, loc, 400); Put(w, loc, new Daphnia(w, x, y, Rand(0, TAU))); }
+        for (int i = b == 2 ? RandI(1, 2) : Chance(0.2f) ? 1 : 0; i > 0; i--) { var (x, y) = Spot(w, c, 200, loc, 200); Put(w, loc, new Chain(w, Chain.Type.Nematode, x, y, Rand(0, TAU), Rand(400, 1000))); }
+        for (int i = b is 1 or 2 ? RandI(0, 2) : Chance(0.15f) ? 1 : 0; i > 0; i--) { var (x, y) = Spot(w, c, 200, loc, 200); Put(w, loc, new Chain(w, Chain.Type.Oscillatoria, x, y, Rand(0, TAU), Rand(300, 800))); }
+    }
+    /// <summary>Kategoria zagrożenia w stawie (dla radaru i strzałek).</summary>
+    protected static bool PondThreat(Ent e, Ent me)
+    {
+        if (e is Daphnia || e is Helio || e is Lacrymaria) return true;
+        if (e is Protist p) return p.S == Species.Coleps || (p.S == Species.Stentor && me != null && me.Length < p.Length * 0.28f) || (p.S == Species.Blepharisma && me != null && p.Length * 0.4f > me.Length && !(me is Amoeba));
+        return false;
+    }
+    protected static readonly string[] LifeFacts =
+    {
+        "W kropli stawowej roi się od życia: zielone klejnotki (Euglena) z czerwoną plamką oczną, różowe Blepharisma, zielone pantofelki P. bursaria z ~700 zielenicami Chlorella w środku, niebieskie trąbkowate Stentory, pancerne Coleps, „chodzące” Euplotes.",
+        "Blepharisma: różowa blefaryzmina chroni przed UV i truje drapieżniki. Kanibale rosną w olbrzymy (gigantyzm) i zjadają mniejsze orzęski.",
+        "Spirostomum ambiguum (~1 mm) kurczy się do 1/3 długości w ~5 ms, a jego toksyny odstraszają drapieżniki. Stentor coeruleus (do 2 mm) siedzi na stopce i wirem wciąga nawet orzęski i wrotki.",
+        "Coleps hirtus (40–65 µm, pancerz z płytek wapiennych) poluje stadami na ranne orzęski. Lacrymaria olor wysuwa „łabędzią szyję” na 7× długości ciała i trafia ofiary toksycystami.",
+        "Słonecznica (Actinosphaerium, 200–1000 µm) przykleja ofiary do promienistych aksopodiów. Nicienie (~0,5–1 mm) wiją się z częstotliwością ~2 Hz; nitki sinic Oscillatoria ślizgają się po kilka µm/s.",
+        "Toczek (Volvox, do 0,5 mm) to kula tysięcy komórek z wiciami, w środku kolonie potomne. Rozwielitka (Daphnia, 1–3 mm) odnóżami filtruje wodę i zjada glony, bakterie i orzęski wielkości pantofelka.",
+        "Wszystkie miękkie komórki odkształcają się przy kontakcie – pantofelek potrafi przecisnąć się przez szczelinę węższą niż jego ciało i potem wraca do kształtu.",
+    };
     protected static void Many<T>(World w, Chunk c, List<Ent> loc, int n, float r, Func<float, float, T> mk) where T : Ent
     {
         for (int i = 0; i < n; i++) { var (x, y) = Spot(w, c, r, loc, r); Put(w, loc, mk(x, y)); }
@@ -658,7 +777,8 @@ public sealed class ScAmoeba : ScPond
             "Odżywia się fagocytozą: nibynóżki otaczają ofiarę i zamykają ją w wodniczce trawiennej. Poluje też na wrotki i orzęski.",
             "A. proteus nie tworzy cyst – głodująca kurczy się i w końcu ginie (w grze pasek „Głód”).",
             "Wodniczka tętniąca cyklicznie wyrzuca nadmiar wody. Jądro dyskowate ≈ 40–50 µm; w cytoplazmie kryształy.",
-            HabitatFacts[0], HabitatFacts[2], HabitatFacts[3],
+            HabitatFacts[0], HabitatFacts[2], HabitatFacts[3], LifeFacts[0], LifeFacts[1], LifeFacts[2], LifeFacts[4], LifeFacts[5], LifeFacts[6],
+            "Time-lapse ×25: szybkie pływaki są w grze spowolnione do ~⅓ ekranu na sekundę, żeby dało się je zobaczyć (w prawdziwym nagraniu poklatkowym byłyby rozmytą smugą).",
         };
     }
     public override void GenerateChunk(World w, Chunk c)
@@ -672,6 +792,7 @@ public sealed class ScAmoeba : ScPond
         Many(w, c, loc, b == 2 ? 9 : 3, 20, (x, y) => new Floc(w, x, y, Rand(0, TAU)));
         if (b == 3) Many(w, c, loc, 1, 150, (x, y) => new Rotifer(w, x, y, Rand(0, TAU)));
         if (Math.Abs(c.X) + Math.Abs(c.Y) > 1 && Chance(0.12f)) Many(w, c, loc, 1, 300, (x, y) => new Amoeba(w, x, y, Rand(120, 150)));
+        PondLife(w, c, loc);
     }
     public override void Init(World w)
     {
@@ -709,7 +830,7 @@ public sealed class ScAmoeba : ScPond
     }
     public override int MapKind(World w, Ent e)
     {
-        if (e.Edible && e.State == St.Free) return 1;
+        if (e.Edible && e.State is St.Free or St.Swim or St.Avoid && e.Holder == null && e.Length < 330 && !(e is Amoeba)) return 1;
         return e is Amoeba && e.Lineage && e != w.Player ? 3 : 0;
     }
     public override float Score(World w) => w.Stat("biomass");
@@ -738,7 +859,7 @@ public sealed class ScDidinium : ScPond
             "Po kontakcie ryjka z ofiarą wystrzeliwuje toksycysty (paraliżujące) i peksycysty (przytrzymujące). Cytostom rozciąga się ogromnie.",
             "Pantofelek broni się, wystrzeliwując trichocysty – przeciw Didinium tylko częściowo skutecznie.",
             "Głodujący Didinium tworzy cystę spoczynkową – w grze oznacza to koniec rozgrywki.",
-            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3],
+            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3], LifeFacts[0], LifeFacts[3], LifeFacts[4], LifeFacts[5],
         };
     }
     public override void GenerateChunk(World w, Chunk c)
@@ -750,6 +871,7 @@ public sealed class ScDidinium : ScPond
         Many(w, c, loc, b == 0 ? 5 : 3, 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
         Many(w, c, loc, RandI(1, 2), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
         if (Math.Abs(c.X) + Math.Abs(c.Y) > 1 && Chance(0.08f)) Many(w, c, loc, 1, 80, (x, y) => new Didinium(w, x, y, Rand(0, TAU)));
+        PondLife(w, c, loc);
     }
     public override void Init(World w)
     {
@@ -784,6 +906,7 @@ public sealed class ScDidinium : ScPond
     public override int MapKind(World w, Ent e)
     {
         if (e is Paramecium q && (q.State == St.Swim || q.State == St.Avoid)) return 1;
+        if (PondThreat(e, w.Player)) return 2;
         return e is Didinium && e.Lineage && e != w.Player ? 3 : 0;
     }
     public override float Score(World w) => w.Stat("eaten");
@@ -812,8 +935,8 @@ public sealed class ScPara : ScPond
             "Reakcja unikania: po uderzeniu w przeszkodę depolaryzacja błony odwraca bicie rzęsek – pantofelek cofa się i skręca.",
             "Rowek gębowy prowadzi do cytostomu; bakterie trafiają do wodniczek pokarmowych, które krążą po komórce (cykloza).",
             "Dwie gwiaździste wodniczki tętniące z kanalikami usuwają nadmiar wody. Makronukleus i mikronukleus; podział poprzeczny.",
-            "Trichocysty: „igły” pod pellikulą, które w kilka milisekund wydłużają się kilkukrotnie – mechanizm obronny.",
-            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3],
+            "Trichocysty: „igły” pod pellikulą, które w kilka milisekund wydłużają się kilkukrotnie – mechanizm obronny (działa też na Lacrymarię, słonecznicę i Stentora).",
+            HabitatFacts[0], HabitatFacts[1], HabitatFacts[3], LifeFacts[0], LifeFacts[1], LifeFacts[2], LifeFacts[3], LifeFacts[4], LifeFacts[5], LifeFacts[6],
         };
     }
     public override void GenerateChunk(World w, Chunk c)
@@ -826,6 +949,7 @@ public sealed class ScPara : ScPond
         Many(w, c, loc, RandI(1, 2), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
         float pd = b switch { 0 => 0.45f, 3 => 0.3f, 2 => 0.2f, _ => 0.08f };
         if (Math.Abs(c.X) + Math.Abs(c.Y) > 1 && Chance(pd)) Many(w, c, loc, 1, 80, (x, y) => new Didinium(w, x, y, Rand(0, TAU)));
+        PondLife(w, c, loc);
     }
     public override void Init(World w)
     {
@@ -860,7 +984,7 @@ public sealed class ScPara : ScPond
     }
     public override int MapKind(World w, Ent e)
     {
-        if (e is Didinium || e is Rotifer) return 2;
+        if (e is Didinium || e is Rotifer || PondThreat(e, w.Player)) return 2;
         return e is Paramecium q && q.Lineage && e != w.Player && q.State != St.Eaten ? 3 : 0;
     }
     public override bool FoodPoint(World w, out float x, out float y)

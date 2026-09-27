@@ -4,6 +4,8 @@ namespace Mikro;
 public partial class PreviewCanvas : Control
 {
     public Scenario Sc;
+    /// <summary>Opcjonalna fabryka podglądu (np. nanobot) zamiast Sc.Preview.</summary>
+    public Func<World, (Ent, float)> Make;
     World _w; Ent _e; float _size;
     readonly Painter _p = new();
     readonly View _v = new();
@@ -14,7 +16,7 @@ public partial class PreviewCanvas : Control
         MouseFilter = MouseFilterEnum.Ignore;
         _w = Sc.Create(true);
         _w.Input = new InputState { Dx = 1, Dy = 0, Mag = 1, Ang = 0 };
-        (_e, _size) = Sc.Preview(_w);
+        (_e, _size) = Make != null ? Make(_w) : Sc.Preview(_w);
         _w.Player = _e;
     }
 

@@ -150,7 +150,10 @@ public sealed class Paramecium : Ent
     public float L, Wd, Sk = 1, Speed, St0, Roll, Cph, AvoidCD, Energy, Div, TrichCD, Hunger;
     public int FoodCount;
     public bool GrowBack;
-    public Didinium Captor;
+    public ICaptor Captor;
+    /// <summary>Paramecium bursaria – zielony, z ~700 endosymbiotycznymi zielenicami Chlorella.</summary>
+    public bool Green;
+    readonly Vector3[] _zoo;
     readonly float[] _rr = new float[NN];
     sealed class Cv { public float X, Y, Ph; }
     readonly Cv[] _cv;
@@ -161,10 +164,16 @@ public sealed class Paramecium : Ent
     public override float Length => L;
     public override float Radius => Wd / 2;
 
-    public Paramecium(World w, float x, float y, float a, float len = 0, float energy = 0) : base(w, x, y, a)
+    public Paramecium(World w, float x, float y, float a, float len = 0, float energy = 0, bool green = false) : base(w, x, y, a)
     {
-        Kind = Kind.Para; Layer = 3;
-        L = len > 0 ? len : Rand(190, 235); Wd = L * 0.27f;
+        Kind = Kind.Para; Layer = 3; Green = green; Soft = 0.35f; Edible = true; Food = green ? 1.2f : 1.6f;
+        Name = green ? "pantofelek zielony" : "pantofelek"; Latin = green ? "Paramecium bursaria" : "Paramecium caudatum";
+        L = len > 0 ? len : green ? Rand(90, 150) : Rand(190, 235); Wd = L * (green ? 0.42f : 0.27f);
+        if (green)
+        {
+            _zoo = new Vector3[300];
+            for (int i = 0; i < _zoo.Length; i++) { float t = Rand(0, TAU), r = MathF.Sqrt(R01()) * 0.9f; _zoo[i] = new Vector3(MathF.Cos(t) * r, MathF.Sin(t) * r, Rand(0.8f, 1.15f)); }
+        }
         Mem = new Membrane(NN) { MaxDef = 14 }; MemK = 9; MemS = 0.5f;
         Speed = Rand(750, 1050); Mass = 25; State = St.Swim; Roll = Rand(0, TAU); Cph = Rand(0, TAU); Energy = energy;
         _cv = new[] { new Cv { X = 0.27f, Y = -0.12f, Ph = Rand(0, 1) }, new Cv { X = -0.27f, Y = -0.1f, Ph = Rand(0, 1) } };
@@ -179,7 +188,7 @@ public sealed class Paramecium : Ent
         {
             float th = i * TAU / NN, c = MathF.Cos(th), s = MathF.Sin(th);
             float r = A2 * B2 / MathF.Sqrt(Sq(B2 * c) + Sq(A2 * s));
-            r += L * 0.035f * Sk * Gauss(WrapA(th - PI), 0.22f);
+            if (!Green) r += L * 0.035f * Sk * Gauss(WrapA(th - PI), 0.22f);
             r -= Wd * 0.14f * Sk * Gauss(WrapA(th - 0.75f), 0.32f);
             if (Div > 0) r *= 1 - 0.82f * Div * Gauss(c, 0.2f);
             _rr[i] = r;
@@ -189,11 +198,14 @@ public sealed class Paramecium : Ent
     }
     public override void UpdatePrim()
     {
-        if (State == St.Eaten) { SetCircle(1); return; }
+        if (State is St.Eaten or St.Cup or St.Vac) { SetCircle(1); return; }
         SetCapsule(Math.Max(0, (L / 2 - Wd / 2) * Sk * 0.95f), Wd / 2 * Sk * 0.92f);
     }
-    public override bool Collides(Ent o) => State != St.Eaten && !(o is Didinium d && d.Prey == this);
+    public override bool Collides(Ent o) => State is not (St.Eaten or St.Cup or St.Vac) && !(o is Didinium d && d.Prey == this) && o.Holder != this;
     public override bool CanControl() => State == St.Swim || State == St.Avoid;
+    public override St FreeState => St.Swim;
+    public override void Unhold() { base.Unhold(); Captor = null; if (Sk < 1) GrowBack = true; }
+    public override void Kill() => Die();
 
     public override void Step(float dt, float gdt)
     {
@@ -212,7 +224,7 @@ public sealed class Paramecium : Ent
                 W.Fx.Spill(ex, ey, 5, new FX.SpillOpt { Speed = 20, R = 1.2f, Life = 4, D = 2, Cols = new[] { Rgb(60, 60, 45, 0.6f) } });
             }
         }
-        if (State == St.Eaten || State == St.Caught) { Vx = Vy = 0; ComputeRest(); return; }
+        if (State is St.Eaten or St.Caught or St.Cup or St.Vac) { Vx = Vy = 0; ComputeRest(); return; }
         if (IsPlayer && W.Sc.Starve > 0 && !W.Preview && W.Sc.Id == "para")
         {
             Hunger += gdt / W.Sc.Starve;
@@ -259,7 +271,7 @@ public sealed class Paramecium : Ent
             FoodCount++;
             if (FoodCount % 20 == 0) Fv.Add(new FoodVac { U = 0.05f, Age = 0, R = Rand(6, 8.5f) });
         }
-        Hunger = Math.Max(0, Hunger - n * 0.006f);
+        Hunger = Math.Max(0, Hunger - n * 0.006f); Hp = Math.Min(1, Hp + n * 0.0003f);
         if (IsPlayer) W.AddStat("bact", n);
     }
     void Split()
@@ -267,7 +279,7 @@ public sealed class Paramecium : Ent
         float c = MathF.Cos(A), s = MathF.Sin(A), off = L * 0.27f;
         Paramecium Mk(float sg)
         {
-            var e = W.Add(new Paramecium(W, X + c * off * sg, Y + s * off * sg, A, L * Rand(0.92f, 1.0f)));
+            var e = W.Add(new Paramecium(W, X + c * off * sg, Y + s * off * sg, A, L * Rand(0.92f, 1.0f), 0, Green));
             e.Lineage = Lineage || IsPlayer; e.Sk = 0.62f; e.GrowBack = true; return e;
         }
         var A1 = Mk(1); Mk(-1);
@@ -287,6 +299,8 @@ public sealed class Paramecium : Ent
     }
     public void Die()
     {
+        if (!Alive) return;
+        ReleaseHeld();
         W.Fx.Lyse(Mem, new FX.LyseOpt { Pieces = 5, Speed = 25, Life = 6, Lw = 1.2f, C = Rgb(40, 46, 40, 0.7f), Halo = Rgb(255, 255, 240, 0.2f), HasHalo = true, Curl = 0.5f, D = 2 });
         W.Fx.Spill(X, Y, 40, new FX.SpillOpt { Speed = 40, R = 2, Life = 5, R0 = Wd * 0.4f, D = 3, Cols = new[] { Rgb(60, 64, 52, 0.6f), Rgb(220, 225, 205, 0.5f) } });
         W.Sfx("pop", X, Y);
@@ -299,16 +313,17 @@ public sealed class Paramecium : Ent
         TrichCD = 6;
         if (IsPlayer) W.Log("Trichocysty wystrzelone! (wydłużają się ~8× w kilka ms)", "info");
         W.Sfx("zap", X, Y);
-        if (State == St.Caught && Captor != null && Chance(IsPlayer ? 0.55f : 0.25f)) Captor.Release(true);
+        if ((State == St.Caught || State == St.Cup) && Captor != null && Chance(IsPlayer ? 0.55f : 0.25f)) Captor.Release(true);
     }
 
     static readonly Color CiliaC = Rgb(60, 66, 58, 0.38f), HaloC = Rgb(255, 255, 240, 0.26f), BodyC = Rgb(122, 130, 114, 0.42f), EdgeC = Rgb(38, 44, 38, 0.68f),
-        TrichC = Rgb(40, 46, 40, 0.28f), GranD = Rgb(45, 52, 45, 0.35f), GranB = Rgb(230, 236, 220, 0.35f);
+        TrichC = Rgb(40, 46, 40, 0.28f), GranD = Rgb(45, 52, 45, 0.35f), GranB = Rgb(230, 236, 220, 0.35f),
+        ZooC = Rgb(70, 150, 45, 0.62f), ZooH = Rgb(200, 240, 150, 0.45f);
 
     public override void Draw(Painter p, View v)
     {
         var m = Mem; float sk = Sk, L2 = L * sk, W2 = Wd * sk;
-        bool eaten = State == St.Eaten;
+        bool eaten = State is St.Eaten or St.Cup or St.Vac;
         float al = eaten ? (1 - Dig) * 0.85f : 1;
         if (al <= 0.01f) return;
         float oldA = p.Alpha; p.Alpha = al;
@@ -336,7 +351,12 @@ public sealed class Paramecium : Ent
         int n2 = m.SmoothInset(p.Shape2, 2.4f * sk, p.Tx, p.Ty);
         p.Dashed(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 2.4f * sk, 0.8f * sk, 1.4f * sk, TrichC);
         p.Local(X, Y, A);
-        foreach (var g in _gran) p.Rect(g.X * L2 * 0.45f, g.Y * W2 * 0.42f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? GranD : GranB);
+        if (Green)
+        {
+            foreach (var z in _zoo) p.Dot(z.X * L2 * 0.46f, z.Y * W2 * 0.43f, 2.7f * z.Z * sk, ZooC);
+            foreach (var z in _zoo) if (z.Z > 1.05f) p.Dot(z.X * L2 * 0.46f - 0.6f, z.Y * W2 * 0.43f - 0.6f, 1.0f * sk, ZooH);
+        }
+        else foreach (var g in _gran) p.Rect(g.X * L2 * 0.45f, g.Y * W2 * 0.42f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? GranD : GranB);
         // rowek gębowy
         var buf = p.Buf2;
         for (int k = 0; k <= 10; k++) { float t = k / 10f, u = 1 - t; buf[k] = new Vector2(u * u * L2 * 0.44f + 2 * u * t * L2 * 0.25f + t * t * L2 * 0.02f, u * u * W2 * 0.1f + 2 * u * t * W2 * 0.33f + t * t * W2 * 0.2f); }
@@ -373,7 +393,7 @@ public sealed class Paramecium : Ent
 }
 
 /// <summary>Didinium nasutum (~60–200 µm): "beczułka" z ryjkiem, 2 wieńce rzęsek, toksycysty; połyka pantofelka w całości.</summary>
-public sealed class Didinium : Ent
+public sealed class Didinium : Ent, ICaptor
 {
     const int NN = 48;
     public float L, Wd, Speed, St0, Swell = 1, Mouth, Stun, Roll, Cph, Hunger, Cyst, TurnT;
@@ -387,7 +407,7 @@ public sealed class Didinium : Ent
 
     public Didinium(World w, float x, float y, float a, float len = 0) : base(w, x, y, a)
     {
-        Kind = Kind.Didi; Layer = 3;
+        Kind = Kind.Didi; Layer = 3; Soft = 0.35f; Edible = true; Food = 1.2f; Name = "Didinium"; Latin = "Didinium nasutum";
         L = len > 0 ? len : Rand(100, 125); Wd = L * 0.78f;
         Mem = new Membrane(NN) { MaxDef = 10 }; MemK = 9; MemS = 0.5f;
         Speed = Rand(650, 800); Mass = 18; State = St.Swim;
@@ -419,6 +439,7 @@ public sealed class Didinium : Ent
         Cph += gdt * TAU * (State == St.Cyst ? 0 : 5);
         Stun -= gdt;
         if (State == St.Cyst) { Cyst = Math.Min(1, Cyst + gdt / 2.5f); Vx = Vy = 0; ComputeRest(); return; }
+        if (State is St.Cup or St.Vac) { Vx = Vy = 0; ComputeRest(); return; }
         if ((IsPlayer || Lineage) && !W.Preview)
         {
             Hunger += gdt / W.Sc.Starve * (State == St.Digest ? 0 : 1);
@@ -481,6 +502,7 @@ public sealed class Didinium : Ent
                 State = St.Digest; St0 = 0; Mouth = 0;
                 if (P.IsPlayer) P.Alive = false;
                 if (IsPlayer) { W.AddStat("eaten", 1); Hunger = 0; }
+                Hp = 1;
             }
         }
         else if (State == St.Digest)
@@ -579,7 +601,7 @@ public sealed class Chlamy : Ent
     public override float Radius => Rr;
     public Chlamy(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Chlamy; Layer = 3; Rr = Rand(4.2f, 5.4f); R = Rr + 12; Mass = 1.2f;
+        Kind = Kind.Chlamy; Layer = 3; Latin = "Chlamydomonas"; Rr = Rand(4.2f, 5.4f); R = Rr + 12; Mass = 1.2f;
         Speed = Rand(90, 130); Beat = Rand(0, TAU); Roll = Rand(0, TAU); D = 0.3f; State = St.Free; Edible = true; Food = 0.3f; Name = "Chlamydomonas";
     }
     public override void UpdatePrim() => SetCircle(Rr);

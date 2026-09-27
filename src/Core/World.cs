@@ -3,7 +3,9 @@ namespace Mikro;
 public sealed class InputState
 {
     public float Dx, Dy, Mag, Ang;
-    public bool Boost, Action, ActionHeld;
+    public bool Boost, Action, ActionHeld, HasAim;
+    /// <summary>Pozycja kursora w świecie (µm).</summary>
+    public float AimX, AimY;
 }
 
 /// <summary>Kwadratowy fragment nieskończonego świata. Poza promieniem aktywności jego organizmy są zamrożone.</summary>
@@ -78,6 +80,8 @@ public sealed class World
     public float T, SimT, TimeScale, Bio, Ff = 1;
     public Ent Player, Focus;
     public bool Over, Preview, ShowField, AllGoals;
+    /// <summary>Tryb nanobota (eksploracja): bez celów i końca gry.</summary>
+    public bool Nano;
     public int GoalIdx;
     public readonly Dictionary<string, float> Stats = new();
     public InputState Input = new();
@@ -136,6 +140,16 @@ public sealed class World
         OnSfx(kind, vol * Clamp(1.2f - d * 0.7f, 0, 1));
     }
     public void After(float delay, Action a) => _timers.Add((T + delay, a));
+    readonly Dictionary<string, float> _logT = new();
+    /// <summary>Komunikat nie częściej niż co cooldown sekund (dla powtarzalnych zdarzeń).</summary>
+    public void LogOnce(string key, string text, string cls, float cooldown = 8)
+    {
+        if (_logT.TryGetValue(key, out var t) && T - t < cooldown) return;
+        _logT[key] = T; Log(text, cls);
+    }
+    /// <summary>Czy encja jest w pobliżu kadru (poza nim część obliczeń kosmetycznych jest pomijana).</summary>
+    public bool OnScreen(Ent e, float k = 1.4f) => Preview || (MathF.Abs(e.X - CamX) < ViewR * k + e.R && MathF.Abs(e.Y - CamY) < ViewR * k * 0.7f + e.R);
+    public int Frame;
 
     public float Stat(string k) => Stats.TryGetValue(k, out var v) ? v : 0;
     public void AddStat(string k, float v) => Stats[k] = Stat(k) + v;
@@ -314,14 +328,14 @@ public sealed class World
     public static bool Prof;
     public static readonly Dictionary<string, double> ProfT = new();
     public static readonly Dictionary<string, double> VertT = new();
-    static void PAdd(string k, long t0) { if (!Prof) return; double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - t0) * 1000.0 / System.Diagnostics.Stopwatch.Frequency; ProfT[k] = (ProfT.TryGetValue(k, out var v) ? v : 0) + ms; }
-    static long TS => System.Diagnostics.Stopwatch.GetTimestamp();
+    public static void PAdd(string k, long t0) { if (!Prof) return; double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - t0) * 1000.0 / System.Diagnostics.Stopwatch.Frequency; ProfT[k] = (ProfT.TryGetValue(k, out var v) ? v : 0) + ms; }
+    public static long TS => System.Diagnostics.Stopwatch.GetTimestamp();
 
     // ================================================================ pętla
     public void Update(float fdt)
     {
         float dt = fdt * TimeScale * Ff, gdt = fdt * Ff;
-        T += gdt; SimT += dt;
+        T += gdt; SimT += dt; Frame++;
         for (int i = _timers.Count - 1; i >= 0; i--)
             if (_timers[i].t <= T) { var a = _timers[i].a; _timers.RemoveAt(i); a(); }
         long t0 = TS;
@@ -348,6 +362,12 @@ public sealed class World
             e.Step(dt, gdt);
             if (Prof) PAdd("step:" + e.GetType().Name, ts);
             if (!e.Alive) continue;
+            if (TimeScale > 5 && e != Player && !e.Fixed && !Preview)
+            {
+                // time-lapse: szybkie pływaki ograniczone do ~0,3 kadru na sekundę (inaczej byłyby niewidoczną smugą)
+                float vm = Sc.ViewW * 0.3f / TimeScale, v2 = e.Vx * e.Vx + e.Vy * e.Vy;
+                if (v2 > vm * vm) { float k = vm / MathF.Sqrt(v2); e.Vx *= k; e.Vy *= k; }
+            }
             e.Integrate(dt);
             if (!Preview)
             {
@@ -372,7 +392,15 @@ public sealed class World
             if (e.Mem != null)
             {
                 e.Mem.Follow(e.X, e.Y, e.A, e.MemK, gdt);
-                if (e.MemS > 0) foreach (var o in e.Nb) if (o.Alive && o.Solid) e.Mem.PushOut(o.Prim, e.MemS);
+                if (e.MemS > 0 && OnScreen(e))
+                    foreach (var o in e.Nb)
+                    {
+                        if (!o.Alive || !o.Solid) continue;
+                        // dwie miękkie komórki: wzajemne spłaszczenie obrysów; inaczej wgniecenie o sztywny kształt
+                        if (o.Mem != null && o.Mem.IsRadial && o.Mem.MaxR > 0 && e.Mem.IsRadial && o.Soft > 0 && e.Soft > 0)
+                            e.Mem.PushOutMem(o.Mem, e.MemS * Clamp(e.Soft / (e.Soft + o.Soft) * 2, 0.3f, 1));
+                        else e.Mem.PushOut(o.Prim, e.MemS);
+                    }
             }
             e.Post(dt, gdt);
         }
@@ -410,7 +438,7 @@ public sealed class World
     void CheckGoals()
     {
         var G = Sc.Goals;
-        if (G == null || AllGoals || Over) return;
+        if (G == null || AllGoals || Over || Nano) return;
         while (GoalIdx < G.Length && G[GoalIdx].Val(this) >= G[GoalIdx].Target)
         {
             var g = G[GoalIdx]; GoalIdx++;
@@ -432,7 +460,7 @@ public sealed class World
 
     public void GameOver(string text, bool win = false)
     {
-        if (Over) return;
+        if (Over || Nano) return;
         Over = true;
         if (!Preview) OnGameOver?.Invoke(text, win);
     }
@@ -519,8 +547,11 @@ public static class Physics
                 if (!Geo.PrimPrim(a.Prim, b.Prim, out float pen, out float nx, out float ny)) continue;
                 float ma = a.Fixed ? 1e9f : a.Mass, mb = b.Fixed ? 1e9f : b.Mass;
                 float wa = mb / (ma + mb), wb = ma / (ma + mb);
-                a.X -= nx * pen * wa; a.Y -= ny * pen * wa;
-                b.X += nx * pen * wb; b.Y += ny * pen * wb;
+                // miękkie ciała: część penetracji to ściśnięcie (sprężyste, rozwiązywane powoli), reszta – twardy kontakt
+                float give = (a.Soft * a.Prim.R + b.Soft * b.Prim.R) * 0.3f;
+                float res = pen <= give ? pen * 0.22f : (pen - give) + give * 0.22f;
+                a.X -= nx * res * wa; a.Y -= ny * res * wa;
+                b.X += nx * res * wb; b.Y += ny * res * wb;
                 a.UpdatePrim(); b.UpdatePrim();
                 a.OnTouch(b, nx, ny); b.OnTouch(a, -nx, -ny);
             }

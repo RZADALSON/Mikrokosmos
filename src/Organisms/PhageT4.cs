@@ -24,11 +24,12 @@ public sealed class PhageT4 : Ent
     public float Contract, Empty, Fib, Surf = 0.06f, St0, Kx, Ky, Fade = 1, TipX, TipY;
     public EColi Host;
     float _lx, _ly, _nlx, _nly, _sx, _sy, _sa, _cool;
+    Omv _omv;
     readonly List<Ent> _q = new();
 
     public PhageT4(World w, float x, float y, float a) : base(w, x, y, a)
     {
-        Kind = Kind.Phage; Layer = 4; Solid = false;
+        Kind = Kind.Phage; Layer = 4; Solid = false; Name = "bakteriofag T4"; Latin = "Tequatrovirus";
         State = St.Free; D = 3.0f; Dr = 120; R = 0.14f; DrawR = 0.1f;
         TipX = x; TipY = y;
     }
@@ -56,6 +57,13 @@ public sealed class PhageT4 : Ent
             W.Query(X, Y, 3.2f, _q);
             for (int i = 0; i < _q.Count; i++)
             {
+                if (_q[i] is Omv ov && ov.Alive && Kx == 0 && _cool <= 0 && Hypot(TipX - ov.X, TipY - ov.Y) < ov.Rv + 0.02f)
+                {
+                    // wabik: szybkie, nieodwracalne wiązanie z pęcherzykiem błony zewnętrznej
+                    _omv = ov; ov.ToLocal(X, Y, out _lx, out _ly); State = St.Attach; St0 = 0; Holder = ov; Fib = 1; Surf = 0;
+                    if (IsPlayer) W.Log("Związałeś się z pęcherzykiem błony zewnętrznej (OMV) – to wabik! Wiązanie jest nieodwracalne, DNA trafia w pustkę.", "bad");
+                    return;
+                }
                 if (_q[i] is not EColi e || !e.Alive || e.State == St.Dead) continue;
                 if (MathF.Abs(e.X - X) > e.R + 0.3f || MathF.Abs(e.Y - Y) > e.R + 0.3f) continue;
                 var r = Geo.PointPrim(X, Y, e.Prim);
@@ -67,8 +75,19 @@ public sealed class PhageT4 : Ent
         }
         if (State == St.Debris)
         {
+            if (Holder is Omv om && om.Alive) { om.ToWorld(_lx, _ly, out X, out Y); Vx = Vy = 0; }
             Fade -= gdt / 6;
             if (Fade <= 0) Alive = false;
+            return;
+        }
+        if (State == St.Attach)
+        {
+            St0 += gdt;
+            if (_omv == null || !_omv.Alive) { State = St.Debris; Holder = null; Fade = 1; return; }
+            _omv.ToWorld(_lx, _ly, out X, out Y); A = MathF.Atan2(_omv.Y - Y, _omv.X - X);
+            Contract = Smooth(St0 / 0.3f); Empty = Smooth((St0 - 0.3f) / 2);
+            if (St0 > 2.5f) { State = St.Debris; Fade = 1; if (IsPlayer) W.Log("Kapsyd pusty – Twój wirion przepadł na wabiku.", "bad"); }
+            Vx = Vy = 0;
             return;
         }
         var h = Host;

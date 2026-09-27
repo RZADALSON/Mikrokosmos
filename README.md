@@ -31,6 +31,27 @@ Wymagane: Godot 4.7 .NET i .NET SDK 8 (oba zainstalowane przez winget).
 | Neutrofil | 100 µm | tkanka luźna, gęsty kolagen, ognisko zakażenia, wylew (żyłki co 420 µm) |
 | Pantofelek, Didinium, ameba | 1,4–1,6 mm | otwarta woda, zarośla skrętnicy, osad, chmury bakterii |
 
+**Tryb nanobota (eksploracja):** osobna karta w menu. Wybierasz skalę (7 światów, w grze klawisze 1–7).
+- Bot ma ok. 1/30 kadru i jest nieśmiertelny.
+- Laser (Spacja / PPM) dezintegruje każdą komórkę.
+- Skaner pokazuje nazwę, gatunek, rozmiar i stan organizmu pod kursorem.
+- Z/X zmienia tempo czasu. Nie ma celów ani końca gry.
+
+**Ekosystemy (zweryfikowane w literaturze – lista źródeł w grze pod klawiszem I):**
+- **Staw:** Euglena (metabolia, plamka oczna), Blepharisma (blefaryzmina truje drapieżniki, kanibale-olbrzymy),
+  P. bursaria (zielenice), Spirostomum (skurcz w ~5 ms, toksyny), Stentor (osiadły, wir), Coleps (stada, pancerz),
+  Euplotes (chodzi na cirrach), Tetrahymena, Lacrymaria (szyja 7× ciała), słonecznica (aksopodia),
+  Volvox, nicienie i nitki sinic (ciała z segmentów), rozwielitka (filtruje orzęski), detrytus.
+- **Biofilm:** Pseudomonas, Bacillus (łańcuszki, przetrwalniki), Caulobacter (rozetki), Spirillum volutans,
+  drożdże, drapieżne Bodo i przepływające olbrzymy Tetrahymena.
+- **TEM:** pęcherzyki OMV (wabiki – T4 wiąże się nieodwracalnie), fagi T7 i λ (konkurencja, lizogenia),
+  bakterie Gram+, zerwane rzęski.
+- **Tkanka:** makrofagi, fibroblasty, adipocyty, mastocyty (histamina → więcej neutrofili),
+  Candida (drożdżaki do fagocytozy, strzępki tylko przez NET).
+
+**Miękkie ciała:** kontakt komórek rozwiązywany jest częściowo (`Ent.Soft`). Ciała mogą się wcisnąć,
+a membrany radialne spłaszczają się nawzajem (`Membrane.PushOutMem`). Nicienie i nitki wyginają się na przeszkodach.
+
 **Nawigacja:**
 - radar (okno aktywnych chunków w kolorach stref),
 - w HUD-zie wiersze „Strefa” i „Od startu”; wejście w nową strefę pokazuje komunikat,
@@ -64,7 +85,10 @@ src/Core/                 M (matematyka, RNG), Geo (kolizje), Ent (encja), Membr
                           FX (liza, pęcherzyki, igły), Field (stężenia), World (+ SpatialGrid, prądy, cele)
 src/Render/Painter.cs     wsadowy renderer: cała geometria → kilka CanvasItemAddTriangleArray
 src/Render/WorldView.cs   węzeł rysujący świat (+ atlas detrytusu)
-src/Organisms/            EColi, PhageT4, Bdello, Staph (+Strep), Blood (neutrofil, RBC, płytki, limfocyt),
+src/Organisms/            Protist (uniwersalny pierwotniak + katalog Species), Pond (Chain: nicienie/sinice,
+                          słonecznica, Lacrymaria, Daphnia, Volvox, detrytus), Microbes (inne bakterie, OMV, fagi T7/λ),
+                          Tissue (makrofag, fibroblast, adipocyt, mastocyt, Candida), Nanobot,
+                          EColi, PhageT4, Bdello, Staph (+Strep), Blood (neutrofil, RBC, płytki, limfocyt),
                           Protists (pantofelek, Didinium, Chlamydomonas, chmury bakterii), Algae (okrzemki,
                           desmidie, ameba), Rotifer (+ Acanthamoeba), Environment (ziarna, kolagen,
                           skrętnica, wirczyki, NET)
@@ -123,6 +147,9 @@ Prąd wody to pole bezźródłowe liczone z funkcji prądu.
   - Vorticella,
   - zamrażanie i odmrażanie chunków,
   - różnorodność stref,
-  - długa podróż (stała liczba aktywnych encji).
+  - długa podróż (stała liczba aktywnych encji),
+  - miękkie odkształcenie, Coleps, blefaryzmina, wabik OMV, wir Stentora,
+  - laser nanobota i start bota we wszystkich skalach, NET na strzępce Candida.
+- `-- --shot=sp-daphnia@0.4,nano-para` – zrzut wybranego gatunku (`sp-...`) albo trybu nanobota (`nano-...`), `@` = zoom.
 - `-- --shot=menu,t4,neutro:1,vort,spiro,net,rotifer --out=<folder> [--frames=N]` – zapisuje zrzuty ekranu
   (liczba po dwukropku oznacza tryb mikroskopu).

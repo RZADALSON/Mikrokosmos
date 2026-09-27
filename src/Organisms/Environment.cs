@@ -33,7 +33,7 @@ public sealed class Collagen : Ent
     readonly float _hl, _rad, _ph;
     public Collagen(World w, float x, float y, float a, float len, float rad) : base(w, x, y, a)
     {
-        Kind = Kind.None; Layer = 0; Fixed = true; FlowK = 0; _hl = len / 2; _rad = rad; R = len / 2 + rad; _ph = Rand(0, TAU);
+        Kind = Kind.None; Layer = 0; Fixed = true; FlowK = 0; Name = "włókno kolagenowe"; _hl = len / 2; _rad = rad; R = len / 2 + rad; _ph = Rand(0, TAU);
     }
     public override void UpdatePrim() => SetCapsule(_hl, _rad);
     public override void Draw(Painter p, View v)
@@ -61,7 +61,7 @@ public sealed class SpiroCell : Ent
     public SpiroCell(World w, float x, float y, float a, float len, float wid, int ribbons, float phase) : base(w, x, y, a)
     {
         Kind = Kind.None; Layer = 1; Fixed = true; FlowK = 0; _hl = len / 2; _hw = wid / 2; R = len / 2 + wid / 2; _ph = phase; _ribbons = ribbons; _pitch = Rand(55, 80);
-        Name = "skrętnica (Spirogyra)";
+        Name = "skrętnica"; Latin = "Spirogyra";
     }
     public override void UpdatePrim() => SetCapsule(Math.Max(0, _hl - _hw * 0.6f), _hw);
     public override void Draw(Painter p, View v)
@@ -116,8 +116,8 @@ public sealed class Vorticella : Ent
     public Vorticella(World w, float gx, float gy, float ang, float baseR = 0) : base(w, gx + MathF.Cos(ang) * baseR, gy + MathF.Sin(ang) * baseR, ang)
     {
         float ax = gx + MathF.Cos(ang) * baseR, ay = gy + MathF.Sin(ang) * baseR;
-        Kind = Kind.None; Layer = 2; Solid = false; FlowK = 0; _ax = ax; _ay = ay; _len = Rand(140, 260); _br = Rand(22, 30); R = _len + _br * 2; _sway = Rand(0, TAU);
-        Name = "wirczyk (Vorticella)";
+        Kind = Kind.Protist; Layer = 2; Solid = false; FlowK = 0; _ax = ax; _ay = ay; _len = Rand(140, 260); _br = Rand(22, 30); R = _len + _br * 2; _sway = Rand(0, TAU);
+        Name = "wirczyk"; Latin = "Vorticella";
     }
     public float BellX => _ax + MathF.Cos(A) * _len * StalkF;
     public float BellY => _ay + MathF.Sin(A) * _len * StalkF;

@@ -30,7 +30,7 @@ public partial class Overlay : Node2D
         _labels.Clear();
         _p.Begin(1f / Math.Max(0.25f, Stretch));
         DrawReticle();
-        DrawSense();
+        if (World.Nano) DrawScanner(); else DrawSense();
         if (ShowMap) DrawMinimap();
         DrawScaleBar();
         _p.Flush(GetCanvasItem());
@@ -151,6 +151,30 @@ public partial class Overlay : Node2D
         }
         _p.Pop();
         _labels.Add((new Vector2(x0 + (w.Infinite ? 30 : 26), y0 - 12), w.Infinite ? "RADAR" : "MAPA", new Color(1, 1, 1, 0.5f)));
+    }
+
+    /// <summary>Skaner nanobota: obrys i opis organizmu pod kursorem.</summary>
+    void DrawScanner()
+    {
+        var I = World.Input; if (!I.HasAim || World.Player == null) return;
+        var e = Nanobot.Pick(World, I.AimX, I.AimY, World.Sc.ViewW * 0.03f, World.Player);
+        if (e == null) return;
+        var tgt = e is ChainSeg cs ? (Ent)cs.Owner : e;
+        var c = ToScreen(tgt.X, tgt.Y);
+        float r = Math.Clamp(Math.Max(tgt.Radius, Math.Max(tgt.Length * 0.5f, e.Prim.R)) * S + 8, 14, 420);
+        var col = new Color(0.55f, 0.9f, 1f, 0.85f);
+        float t = World.T;
+        for (int k = 0; k < 4; k++)
+        {
+            float a0 = k * PI / 2 + t * 0.8f;
+            int n = 10; Span<Vector2> arc = stackalloc Vector2[n];
+            for (int i = 0; i < n; i++) { float a = a0 + i * 0.9f / (n - 1); arc[i] = new Vector2(c.X + MathF.Cos(a) * r, c.Y + MathF.Sin(a) * r); }
+            _p.Stroke(arc, false, 2, col, true);
+        }
+        string info = e.Info;
+        string state = tgt.State switch { St.Cup or St.Vac => " · pochłaniany", St.Caught => " · schwytany", St.Avoid => " · reakcja unikania", _ => "" };
+        if (tgt.Hp < 0.999f && tgt.Alive) state += $" · integralność {tgt.Hp * 100:0}%";
+        _labels.Add((new Vector2(c.X, c.Y - r - 12), info + state, col));
     }
 
     void DrawScaleBar()
