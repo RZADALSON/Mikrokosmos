@@ -1077,23 +1077,50 @@ public partial class Main : Node
             int nb = _world.Beats - b0;
             Ok(nb >= 3 && nb <= 5 && vmax > vmin * 2, $"serce bije ~70/min ({nb} uderzeń w 5 s), krew przyspiesza po skurczu ({vmin:0}–{vmax:0} µm/s)");
             float hr0 = _world.HeartBpm;
-            for (int i = 0; i < 260; i++) { var st = _world.Add(new Staph(_world, hp0.X + 700 + Rand(-60, 60), hp0.Y + 230 + Rand(-60, 60))); st.Gen = 1000; }
+            foreach (var e in _world.Ents) if (e != hp0 && (e is Neutrophil || e is Macrophage)) e.Alive = false;
+            for (int i = 0; i < 260; i++) { var st = _world.Add(new Staph(_world, hp0.X + 150 + Rand(-40, 40), hp0.Y + 60 + Rand(-40, 40))); st.Gen = 1000; }
             float tmax = 0, hmax = 0;
             for (int i = 0; i < 80; i++) { Run(60); tmax = Math.Max(tmax, _world.TempC); hmax = Math.Max(hmax, _world.HeartBpm); }
             Ok(tmax > 38.3f && hmax > 95, $"zakażenie → gorączka {tmax:0.0} °C i tętno {hmax:0}/min (było {hr0:0})");
 
             // 33–35. niesporczak: wysysanie glonów, beczułka przeżywa wyschnięcie, bez niej – śmierć
-            Start(S("tardi")); var td = (Tardigrade)_world.Player; var tsc = (ScTardi)_world.Sc;
-            tsc.Algae.Patch(td.X + MathF.Cos(td.A) * (td.L / 2 + 6), td.Y + MathF.Sin(td.A) * (td.L / 2 + 6), 4, 12);
-            _input.Mag = 0; Run(240);
+            Start(S("tardi")); var td = (Tardigrade)_world.Player; var tsc = (ScTardi)_world.Sc; Clear(td, 400);
+            tsc.Algae.Patch(td.X + MathF.Cos(td.A) * (td.L / 2 + 5), td.Y + MathF.Sin(td.A) * (td.L / 2 + 5), 3, 20);
+            _input.Mag = 0; Run(300);
             Ok(_world.Stat("algae") >= 3, $"niesporczak przebija sztyletami i wysysa glony ({_world.Stat("algae"):0})");
-            var td2 = _world.Add(new Tardigrade(_world, td.X + 400, td.Y, 0)); td2.Energy = 0.8f;
+            var td2 = _world.Add(new Tardigrade(_world, td.X + 150, td.Y + 150, 0)); td2.Energy = 0.8f;
             td.TunWant = true; td.Energy = 0.8f; Run(600);
             Ok(td.IsTun, $"Spacja zwija niesporczaka w beczułkę (tun {td.Tun:0.00})");
             tsc.Moisture = 0; typeof(ScTardi).GetMethod("Desiccate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(tsc, new object[] { _world });
             td2.TunWant = false;
             Ok(td.Alive && _world.Stat("survived") >= 1, "beczułka przeżywa wyschnięcie (anhydrobioza)");
             Ok(!td2.Alive, "niesporczak bez beczułki wysycha na śmierć");
+
+            // 36a. Dictyostelium: faza wegetatywna – zjadanie bakterii
+            Start(S("dicty")); var dp = _world.Player;
+            for (int f = 0; f < 1500; f++) { if (((ScDicty)_world.Sc).FoodPoint(_world, out float bx2, out float by2)) { float a3 = MathF.Atan2(by2 - dp.Y, bx2 - dp.X); _input.Mag = 1; _input.Ang = a3; _input.Dx = MathF.Cos(a3); _input.Dy = MathF.Sin(a3); } Run(1); }
+            _input.Mag = 0;
+            Ok(_world.Stat("bact") >= 15, $"ameba zjada bakterie z murawy ({_world.Stat("bact"):0})");
+
+            // 36. Dictyostelium: fale cAMP rozchodzą się od centrów agregacji
+            Start(S("dicty")); var dsc = (ScDicty)_world.Sc; dsc.DebugAgg(_world);
+            int maxEx = 0; for (int i = 0; i < 40; i++) { Run(30); maxEx = Math.Max(maxEx, dsc.Camp.ExcitedCount()); }
+            Ok(maxEx > 300, $"fale cAMP rozchodzą się od centrów (maks. {maxEx} z 4096 próbek w fazie pobudzenia)");
+            // 37–39. pełny cykl: agregacja → ślimak → światło → owocnik (gracz idzie za wskaźnikiem)
+            bool fin = false; string fend = ""; _world.OnGameOver += (t, win) => { fin = true; fend = t; };
+            for (int f = 0; f < 60 * 400 && !fin; f++)
+            {
+                if (_world.Player != null && dsc.FoodPoint(_world, out float fpx, out float fpy))
+                {
+                    float a2 = MathF.Atan2(fpy - _world.Player.Y, fpx - _world.Player.X);
+                    _input.Mag = 1; _input.Ang = a2; _input.Dx = MathF.Cos(a2); _input.Dy = MathF.Sin(a2);
+                }
+                Run(1);
+            }
+            _input.Mag = 0;
+            Ok(_world.Stat("joined") >= 1, $"komórka gracza dołącza do agregatu (w agregacie {_world.Stat("aggN"):0})");
+            Ok(_world.Stat("light") >= 1, "ślimak dociera do światła (fototaksja)");
+            Ok(_world.Stat("fruit") >= 1 && fin, $"powstaje owocnik – koniec: {fend}");
 
             // 24–25. makrofag: eferocytoza apoptotycznego neutrofila i erytrofagocytoza (hemosyderyna)
             Start(S("macro")); var mac = (Macrophage)_world.Player; Clear(mac, 70);
@@ -1188,7 +1215,7 @@ public partial class Main : Node
                 {
                     bool nano = id.StartsWith("nano-"); string bare = nano ? id[5..] : id;
                     if (bare == "turn") bare = "turn";
-                    string sid = bare == "turn" ? "para" : bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" or "sp-yeast" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" or "sp-fibro" or "sp-mast" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", "effero" => "macro", "eudiv" => "euglena", _ => bare };
+                    string sid = bare == "turn" ? "para" : bare.StartsWith("sp-") ? (bare is "sp-tetra" or "sp-bodo" or "sp-spirillum" or "sp-yeast" ? "bdello" : bare is "sp-macro" or "sp-candida" or "sp-fat" or "sp-fibro" or "sp-mast" ? "neutro" : "para") : bare switch { "vort" => "para", "spiro" => "amoeba", "net" => "neutro", "rotifer" => "didinium", "effero" => "macro", "eudiv" => "euglena", "dagg" => "dicty", _ => bare };
                     Start(Scenario.All.First(s => s.Id == sid), nano);
                     if (bare.StartsWith("sp-"))
                     {
@@ -1229,6 +1256,7 @@ public partial class Main : Node
                         _world.Add(new Staph(_world, mcp.X + 3, mcp.Y - mcp.R0 - 1)); _world.Add(new Staph(_world, mcp.X + 4, mcp.Y - mcp.R0 - 1.5f));
                     }
                     if (bare == "eudiv" && _world.Player is Protist ep) ep.Paramylon = 1;
+                    if (bare == "dagg" && _sc is ScDicty sd) sd.DebugAgg(_world);
                     if (id == "vort") _world.Focus = _world.Ents.OfType<Vorticella>().FirstOrDefault();
                     if (id == "spiro") _world.Focus = _world.Ents.OfType<SpiroCell>().FirstOrDefault();
                     if (id == "rotifer") _world.Focus = _world.Ents.OfType<Rotifer>().FirstOrDefault();

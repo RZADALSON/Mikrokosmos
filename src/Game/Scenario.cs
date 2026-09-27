@@ -252,5 +252,5 @@ public abstract class Scenario
         ("Noselli i in. 2019 – metabolia jako pełzanie w ciasnocie (arXiv)", "https://arxiv.org/pdf/2005.11952"),
     };
 
-    public static readonly Scenario[] All = { new ScT4(), new ScBdello(), new ScEcoli(), new ScNeutro(), new ScMacro(), new ScPara(), new ScDidinium(), new ScAmoeba(), new ScEuglena(), new ScTardi() };
+    public static readonly Scenario[] All = { new ScT4(), new ScBdello(), new ScEcoli(), new ScNeutro(), new ScMacro(), new ScPara(), new ScDidinium(), new ScAmoeba(), new ScEuglena(), new ScTardi(), new ScDicty() };
 }
