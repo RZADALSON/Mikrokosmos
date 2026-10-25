@@ -474,3 +474,10 @@ Prąd wody to pole bezźródłowe liczone z funkcji prądu.
 - `-- --shot=sp-daphnia@0.4,nano-para` – zrzut wybranego gatunku (`sp-...`) albo trybu nanobota (`nano-...`), `@` = zoom.
 - `-- --shot=menu,t4,neutro:1,vort,spiro,net,rotifer --out=<folder> [--frames=N]` – zapisuje zrzuty ekranu
   (liczba po dwukropku oznacza tryb mikroskopu).
+
+## Licencja
+Kod gry: **GNU GPL v3** (plik `LICENSE`). Możesz go używać, zmieniać i rozpowszechniać, także w płatnych projektach,
+ale każda opublikowana zmieniona wersja musi być udostępniona z kodem źródłowym na tej samej licencji.
+
+Zdjęcia w `atlas/photos/` nie są objęte GPL – mają własne licencje (CC BY, CC BY-SA, CC0, domena publiczna) i autorów
+wymienionych w `atlas/photos/CREDITS.md`.
