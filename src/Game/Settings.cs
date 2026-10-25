@@ -8,12 +8,18 @@ public static class Settings
     public static int WindowMode = 1;
     public static float Master = 0.8f, Sfx = 0.7f, Ambient = 0.5f;
     public static bool Muted, VSync = true, ShowFps;
+    /// <summary>Rodzaj szumu tła: 0 = woda (hydrofon), 1 = biały, 2 = różowy, 3 = brązowy.</summary>
+    public static int Noise = 1;
+    public static readonly string[] Noises = { "Woda (hydrofon, zmienna)", "Szum biały (stały)", "Szum różowy (stały, łagodniejszy)", "Szum brązowy (stały, głęboki)" };
+    /// <summary>Język interfejsu; przy pierwszym uruchomieniu – język systemu (polski albo angielski).</summary>
+    public static string Lang = OS.GetLocaleLanguage() == "pl" ? "pl" : "en";
     public static readonly string[] WindowModes = { "Okno", "Pełny ekran w oknie (bez ramki)", "Pełny ekran (wyłączny)" };
 
     public static void Load()
     {
         var c = new ConfigFile();
         if (c.Load(PATH) != Error.Ok) return;
+        Lang = (string)c.GetValue("ui", "lang", Lang);
         WindowMode = (int)c.GetValue("video", "window_mode", WindowMode);
         VSync = (bool)c.GetValue("video", "vsync", VSync);
         ShowFps = (bool)c.GetValue("video", "fps", ShowFps);
@@ -21,12 +27,14 @@ public static class Settings
         Sfx = (float)c.GetValue("audio", "sfx", Sfx);
         Ambient = (float)c.GetValue("audio", "ambient", Ambient);
         Muted = (bool)c.GetValue("audio", "muted", Muted);
+        Noise = Math.Clamp((int)c.GetValue("audio", "noise", Noise), 0, 3);
     }
     public static void Save()
     {
         var c = new ConfigFile();
         c.SetValue("video", "window_mode", WindowMode); c.SetValue("video", "vsync", VSync); c.SetValue("video", "fps", ShowFps);
-        c.SetValue("audio", "master", Master); c.SetValue("audio", "sfx", Sfx); c.SetValue("audio", "ambient", Ambient); c.SetValue("audio", "muted", Muted);
+        c.SetValue("ui", "lang", Lang);
+        c.SetValue("audio", "master", Master); c.SetValue("audio", "sfx", Sfx); c.SetValue("audio", "ambient", Ambient); c.SetValue("audio", "muted", Muted); c.SetValue("audio", "noise", Noise);
         c.Save(PATH);
     }
 

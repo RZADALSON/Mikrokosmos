@@ -6,7 +6,7 @@ public enum St
     Bind, Contract, Inject, Ghost, Debris, Dead, Bdelloplast, Infected, Capture, Swallow, Digest, Cyst,
 }
 
-public enum Kind { None, EColi, Phage, Bdello, Staph, Neutro, Rbc, Plt, Lympho, Para, Didi, Chlamy, Diatom, Cosm, Clost, Floc, Amoeba, Rotifer, Acanth, Protist, Metazoan, Microbe, Particle, TissueCell, Fungus, Bot }
+public enum Kind { None, EColi, Phage, Bdello, Staph, Neutro, Rbc, Plt, Lympho, Para, Didi, Chlamy, Diatom, Cosm, Clost, Floc, Amoeba, Rotifer, Acanth, Protist, Metazoan, Microbe, Particle, TissueCell, Fungus, Bot, Sperm, Oocyte, Tumor, Killer, Trypano, Kupffer, Neuron }
 
 /// <summary>Widoczny obszar świata (µm) + rozmiar piksela.</summary>
 public sealed class View
@@ -27,7 +27,26 @@ public abstract class Ent
     public float Mass = 1, R = 1, DrawR, D, Dr;
     public float MemK = 10, MemS = 0.6f;
     public bool Alive = true, Solid = true, Fixed, Lineage, Edible;
+    /// <summary>Pokolenie w linii gracza (0 = założyciel) i chwila narodzin (czas biologiczny świata, s).</summary>
+    public int Gen; public float BornT;
+    /// <summary>
+    /// Typ pola przepływu wokół pływaka (siła netto = 0, więc pole dalekie to dipol, nie stokeslet):
+    /// +1 „pchacz” (wici z tyłu: E. coli, Bdellovibrio), −1 „ciągacz” (wici z przodu: Chlamydomonas),
+    /// 0 – orzęski i kolonie (squirmer, dominuje dipol źródłowy ~1/r³).
+    /// </summary>
+    public virtual float Dipole => 0;
+    /// <summary>Czy ciało napędza się w wodzie (rzęski, wici). Komórki pełzające po podłożu i chodzące zwierzęta nie wytwarzają pola pływaka.</summary>
+    public virtual bool Swims => true;
     public int Layer = 1;
+    /// <summary>Liczba wierzchołków narysowanych w poprzedniej klatce (koszt przy podziale pracy między wątki).</summary>
+    public int DrawCost;
+    /// <summary>
+    /// Rysunek nie zmienia się w czasie (nieruchome włókno, ziarno, listek): geometria trafia do pamięci statycznej widoku
+    /// i jest wysyłana do karty tylko przy zmianie powiększenia lub obszaru, a nie w każdej klatce.
+    /// </summary>
+    public virtual bool StaticDraw => false;
+    /// <summary>Stan rysunku statycznego (zmiana wymusza przebudowę pamięci, np. stopień strawienia włókna).</summary>
+    public virtual float StaticKey => 0;
     public readonly Prim Prim = new();
     public readonly List<Ent> Nb = new();
     public Membrane Mem;
@@ -68,6 +87,8 @@ public abstract class Ent
     }
     /// <summary>Stan "wolny" encji (po uwolnieniu z drapieżnika).</summary>
     public virtual St FreeState => St.Free;
+    /// <summary>Cechy tego konkretnego osobnika do karty w trybie podglądu (np. ruchliwość i budowa plemnika); pusty = brak.</summary>
+    public virtual string Note => "";
     /// <summary>Uwolnienie z wnętrza/uchwytu martwego drapieżnika lub gospodarza.</summary>
     public virtual void Unhold()
     {
@@ -119,7 +140,7 @@ public abstract class Ent
     /// <summary>Długość ciała (jak o.L), 0 gdy nie dotyczy.</summary>
     public virtual float Length => 0;
 
-    protected Ent(World w, float x, float y, float a) { W = w; Id = _nextId++; X = x; Y = y; A = a; Prim.X = x; Prim.Y = y; }
+    protected Ent(World w, float x, float y, float a) { W = w; Id = _nextId++; X = x; Y = y; A = a; Prim.X = x; Prim.Y = y; BornT = w?.SimT ?? 0; }
 
     public bool IsPlayer => W != null && W.Player == this;
 
@@ -177,8 +198,19 @@ public abstract class Ent
     }
     /// <summary>Ciało przepuszczalne dla o (np. sieć kolagenu dla pełzających leukocytów): kontakt stawia opór, ale nie blokuje.</summary>
     public virtual bool Permeable(Ent o) => false;
+    /// <summary>Kontakt z ciałem przepuszczalnym (n: od tego ciała do o) – domyślnie łagodny opór sprężysty.</summary>
+    public virtual void Seep(Ent o, float pen, float nx, float ny)
+    {
+        float q = pen * 0.025f, mA = Fixed ? 0 : 1, mB = o.Fixed ? 0 : 1;
+        X -= nx * q * mA; Y -= ny * q * mA; o.X += nx * q * mB; o.Y += ny * q * mB;
+    }
+    /// <summary>Opór macierzy zewnątrzkomórkowej zebrany w ostatnim kroku (pełzająca komórka dzieli prędkość przez 1 + Mesh).</summary>
+    public float Mesh;
     /// <summary>Ukryta przed drapieżnikami (np. Euglena wpełzła w kłaczek detrytusu).</summary>
     public virtual bool Hidden => false;
+
+    /// <summary>Układ lokalny wnętrza ciała: podąża za wygięciem i opóźnieniem obrotu miękkiej membrany (obrys i organella razem).</summary>
+    protected void BodyLocal(Painter p, float sc = 1) { p.Local(X, Y, A, sc); p.Warp(Mem); }
 
     public void SetCircle(float r) { NParts = 0; Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = r; }
     public void SetCapsule(float hl, float r)
@@ -188,6 +220,18 @@ public abstract class Ent
         Prim.Cap = true; Prim.Ax = X - c; Prim.Ay = Y - s; Prim.Bx = X + c; Prim.By = Y + s; Prim.R = r;
     }
     public virtual void UpdatePrim() => SetCircle(R);
+    /// <summary>
+    /// Przesunięcie kształtu kolizyjnego razem z ciałem (rozsuwanie przy zderzeniach): zamiast przeliczać części od nowa –
+    /// sama translacja (obrót od momentu siły dojdzie przy następnym UpdatePrim, w kolejnej klatce).
+    /// </summary>
+    public void ShiftPrim(float dx, float dy)
+    {
+        static void S(Prim p, float dx, float dy) { p.X += dx; p.Y += dy; p.Ax += dx; p.Ay += dy; p.Bx += dx; p.By += dy; }
+        S(Prim, dx, dy);
+        for (int i = 0; i < NParts; i++) S(Parts[i], dx, dy);
+    }
+    /// <summary>Przed dopasowaniem membrany (wątki robocze, każda encja tylko swoje dane): np. odroczone przeliczenie kształtu.</summary>
+    public virtual void PreMem() { }
 
     public virtual void Integrate(float dt)
     {
@@ -216,6 +260,10 @@ public abstract class Ent
     public virtual void Post(float dt, float gdt) { }
     public abstract void Draw(Painter p, View v);
     public virtual bool Collides(Ent o) => true;
+    /// <summary>Pominięcie wgniatania membrany przez o w tej klatce (optymalizacja gęsto upakowanych komórek).</summary>
+    public virtual bool SkipMemPush(Ent o, int frame) => false;
+    /// <summary>Od jakiej średnicy na ekranie (px) liczyć wgniecenia membrany od sąsiadów (mniejsze są niewidoczne).</summary>
+    public virtual float MemPushPx => 45;
     public virtual void OnTouch(Ent o, float nx, float ny) { }
     public virtual bool CanControl() => true;
 }

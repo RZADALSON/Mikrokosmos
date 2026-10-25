@@ -7,6 +7,8 @@ public static class M
     public const float PI = MathF.PI;
 
     static ulong _s = (ulong)DateTime.Now.Ticks | 1UL;
+    /// <summary>Stałe ziarno (testy wydajności: ten sam świat w każdym przebiegu).</summary>
+    public static void Seed(ulong s) { _s = s * 0x9E3779B97F4A7C15UL | 1UL; _hasSpare = false; }
 
     public static float R01()
     {

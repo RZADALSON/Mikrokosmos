@@ -94,9 +94,11 @@ public sealed class CampField
 /// </summary>
 public sealed class DictyCell : Ent
 {
+    /// <summary>Pełza/chodzi po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     public float Eaten, CycleT, Energy = 0.5f, Pol;
     float _dir, _turnT, _seekT, _bx, _by; bool _hasB;
-    readonly float _r, _seed; const int NP = 16; readonly float[] _rr = new float[NP];
+    readonly float _r, _seed; const int NP = 24; readonly float[] _rr = new float[NP];
     readonly Vector3[] _vac;
     public override float Radius => _r;
     public DictyCell(World w, float x, float y, float energy = 0.5f) : base(w, x, y, Rand(0, TAU))
@@ -105,8 +107,22 @@ public sealed class DictyCell : Ent
         _r = Rand(4.2f, 5.6f); R = _r + 1; Mass = 1; _seed = Rand(0, 99); _dir = A; Energy = energy; CycleT = Rand(0, 8000);
         _vac = new Vector3[5];
         for (int i = 0; i < _vac.Length; i++) _vac[i] = new Vector3(Rand(0, TAU), Rand(0.2f, 0.6f), Rand(0.12f, 0.22f));
+        // miękki, płynny obrys: ciasno upakowane ameby spłaszczają się o siebie (jak w strumieniach agregacji)
+        Mem = new Membrane(NP) { MaxDef = _r * 0.6f, Stiff = 8, Damping = 0.7f, Fluid = 0.8f }; MemK = 5; MemS = 0.5f;
+        Shape(0); Mem.Follow(x, y, A, 1, 1);
     }
     public override void UpdatePrim() => SetCircle(_r * 0.85f);
+    /// <summary>Kształt: nibynóżki z przodu; w agregacji komórka jest wydłużona (głowa–ogon, strumienie).</summary>
+    void Shape(float t)
+    {
+        for (int i = 0; i < NP; i++)
+        {
+            float th = i * TAU / NP + A, c = MathF.Cos(th - _dir);
+            float el = 1 + 0.45f * Pol * c * c - 0.15f * Pol;
+            _rr[i] = _r * el * (1 + 0.12f * Noise1(th * 2 + t + _seed) + 0.18f * (1 - Pol) * Math.Max(0, Noise1(th * 3 - t * 1.3f + _seed * 2)));
+        }
+        Mem.Radial(_rr);
+    }
     public override bool Rotates => false;
     public override void Step(float dt, float gdt)
     {
@@ -153,36 +169,28 @@ public sealed class DictyCell : Ent
         _dir = Turn(_dir, tgt, 2.5f * gdt);
         Pol = Lerp(Pol, polarize ? 1 : 0.2f, Damp(polarize ? 2 : 0.5f, gdt));
         Vx = MathF.Cos(_dir) * v; Vy = MathF.Sin(_dir) * v;
+        if (W.OnScreen(this)) Shape(W.T * 0.6f);
     }
     void Divide()
     {
         Eaten = 0; CycleT = 0; Energy *= 0.55f;
         float a = _dir + PI / 2;
         var d = W.Add(new DictyCell(W, X + MathF.Cos(a) * _r, Y + MathF.Sin(a) * _r, Energy));
-        d.CycleT = 0; d.Lineage = Lineage || IsPlayer;
+        d.CycleT = 0; W.Born(this, d, true);
         X -= MathF.Cos(a) * _r * 0.5f; Y -= MathF.Sin(a) * _r * 0.5f;
         if (IsPlayer || Lineage) W.AddStat("pop", 1);
         if (IsPlayer) W.Log("Podział komórki – dwie ameby. Druga pełznie już sama (należy do Twojej linii).", "good");
     }
     public override void Draw(Painter p, View v)
     {
-        float t = W.T * 0.6f;
-        // kształt: nibynóżki z przodu; w agregacji komórka jest wydłużona (głowa–ogon, strumienie)
-        for (int i = 0; i < NP; i++)
-        {
-            float th = i * TAU / NP, c = MathF.Cos(th - _dir);
-            float el = 1 + 0.45f * Pol * c * c - 0.15f * Pol;
-            _rr[i] = _r * el * (1 + 0.12f * Noise1(th * 2 + t + _seed) + 0.18f * (1 - Pol) * Math.Max(0, Noise1(th * 3 - t * 1.3f + _seed * 2)));
-        }
-        var sh = p.Buf2;
-        for (int i = 0; i < NP; i++) { float th = i * TAU / NP; sh[i] = new Vector2(X + MathF.Cos(th) * _rr[i], Y + MathF.Sin(th) * _rr[i]); }
-        var s = new ReadOnlySpan<Vector2>(sh, 0, NP);
+        int ns = Mem.Smooth(p.Shape, 2);
+        var s = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
         bool detail = _r / v.Px > 4;
         if (detail) p.SoftStroke(s, true, 1.6f, Rgb(255, 255, 240, 0.3f));
         p.FillFan(s, X, Y, Rgb(150, 155, 140, 0.5f));
         p.Stroke(s, true, Math.Max(v.Px, 0.12f), Rgb(45, 50, 40, 0.65f));
         if (!detail) return;
-        p.Local(X, Y, _dir);
+        p.Local(X, Y, _dir); p.Warp(Mem);
         p.FillCircle(-_r * 0.15f, 0, _r * 0.3f, Rgb(185, 188, 175, 0.5f)); // jądro
         p.FillCircle(-_r * 0.15f, 0, _r * 0.1f, Rgb(80, 85, 75, 0.6f));    // jąderko
         float full = Math.Min(1, Energy);
@@ -231,26 +239,91 @@ public sealed class Mound : Ent
     }
 }
 
-/// <summary>
-/// Ślimak (pseudoplazmodium): wielokomórkowy "organizm" w osłonce śluzu, pełznie ku światłu i ciepłu,
-/// zostawiając ślad śluzu. Przód (~20%) to komórki przedtrzonkowe, reszta – przedzarodnikowe.
+//// <summary>
+/// Ślimak (pseudoplazmodium): ~10⁵ komórek w osłonce śluzu (celuloza + glikoproteiny), płynne ciało bez szkieletu.
+/// Prowadzi go czubek (przód, ~20% komórek przedtrzonkowych); reszta ciała sunie po torze czubka jak pociąg po szynach
+/// (zakręty „przepływają” wzdłuż ciała), zostawiając ślad śluzu. Ruch ~1–2 mm/h ku światłu i ciepłu (Bonner 2009).
+/// Obrys to miękka membrana: wgniata się o przeszkody, a ubytek objętości wybrzusza ciało obok (nieściśliwe wnętrze).
 /// </summary>
 public sealed class Slug : Ent
 {
+    /// <summary>Pełza po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     public int N; public float L, Wd; public Steer Sw; float _head;
+    const int K = 18;
+    /// <summary>Tor czubka (najnowszy na końcu) – po nim sunie reszta ciała.</summary>
+    readonly List<Vector2> _path = new();
+    readonly Vector2[] _c = new Vector2[K];
+    readonly float[] _w = new float[K];
     readonly List<Vector2> _trail = new();
     public override float Length => L;
     public override float Radius => Wd / 2;
+    public override bool Rotates => false;
     public Slug(World w, float x, float y, float a, int n) : base(w, x, y, a)
     {
         N = n; Kind = Kind.None; Layer = 2; Soft = 0.5f; Name = "ślimak (pseudoplazmodium)"; Latin = "Dictyostelium discoideum";
-        L = Math.Clamp(60 + n * 1.3f, 80, 520); Wd = L * 0.16f; R = L / 2 + 10; Mass = n; _head = a;
+        L = Math.Clamp(60 + n * 1.3f, 80, 520); Wd = L * 0.16f; R = L + 10; Mass = n; _head = a;
+        Mem = new Membrane(2 * K) { MaxDef = Wd * 0.35f, Stiff = 5, Damping = 0.8f, Fluid = 0.9f }; MemK = 2; MemS = 0.6f;
+        // tor startowy: ciało leży prosto za czubkiem
+        for (int k = 12; k >= 0; k--) _path.Add(new Vector2(x - MathF.Cos(a) * L * k / 12, y - MathF.Sin(a) * L * k / 12));
+        Centerline(); Outline(); Mem.Follow(X, Y, A, 1, 1);
     }
-    public override void UpdatePrim() => AxisParts(3, L / 2, Wd / 2, t => MathF.Sqrt(Math.Max(0, 1 - t * t)) * (t > 0 ? 1 - 0.3f * t : 1), 0);
+    /// <summary>Profil szerokości: stożkowy czubek, pełny środek, zaokrąglony tył; lekka fala perystaltyczna biegnąca do tyłu.</summary>
+    float Width(float t)
+    {
+        float tip = Smooth(Math.Min(1, t / 0.22f)), tail = MathF.Sqrt(Math.Max(0, 1 - Sq(Math.Max(0, t - 0.8f) / 0.2f)));
+        return Wd / 2 * (0.35f + 0.65f * tip) * Math.Max(0.25f, tail) * (1 + 0.04f * MathF.Sin(t * 14 - (W?.T ?? 0) * 1.5f));
+    }
+    /// <summary>Oś ciała: punkty wzdłuż toru czubka, co L/(K−1) (od czubka do tyłu).</summary>
+    void Centerline()
+    {
+        float step = L / (K - 1), need = 0; int k = 0;
+        _c[k++] = new Vector2(X, Y);
+        var prev = new Vector2(X, Y);
+        for (int i = _path.Count - 1; i >= 0 && k < K; i--)
+        {
+            var q = _path[i]; float d = (q - prev).Length();
+            while (d > 1e-4f && k < K && need + d >= step)
+            {
+                float u = (step - need) / d; var pt = prev + (q - prev) * u;
+                _c[k++] = pt; d = (q - pt).Length(); prev = pt; need = 0;
+            }
+            need += d; prev = q;
+        }
+        // tor za krótki – dopełnij prosto w tył
+        var dir = k >= 2 ? (_c[k - 1] - _c[k - 2]).Normalized() : new Vector2(-MathF.Cos(A), -MathF.Sin(A));
+        for (; k < K; k++) _c[k] = _c[k - 1] + dir * step;
+        for (int i = 0; i < K; i++) _w[i] = Width((float)i / (K - 1));
+    }
+    /// <summary>Obrys spoczynkowy (lewa strona od czubka do tyłu, prawa z powrotem).</summary>
+    void Outline()
+    {
+        for (int i = 0; i < K; i++)
+        {
+            var t = i == 0 ? _c[0] - _c[1] : i == K - 1 ? _c[K - 2] - _c[K - 1] : _c[i - 1] - _c[i + 1];
+            t = t.Normalized(); var n = new Vector2(-t.Y, t.X);
+            var l = _c[i] + n * _w[i]; var r = _c[i] - n * _w[i];
+            // membrana obraca obrys o kąt A – zapisujemy go w układzie lokalnym (obrócony o −A)
+            ToLocal(l.X, l.Y, out Mem.Rx[i], out Mem.Ry[i]);
+            ToLocal(r.X, r.Y, out Mem.Rx[2 * K - 1 - i], out Mem.Ry[2 * K - 1 - i]);
+        }
+        Mem.IsRadial = false;
+    }
+    /// <summary>Kolizje wzdłuż wygiętego ciała (kapsuły między punktami osi).</summary>
+    public override void UpdatePrim()
+    {
+        UseParts(K - 1);
+        for (int i = 0; i < K - 1; i++)
+        {
+            var p = Parts[i]; p.Cap = true; p.Ax = _c[i].X; p.Ay = _c[i].Y; p.Bx = _c[i + 1].X; p.By = _c[i + 1].Y;
+            p.R = Math.Max(0.5f, (_w[i] + _w[i + 1]) * 0.45f); p.X = (p.Ax + p.Bx) / 2; p.Y = (p.Ay + p.By) / 2;
+        }
+        Prim.Cap = false; Prim.X = X; Prim.Y = Y; Prim.R = Wd * 0.3f;
+    }
     public override bool CanControl() => true;
     public override void Step(float dt, float gdt)
     {
-        if (W.Sc is not ScDicty sc) return;
+        if (W.Sc is not ScDicty) return;
         // fototaksja: ślimak skręca ku światłu (w grze – górna krawędź = powierzchnia gleby)
         float light = -PI / 2, tgt = light;
         if (IsPlayer && !W.Preview) { var I = W.Input; if (I.Mag > 0.05f) tgt = I.Ang; }
@@ -259,7 +332,13 @@ public sealed class Slug : Ent
         // ~1–2 mm/h; szybciej, gdy w stronę światła
         float v = (IsPlayer && W.Input.Mag <= 0.05f ? 0.3f : 1) * (0.28f + 0.14f * Math.Max(0, al)) * (N > 40 ? 1 : 0.7f);
         Sw.Update(this, dt, _head, v, 0.004f, 0.01f, 0.01f);
-        if (_trail.Count == 0 || Hypot(_trail[^1].X - X, _trail[^1].Y - Y) > 8) { ToWorld(-L / 2, 0, out float tx, out float ty); _trail.Add(new Vector2(tx, ty)); if (_trail.Count > 400) _trail.RemoveAt(0); }
+        if (_trail.Count == 0 || Hypot(_trail[^1].X - _c[K - 1].X, _trail[^1].Y - _c[K - 1].Y) > 8) { _trail.Add(_c[K - 1]); if (_trail.Count > 400) _trail.RemoveAt(0); }
+    }
+    public override void Post(float dt, float gdt)
+    {
+        // czubek zapisuje tor; ciało (oś i obrys) podąża za nim
+        if (_path.Count == 0 || Hypot(_path[^1].X - X, _path[^1].Y - Y) > L / 60) { _path.Add(new Vector2(X, Y)); if (_path.Count > 200) _path.RemoveAt(0); }
+        Centerline(); Outline();
     }
     public override void Draw(Painter p, View v)
     {
@@ -270,25 +349,40 @@ public sealed class Slug : Ent
             for (int i = 0; i < n; i++) b[i] = _trail[_trail.Count - n + i];
             p.Stroke(new ReadOnlySpan<Vector2>(b, 0, n), false, Wd * 0.8f, Rgb(225, 225, 205, 0.18f), true);
         }
-        p.Local(X, Y, A);
-        float hl = L / 2, hw = Wd / 2;
-        const int M = 24; var sh = p.Buf2;
-        for (int k = 0; k <= M; k++) { float t = -1 + 2f * k / M, w = MathF.Sqrt(Math.Max(0, 1 - t * t)) * (t > 0 ? 1 - 0.3f * t : 1) * hw; sh[k] = new Vector2(t * hl, w); sh[2 * M + 1 - k] = new Vector2(t * hl, -w); }
-        var s = new ReadOnlySpan<Vector2>(sh, 0, 2 * M + 2);
+        int ns = Mem.Smooth(p.Shape, 3);
+        var s = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
+        float hw = Wd / 2;
         p.SoftStroke(s, true, hw * 0.5f, Rgb(255, 255, 240, 0.25f));
-        Span<float> ts = stackalloc float[] { 0f, 1f };
-        Span<Color> cs = stackalloc Color[] { Rgb(205, 205, 185, 0.7f), Rgb(150, 150, 130, 0.7f) };
-        p.FillRadial(s, 0, 0, ts, cs);
+        // wypełnienie paskiem czworokątów wzdłuż ciała (ciało bywa wklęsłe w zakrętach – wachlarz ze środka by się wylewał)
+        Span<Vector2> q = stackalloc Vector2[4];
+        var mp = Mem;
+        for (int i = 0; i < K - 1; i++)
+        {
+            int l0 = i, l1 = i + 1, r0 = 2 * K - 1 - i, r1 = 2 * K - 2 - i;
+            q[0] = new Vector2(mp.Px[l0], mp.Py[l0]); q[1] = new Vector2(mp.Px[l1], mp.Py[l1]);
+            q[2] = new Vector2(mp.Px[r1], mp.Py[r1]); q[3] = new Vector2(mp.Px[r0], mp.Py[r0]);
+            float t = (i + 0.5f) / (K - 1), cx = (q[0].X + q[1].X + q[2].X + q[3].X) / 4, cy = (q[0].Y + q[1].Y + q[2].Y + q[3].Y) / 4;
+            p.FillFan(q, cx, cy, Rgb((int)Lerp(178, 140, t), (int)Lerp(180, 142, t), (int)Lerp(160, 122, t), 0.75f), false);
+        }
         p.Stroke(s, true, Math.Max(v.Px, hw * 0.05f), Rgb(70, 70, 55, 0.65f));
-        // strefa przedtrzonkowa (przód, ~20%) – jaśniejsza; granica z przedzarodnikową
-        p.Line(hl * 0.6f, -hw * 0.75f, hl * 0.6f, hw * 0.75f, Math.Max(v.Px, hw * 0.04f), Rgb(110, 110, 90, 0.35f));
-        p.FillEllipse(hl * 0.8f, 0, hl * 0.2f, hw * 0.55f, 0, Rgb(235, 235, 220, 0.35f));
+        // strefa przedtrzonkowa (przód, ~20%) – jaśniejsza, uniesiony czubek
+        int kb = (int)(K * 0.2f);
+        var tb = (_c[kb - 1] - _c[kb + 1]).Normalized(); var nb = new Vector2(-tb.Y, tb.X);
+        p.Line(_c[kb].X + nb.X * _w[kb] * 0.8f, _c[kb].Y + nb.Y * _w[kb] * 0.8f, _c[kb].X - nb.X * _w[kb] * 0.8f, _c[kb].Y - nb.Y * _w[kb] * 0.8f, Math.Max(v.Px, hw * 0.04f), Rgb(110, 110, 90, 0.35f));
+        for (int i = 0; i < kb; i++) p.FillCircle(_c[i].X, _c[i].Y, _w[i] * 0.6f, Rgb(235, 235, 220, 0.12f));
+        // komórki w ciele – rozłożone wzdłuż wygiętej osi
         int nc = Math.Min(220, N);
-        for (int i = 0; i < nc; i++) { float t = -0.9f + 1.8f * ((i * 0.618f) % 1), w = MathF.Sqrt(Math.Max(0, 1 - t * t)) * hw * 0.85f; p.Dot(t * hl, ((i * 0.377f) % 1 * 2 - 1) * w, 1.3f, Rgb(100, 100, 85, 0.3f)); }
+        for (int i = 0; i < nc; i++)
+        {
+            float t = 0.05f + 0.9f * ((i * 0.618f) % 1), f = t * (K - 1); int k = Math.Min(K - 2, (int)f); float u = f - k;
+            var c = _c[k] + (_c[k + 1] - _c[k]) * u; var d = (_c[k + 1] - _c[k]).Normalized();
+            float side = ((i * 0.377f) % 1 * 2 - 1) * (_w[k] + (_w[k + 1] - _w[k]) * u) * 0.85f;
+            p.Dot(c.X - d.Y * side, c.Y + d.X * side, 1.3f, Rgb(100, 100, 85, 0.3f));
+        }
     }
 }
 
-/// <summary>Owocnik: trzonek z martwych komórek (celuloza) unosi kulkę zarodników (sorus). Widok skośny, jak pod lupą stereoskopową.</summary>
+// <summary>Owocnik: trzonek z martwych komórek (celuloza) unosi kulkę zarodników (sorus). Widok skośny, jak pod lupą stereoskopową.</summary>
 public sealed class FruitBody : Ent
 {
     public float Prog; readonly int _n; readonly float _h;

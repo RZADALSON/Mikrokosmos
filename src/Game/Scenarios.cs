@@ -5,15 +5,21 @@ namespace Mikro;
 // =====================================================================
 public sealed class ScT4 : Scenario
 {
+    public override string InspectAt(World w, float x, float y) => "tem";
     public ScT4()
     {
         Id = "t4"; Name = "Bakteriofag T4"; Latin = "Tequatrovirus (Escherichia virus T4)"; TypeName = "Wirus"; Size = "≈ 0,2 µm"; Color = Hex("#e0a060");
+        ReproFact = "Wirus się nie dzieli – jest składany z części w zakażonej komórce. Jedno pokolenie (adsorpcja → wstrzyknięcie DNA → liza) trwa w 37 °C ok. 25–30 min, a z jednej komórki wychodzi ~100–150 wirionów. O dostosowaniu decyduje, ilu z nich zdąży trafić na wrażliwego gospodarza, zanim zwiążą się z wabikiem (OMV), odpornym mutantem albo ulegną rozpadowi.";
         Desc = "Wirus bakteryjny. Nie ma napędu – dryfujesz ruchami Browna po nieskończonym szkiełku. Przyczep się do E. coli, wstrzyknij DNA i doprowadź do lizy. Uwaga na odporne mutanty.";
         Wd = 40; Ht = 28; ViewW = 4.3f; TimeScale = 0.05f; Bio = 2100; Em = true; Style = ScopeStyle.Em; Modes = EmModes; GridCell = 1.5f;
         ChunkSize = 6; ActiveR = 2; ParkCap = 80;
         BiomeNames = new[] { "Mikrokolonia E. coli", "Rozproszone komórki", "Pusta powierzchnia szkiełka", "Kolonia mutantów odpornych" };
+        // barwienie negatywne: barwnik zbiera się nierówno (grubiej przy komórkach), błonka węglowa ma drobne ziarno
+        Look = BgLook.Tem;
+        Zones = new[] { new BgZone(0.45f, 0.35f, 0, 0.55f, 0.12f), new BgZone(0.35f, 0.3f, 0, 0.5f, 0.08f), new BgZone(0.22f, 0.2f, 0, 0.45f, 0.04f), new BgZone(0.45f, 0.35f, 0, 0.55f, 0.12f) };
         BiomeColors = new[] { Rgb(90, 170, 200), Rgb(70, 120, 150), Rgb(45, 55, 65), Rgb(210, 100, 90) };
-        Mag = "TEM (symulacja) ≈ 25 000×"; PhageCap = 160; PhageDrift = 20; GrowEcoli = true; EcoliDouble = 14000; ScoreLabel = "wirionów";
+        Mag = "TEM (symulacja) ≈ 25 000×"; PhageCap = 160; PhageDrift = 20; GrowEcoli = true; EcoliDouble = 14000; ScoreLabel = "wirionów potomnych";
+        LineUnit = "wirionów"; BirthWord = "wirionów potomnych";
         DebrisN = 400; DebrisS0 = 0.004f; DebrisS1 = 0.02f; DebrisD = 0.4f; DebrisCols = new[] { Rgb(200, 220, 230, 0.5f), Rgb(10, 12, 14, 0.6f) };
         Controls = "WASD / przytrzymaj LPM – dryf (symulowany mikroprzepływ; wirus nie pływa) · Shift – mocniejszy dryf · Spacja (przytrzymaj) – przyspiesz infekcję";
         Goals = new[]
@@ -58,7 +64,8 @@ public sealed class ScT4 : Scenario
             case 2: if (Chance(0.4f)) { var (x, y) = Spot(w, c, 1.6f, loc, 1); Put(w, loc, new EColi(w, x, y, Rand(0, TAU), sessile: true, nf: 3)); } for (int i = 0; i < 2; i++) w.Add(new PhageT4(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S), Rand(0, TAU))); break;
             case 3: Colony(w, c, loc, RandI(4, 7), 0.65f); break;
         }
-        if (Chance(0.4f)) w.Add(new PhageT4(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S), Rand(0, TAU)));
+        // wolne wiriony z wcześniejszych liz: na siatce TEM z lizatu (~10¹⁰ PFU/ml) widać ich kilka w polu widzenia
+        for (int i = RandI(1, 3); i > 0; i--) w.Add(new PhageT4(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S), Rand(0, TAU)));
         // pęcherzyki błony zewnętrznej (wabiki), konkurencyjne fagi, szczątki rzęsek, bakterie Gram-dodatnie
         for (int i = RandI(1, 3) + (c.Biome is 0 or 3 ? 3 : 0); i > 0; i--) w.Add(new Omv(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S)));
         if (Chance(0.35f)) w.Add(new OtherPhage(w, c.X0 + Rand(0, c.S), c.Y0 + Rand(0, c.S), Chance(0.5f)));
@@ -120,15 +127,21 @@ public sealed class ScT4 : Scenario
         }
         return 0;
     }
-    public override float Score(World w) => w.Stat("virions");
+    /// <summary>Wirus nie rośnie ani nie dzieli się – jego dostosowanie to liczba wirionów potomnych, które zdążą trafić na gospodarza.</summary>
+    public override float Score(World w) => w.LineBorn;
+    public override int LinePop(World w)
+    {
+        int n = w.CountAll(e => e is PhageT4 q && q.Lineage && q.State is not (St.Debris or St.Ghost));
+        // DNA Twojej linii w zakażonych komórkach – każda z nich to przyszły wyrzut ~100–150 wirionów
+        n += w.CountAll(e => e is EColi c && c.Inf != null && c.Inf.ByPlayer && c.State != St.Dead);
+        return n;
+    }
     public override void OnLysis(World w, EColi c, bool byPlayer) { if (byPlayer) w.Banner("LIZA!", "Eksplozywne pęknięcie osłon – potomne wiriony uwolnione"); }
     public override bool OnPlayerLost(World w, Ent p)
     {
         if (w.Focus != null && w.Focus.Alive) return true;
-        if (w.Adopt(Kind.Phage, p.X, p.Y)) return true;
-        var alt = w.Near(p.X, p.Y, 1e9f, e => e is PhageT4 q && q.State == St.Free);
-        if (alt != null) { w.Player = null; w.SetPlayer(alt); w.Log("Twoja linia zginęła – przejmujesz inny wolny wirion.", "info"); return true; }
-        return false;
+        // tylko potomkowie Twojego wirionu – obcy fag to inna linia (inny genom), nie „kolejne życie”
+        return w.Adopt(Kind.Phage, p.X, p.Y);
     }
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new PhageT4(w, 0, 0, -0.5f)); e.D = 0; e.Dr = 0; return (e, 0.42f); }
 }
@@ -138,14 +151,34 @@ public sealed class ScT4 : Scenario
 // =====================================================================
 public abstract class ScBiofilm : Scenario
 {
+    public override string InspectAt(World w, float x, float y) => "biofilm";
     protected ScBiofilm()
     {
         Wd = 260; Ht = 180; ViewW = 30; TimeScale = 0.25f; Style = ScopeStyle.Phase; Modes = LightModes; GrowEcoli = true; GridCell = 6; Water = true;
-        ChunkSize = 40; ActiveR = 2; ParkCap = 50;
+        // limit zamrożonych organizmów na chunk mieści mikrokolonie (inaczej część z nich znikałaby po oddaleniu się)
+        ChunkSize = 40; ActiveR = 2; ParkCap = 110;
         Mag = "Obiektyw 100× imersyjny (1000×)";
+        Look = BgLook.Biofilm;
         DebrisN = 1200; DebrisS0 = 0.08f; DebrisS1 = 0.5f; DebrisD = 0.03f; DebrisCols = new[] { Rgb(40, 45, 40, 0.5f), Rgb(255, 255, 240, 0.5f), Rgb(30, 30, 30, 0.5f) };
     }
     protected static void Ecoli(World w, Chunk c, List<Ent> loc, int n) { for (int i = 0; i < n; i++) { var (x, y) = Spot(w, c, 2, loc); Put(w, loc, new EColi(w, x, y, Rand(0, TAU))); } }
+    /// <summary>
+    /// Mikrokolonie osiadłych komórek (bez ruchu, z rzęskami „położonymi” na podłożu): biofilm na szkle zaczyna się od
+    /// przyczepionych komórek, które dzielą się w miejscu i tworzą zwarte skupiska obok siebie (pokrycie powierzchni
+    /// dziesiątki procent) – dopiero później rosną w głąb (O'Toole i in. 2000; Hall-Stoodley i in. 2004).
+    /// </summary>
+    protected static void Microcolonies(World w, Chunk c, List<Ent> loc, int colonies, int n0, int n1)
+    {
+        for (int k = 0; k < colonies; k++)
+        {
+            var (cx, cy) = Spot(w, c, 5, loc, 5); float a0 = Rand(0, TAU); int n = RandI(n0, n1);
+            for (int i = 0; i < n; i++)
+            {
+                float r = 1.3f * MathF.Sqrt(i + 0.5f), th = i * 2.39996f;
+                Put(w, loc, new EColi(w, cx + MathF.Cos(th) * r, cy + MathF.Sin(th) * r, a0 + RandN() * 0.35f, Rand(2.0f, 2.8f), sessile: true, nf: RandI(2, 4)));
+            }
+        }
+    }
     protected static void Grains(World w, Chunk c, List<Ent> loc, int n) { for (int i = 0; i < n; i++) { var (x, y) = Spot(w, c, 10, loc, 6); Put(w, loc, new Grain(w, x, y, Rand(3, 11))); } }
     protected static void Acanths(World w, Chunk c, List<Ent> loc, int n) { for (int i = 0; i < n; i++) { var (x, y) = Spot(w, c, 15, loc, 8); Put(w, loc, new Acanth(w, x, y)); } }
     protected static void Glucose(World w, Chunk c, int n, float amt) { for (int i = 0; i < n; i++) w.Nutri.Blob(c.X0 + Rand(4, c.S - 4), c.Y0 + Rand(4, c.S - 4), Rand(5, 12), amt * Rand(0.6f, 1.1f)); }
@@ -191,9 +224,12 @@ public sealed class ScBdello : ScBiofilm
     public ScBdello()
     {
         Id = "bdello"; Name = "Bdellovibrio"; Latin = "Bdellovibrio bacteriovorus"; TypeName = "Bakteria drapieżna"; Size = "≈ 0,3 × 1 µm"; Color = Hex("#9fd0a0");
+        ReproFact = "Podział wielokrotny wewnątrz ofiary: w bdeloplaście rośnie jeden filament, który dzieli się naraz na 3–6+ komórek – także na nieparzystą liczbę (Fenton i in., J Bacteriol 2010). Cały cykl trwa ok. 3–4 h. Bez ofiary Bdellovibrio nie rośnie i nie dzieli się – pływa na zapasach, aż je wyczerpie.";
         Desc = "Najszybszy drapieżnik mikroświata (do 160 µm/s). Przemierzaj nieskończony biofilm, wwierć się w E. coli i zjedz ją od środka. Omijaj pełzające Acanthamoeby.";
-        Bio = 2000; PhageCap = 30; Starve = 160; ScoreLabel = "ofiar";
+        Bio = 2000; PhageCap = 30; Starve = 160; LineUnit = "komórek"; BirthWord = "potomków";
         BiomeNames = new[] { "Biofilm E. coli", "Czysta woda", "Kolonia Acanthamoeb", "Złoża mineralne" };
+        // biofilm ma grubość kilkunastu–kilkudziesięciu µm: nad i pod płaszczyzną ostrości leżą kolejne warstwy komórek i macierzy
+        Zones = new[] { new BgZone(0.35f, 0.2f, 0.75f, 0.4f, 0.15f), new BgZone(0.05f, 0.05f, 0.08f, 0.25f, 0.02f), new BgZone(0.25f, 0.35f, 0.3f, 0.4f, 0.1f), new BgZone(0.45f, 0.1f, 0.2f, 0.7f, 0.15f, 0.53f, 0.5f, 0.46f) };
         BiomeColors = new[] { Rgb(120, 200, 120), Rgb(90, 140, 170), Rgb(210, 110, 90), Rgb(170, 160, 130) };
         Controls = "WASD / przytrzymaj LPM – płyń · Shift – sprint 160 µm/s · Spacja (przytrzymaj) – przyspiesz czas wewnątrz ofiary";
         Goals = new[]
@@ -220,7 +256,7 @@ public sealed class ScBdello : ScBiofilm
         w.Nutri.Ensure(c.X, c.Y);
         switch (c.Biome)
         {
-            case 0: Glucose(w, c, 2, 0.5f); Grains(w, c, loc, RandI(0, 1)); Ecoli(w, c, loc, RandI(10, 14)); break;
+            case 0: Glucose(w, c, 2, 0.5f); Grains(w, c, loc, RandI(0, 1)); Microcolonies(w, c, loc, RandI(3, 5), 6, 12); Ecoli(w, c, loc, RandI(10, 14)); break;
             case 1: Glucose(w, c, 1, 0.2f); Ecoli(w, c, loc, RandI(2, 4)); break;
             case 2: Glucose(w, c, 1, 0.3f); Acanths(w, c, loc, 2); Ecoli(w, c, loc, RandI(4, 6)); break;
             case 3: Grains(w, c, loc, RandI(4, 6)); Ecoli(w, c, loc, RandI(5, 7)); break;
@@ -248,7 +284,7 @@ public sealed class ScBdello : ScBiofilm
     {
         var p = w.Player;
         string st = p == null ? "-" : p.State switch { St.Swim => "faza ataku (pływanie)", St.Attach => "przyczepienie, wiercenie", St.Enter => "wnikanie do peryplazmy", St.Grow => "wzrost filamentu (bdeloplast)", St.Septate => "podział na potomków", St.Cup => "pochłaniany!", St.Vac => "trawiony w wodniczce", _ => "-" };
-        return new() { ("Stan", st), ("Zjedzone ofiary", N(w.Stat("kills"))), ("Potomkowie", N(w.Stat("born"))), ("Twoja populacja", w.CountAll(e => e is Bdello && e.Lineage).ToString()), ("E. coli w okolicy", FreeEcoli(w).ToString()) };
+        return new() { ("Stan", st), ("Zjedzone ofiary", N(w.Stat("kills"))), ("E. coli w okolicy", FreeEcoli(w).ToString()) };
     }
     public override List<(string label, float v, Color col)> Bars(World w)
     {
@@ -262,7 +298,8 @@ public sealed class ScBdello : ScBiofilm
         return e is Bdello && e.Lineage && e != w.Player ? 3 : 0;
     }
     public override void DrawMinimap(World w, Painter p) => w.Nutri.DrawMap(p, w.WinX0, w.WinY0, w.WinX0 + w.WinW, w.WinY0 + w.WinH, Rgb(255, 140, 20), 0.35f);
-    public override float Score(World w) => w.Stat("kills");
+    /// <summary>Linia = komórki w fazie ataku i te, które rosną właśnie wewnątrz bdeloplastów (każda to 3–6 przyszłych potomków).</summary>
+    public override int LinePop(World w) => w.CountAll(e => e is Bdello && e.Lineage);
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new Bdello(w, 0, 0, 0)); e.D = e.Dr = 0; return (e, 3.4f); }
 }
 
@@ -271,9 +308,11 @@ public sealed class ScEcoli : ScBiofilm
     public ScEcoli()
     {
         Id = "ecoli"; Name = "Escherichia coli"; Latin = "Escherichia coli"; TypeName = "Bakteria"; Size = "≈ 2 × 0,8 µm"; Color = Hex("#b8c7a8");
+        ReproFact = "Podział poprzeczny. W bogatej pożywce co ~20 min (37 °C), przy małym stężeniu glukozy wolniej (kinetyka Monoda). Wielkość kontroluje reguła „adder”: komórka dzieli się, gdy od narodzin dołoży stałą długość, ok. tyle, ile miała noworodek (Taheri-Araghi i in., Curr Biol 2015). Genów nie wymienia płciowo – zmienność daje mutacja i poziomy transfer genów.";
         Desc = "Szukaj glukozy w nieskończonym biofilmie i dziel się co ~20 min. Omijaj strefy ampicyliny, drapieżne Bdellovibrio, Acanthamoeby i fagi T4.";
-        Bio = 250; PhageCap = 60; ScoreLabel = "komórek (maks. populacja)";
+        Bio = 250; PhageCap = 60; LineUnit = "komórek";
         BiomeNames = new[] { "Bogata pożywka", "Uboga strefa", "Strefa ampicyliny", "Łowisko drapieżników" };
+        Zones = new[] { new BgZone(0.25f, 0.15f, 0.45f, 0.35f, 0.1f), new BgZone(0.08f, 0.05f, 0.12f, 0.25f, 0.03f), new BgZone(0.2f, 0.1f, 0.25f, 0.65f, 0.12f), new BgZone(0.3f, 0.25f, 0.35f, 0.4f, 0.1f) };
         BiomeColors = new[] { Rgb(230, 150, 50), Rgb(120, 130, 140), Rgb(220, 50, 110), Rgb(200, 90, 70) };
         Controls = "WASD / przytrzymaj LPM – bieg (run) · Spacja – koziołek (tumble; strząsa drapieżnika) · Shift – szybciej · G – mapy stężeń";
         Goals = new[]
@@ -299,7 +338,7 @@ public sealed class ScEcoli : ScBiofilm
         w.Nutri.Ensure(c.X, c.Y); w.Amp.Ensure(c.X, c.Y);
         switch (c.Biome)
         {
-            case 0: Glucose(w, c, 3, 0.9f); Ecoli(w, c, loc, RandI(3, 4)); Grains(w, c, loc, RandI(0, 1)); break;
+            case 0: Glucose(w, c, 3, 0.9f); Ecoli(w, c, loc, RandI(3, 4)); if (Math.Abs(c.X) + Math.Abs(c.Y) > 1) Microcolonies(w, c, loc, RandI(1, 2), 5, 10); Grains(w, c, loc, RandI(0, 1)); break;
             case 1: Glucose(w, c, 1, 0.3f); Ecoli(w, c, loc, 2); break;
             case 2:
                 var src = new Vector2(c.X0 + Rand(10, c.S - 10), c.Y0 + Rand(10, c.S - 10));
@@ -359,9 +398,8 @@ public sealed class ScEcoli : ScBiofilm
         var p = w.Player as EColi;
         return new()
         {
-            ("Długość komórki", p != null ? $"{p.L:0.00} µm" : "-"), ("Podział przy", p != null ? $"{p.L0 * 2:0.00} µm" : "-"),
+            ("Długość komórki", p != null ? $"{p.L:0.00} µm" : "-"), ("Podział przy (adder)", p != null ? $"{p.DivL:0.00} µm" : "-"),
             ("Glukoza pod Tobą", p != null ? Pct(w.Nutri.Sample(p.X, p.Y)) : "-"), ("Ampicylina pod Tobą", p != null ? Pct(w.Amp.Sample(p.X, p.Y)) : "-"),
-            ("Twoja populacja", Pop(w).ToString()), ("Podziały", N(w.Stat("divisions"))),
         };
     }
     public override int MapKind(World w, Ent e)
@@ -382,7 +420,7 @@ public sealed class ScEcoli : ScBiofilm
         }
         return best > 0.25f;
     }
-    public override float Score(World w) => w.Stat("maxpop");
+    public override int LinePop(World w) => Pop(w);
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new EColi(w, 0, 0, 0, 2.3f)); e.D = e.Dr = 0; return (e, 8); }
 }
 
@@ -398,25 +436,36 @@ public class ScNeutro : Scenario
         Id = "neutro"; Name = "Neutrofil"; Latin = "Granulocyt obojętnochłonny (Homo sapiens)"; TypeName = "Komórka odporności"; Size = "≈ 12 µm"; Color = Hex("#c9b8d8");
         Desc = "Patroluj nieskończoną tkankę między żyłkami. Przeciskaj się przez kolagen, szukaj ognisk zakażenia i pochłaniaj bakterie. Uważaj na leukocydyny – w ostateczności wyrzuć sieć NET.";
         Wd = 520; Ht = 360; ViewW = 72; TimeScale = 40; Bio = 1; Style = ScopeStyle.Tissue; Modes = LightModes; FlowX = 0.002f; GridCell = 20;
-        ChunkSize = 100; ActiveR = 2; ParkCap = 80;
+        ChunkSize = 100; ActiveR = 2; ParkCap = 80; NeutroLife = 12 * 3600;
         BiomeNames = new[] { "Tkanka łączna luźna", "Tkanka zbita (kolagen)", "Ognisko zakażenia", "Wybroczyna (wylew krwi)" };
         BiomeColors = new[] { Rgb(200, 190, 170), Rgb(235, 230, 215), Rgb(225, 205, 60), Rgb(190, 80, 80) };
+        // tkanka ma grubość – nad i pod płaszczyzną ostrości leżą inne komórki (ciemniejsze jądra) i pęczki kolagenu;
+        // w ognisku zakażenia – gęsto komórek i resztek (ropa), w wybroczynie – erytrocyty
+        Look = BgLook.Tissue;
+        Zones = new[] { new BgZone(0.35f, 0.02f, 0.35f, 0.3f, 0.05f), new BgZone(0.18f, 0, 0.85f, 0.25f, 0.05f, 0.52f, 0.51f, 0.48f), new BgZone(0.55f, 0.05f, 0.25f, 0.7f, 0.25f, 0.51f, 0.5f, 0.46f), new BgZone(0.2f, 0.75f, 0.25f, 0.35f, 0.15f, 0.55f, 0.47f, 0.46f) };
         Mag = "Obiektyw 40× (400×) – time-lapse"; ScoreLabel = "zabitych bakterii";
+        Reproduces = false; Fluid = false; // tkanka: żel macierzy zewnątrzkomórkowej, nie swobodna woda
+        SomaticShort = "Nie dzielisz się – jesteś komórką somatyczną. Twoje geny przejdą dalej tylko przez komórki rozrodcze gospodarza.";
+        SomaticNote = "Neutrofil nie dzieli się: jest komórką somatyczną, terminalnie zróżnicowaną (w szpiku powstaje ich ok. 10¹¹ na dobę, a każdy żyje od kilku godzin do ok. 1–2 dni). Jego geny – identyczne jak w całym organizmie – przejdą do następnego pokolenia tylko przez komórki rozrodcze gospodarza. Dlatego „dostosowanie” neutrofila to przeżycie gospodarza, nawet kosztem własnego życia (NEToza).";
         DebrisN = 700; DebrisS0 = 0.3f; DebrisS1 = 1.4f; DebrisD = 0.01f; DebrisCols = new[] { Rgb(60, 55, 50, 0.5f), Rgb(255, 255, 240, 0.5f) };
         Controls = "WASD / przytrzymaj LPM – pełzanie (chemotaksja) · dotknij bakterii, by ją sfagocytować · Spacja (przytrzymaj) – NEToza";
         Goals = new[]
         {
-            new Goal("Sfagocytuj 5 bakterii", 5, w => w.Stat("engulfed")),
-            new Goal("Zabij 25 bakterii", 25, w => w.Stat("killed")),
-            new Goal("Oczyść ognisko zakażenia (zabij łącznie 60 bakterii)", 60, w => w.Stat("killed")),
-            new Goal("Zabij 150 bakterii", 150, w => w.Stat("killed")),
+            new Goal("Sfagocytuj 5 bakterii", 5, w => w.Stat("p_engulfed")),
+            new Goal("Zabij 20 bakterii we własnych fagosomach", 20, w => w.Stat("p_killed")),
+            new Goal("Rój neutrofili: razem oczyśćcie ognisko (150 zabitych bakterii)", 150, w => w.Stat("killed")),
+            new Goal("Opanuj zakażenie: 500 bakterii zabitych przez neutrofile", 500, w => w.Stat("killed")),
         };
         LoseText = "Wszystkie neutrofile zginęły";
         Facts = new[]
         {
             "Średnica ≈ 12 µm; jądro 3–5-płatowe; setki ziarnistości (azurofilne z mieloperoksydazą, swoiste z laktoferyną).",
             "Pełzanie ameboidalne ≈ 10–20 µm/min: z przodu lamellipodium (bez ziarnistości), z tyłu uropod. W tkance przeciska się między włóknami kolagenu.",
-            "Neutrofile opuszczają krew w żyłkach pozawłośniczkowych (toczenie, adhezja, diapedeza) – w grze nowe neutrofile wychodzą z najbliższej żyłki.",
+            "Kolagen to trójwymiarowa sieć – leukocyt nie musi jej trawić ani się do niej przyklejać: wsuwa przód w oczko i przeciska przez nie jądro (Lämmermann i in., Nature 2008), a jądro działa jak miarka, która wybiera największe oczka – drogę najmniejszego oporu (Renkawitz i in., Nature 2019). Dlatego w grze włókna spowalniają neutrofil (bardziej w poprzek niż wzdłuż), ale go nie zatrzymują. Twarda granica pojawia się dopiero, gdy oczka są dużo węższe od jądra (Wolf i in. 2013).",
+            "Rekrutacja: makrofagi i mastocyty tkanki wykrywają bakterie i wydzielają chemokiny (CXCL8/IL-8, CXCL1/2), TNF, IL-1β i histaminę; bakterie uwalniają peptydy formylowe (fMLP), a na ich powierzchni dopełniacz tworzy C5a. Śródbłonek żyłek pozawłośniczkowych przy ognisku wystawia selektyny i ICAM-1 – neutrofile toczą się po ścianie, zatrzymują i przeciskają do tkanki (kaskada adhezji leukocytów; Ley i in. 2007). W ciągu godzin do ogniska docierają ich dziesiątki, a potem setki (Kolaczkowska i Kubes 2013; Liese i in. 2013). W grze napływ rośnie z liczbą bakterii – do ~44 neutrofili naraz w okolicy (limit wydajności gry).",
+            "Rojenie: neutrofil, który natrafi na bakterie albo na ginącą komórkę, wydziela leukotrien B4. Kolejne neutrofile przekazują ten sygnał dalej, więc zasięg rekrutacji rośnie, a komórki zbijają się w gęsty rój wokół ogniska (Lämmermann i in., Nature 2013). Rój sam się potem wycisza – to pomaga zamknąć bakterie w ognisku (Kienle i in., Science 2021).",
+            "Neutrofil żyje w tkance od kilku godzin do ~1–2 dni, a fagocytoza przyspiesza jego apoptozę. Obumarłe neutrofile, bakterie i resztki tkanki to ropa; makrofagi sprzątają apoptotyczne neutrofile (eferocytoza), co wygasza zapalenie. W grze inne neutrofile starzeją się (średnio ~12 h w tkance).",
+            "Naczynia włosowate (Ø ≈ 5–8 µm) oplatają tkankę gęstą siecią – erytrocyty (7,8 µm) przeciskają się przez nie gęsiego, wygięte w „spadochron”. Dzięki nim zdrowe komórki leżą najwyżej ~100–200 µm od krwi, czyli w zasięgu dyfuzji tlenu (Carmeliet i Jain 2000). Krew spływa z nich do żyłek pozawłośniczkowych – i to przez ścianę żyłek, a nie naczyń włosowatych, wychodzą neutrofile.",
             "Fagocytoza → fagosom: NADPH-oksydaza wytwarza reaktywne formy tlenu, ziarnistości się z nim zlewają (degranulacja). Neutrofil nie odtwarza ziarnistości.",
             "Leukocydyny S. aureus (np. PVL – typowa dla szczepów z zakażeń martwiczych) tworzą pory w błonie neutrofila. Martwy neutrofil uwalnia niestrawione bakterie.",
             "NEToza (Brinkmann i in., Science 2004): neutrofil wyrzuca sieć chromatyny z histonami i elastazą, która wiąże i zabija bakterie – kosztem własnego życia.",
@@ -429,15 +478,230 @@ public class ScNeutro : Scenario
             "Makrofagi tkankowe (~20 µm) pełzają wolniej niż neutrofile, pochłaniają bakterie i drożdże, a po zapaleniu sprzątają martwe neutrofile (eferocytoza).",
             "Mastocyty są wypełnione ziarnistościami z histaminą. Pobudzone przez bakterie degranulują – naczynia się rozszerzają i napływa więcej neutrofili.",
             "Tkanka tłuszczowa: adipocyty 50–150 µm, jedna kropla lipidu i jądro zepchnięte do brzegu. Fibroblasty to wrzecionowate komórki wytwarzające kolagen.",
-            "Candida albicans: drożdżaki (4–6 µm) można sfagocytować, ale strzępki są za duże. Neutrofile rozpoznają rozmiar drobnoustroju i na duże strzępki wyrzucają sieci NET (Branzk i in., Nat Immunol 2014) – przytrzymaj Spację przy strzępce.",
+            "Candida albicans: drożdżaki (4–6 µm) można sfagocytować, ale strzępki są za duże. Neutrofile rozpoznają rozmiar drobnoustroju i na duże strzępki wyrzucają sieci NET (Branzk i in., Nat Immunol 2014).",
+            "Dlaczego tu nie ma rozmnażania? Neutrofil jest komórką somatyczną i terminalnie zróżnicowaną – nie dzieli się. Szpik wytwarza ich ok. 10¹¹ na dobę; w krwi krążą kilka godzin, w tkance żyją do 1–2 dni. Ich „sukces ewolucyjny” to przeżycie gospodarza, który przekaże te same geny przez komórki rozrodcze.",
+            "Rzut 2D trójwymiarowej tkanki: żyłka to rurka, a fibroblast – płaska komórka w sieci kolagenu, więc leukocyt obchodzi je nad nimi albo pod nimi (w grze – wolniej i rysowany na wierzchu). Przeszkodą, którą trzeba obejść bokiem, są tylko duże adipocyty zrazików tłuszczowych.",
         };
     }
+    public override string InspectAt(World w, float x, float y)
+    {
+        int k = VIdx(y); float d = MathF.Abs(y - Yc(w, k, x)) - VHW;
+        if (d > 3 && CapDist(w, x, y, false) < CapR + 1.2f) return "capillary";
+        return d < -2.5f ? "venule" : d < 3 ? "endothelium" : "interstitium";
+    }
+    /// <summary>Czy w tkance są ogniska zakażenia (bakterie, Candida).</summary>
+    protected virtual bool Infection => true;
     float Ph(World w, int k) => Hash2(k, 7, w.Seed) * TAU;
     protected float Yc(World w, int k, float x) => k * VS + 26 * MathF.Sin(x * TAU / 330 + Ph(w, k));
-    static int VIdx(float y) => (int)MathF.Round(y / VS);
+    protected static int VIdx(float y) => (int)MathF.Round(y / VS);
     /// <summary>Środek najbliższej żyłki w danym x (testy, AI).</summary>
     public float VesselY(World w, float x, float y) => Yc(w, VIdx(y), x);
-    protected bool InVessel(World w, float x, float y, float margin) { int k = VIdx(y); return MathF.Abs(y - Yc(w, k, x)) < VHW + margin; }
+    public bool InVessel(World w, float x, float y, float margin) { int k = VIdx(y); return MathF.Abs(y - Yc(w, k, x)) < VHW + margin; }
+
+    // ------------------------------------------------ naczynia włosowate
+    /// <summary>Oczko sieci naczyń włosowatych (µm) i promień ich światła (µm; średnica ≈ 6 µm).</summary>
+    protected const float CapS = 88, CapR = 3.1f;
+    /// <summary>
+    /// Odcinek naczynia włosowatego: krzywa Béziera A–C–B, kierunek przepływu (+1: od A do B), odpływ do żyłki.
+    /// W tkance łącznej naczynia włosowate tworzą sieć o oczkach kilkadziesiąt–sto kilkadziesiąt µm, tak że żadna komórka
+    /// nie leży dalej niż ~100 µm od krwi (Krogh 1919); krew z nich spływa do żyłek pozawłośniczkowych.
+    /// </summary>
+    public struct CapEdge { public Vector2 A, C, B; public float Len, Sp, Off; public int Dir, Si, Sj, Ti, Tj; public bool Drain; }
+    readonly Dictionary<long, CapEdge[]> _capCells = new();
+    readonly Dictionary<long, int> _capDeg = new();
+    int _capSeed = int.MinValue;
+    /// <summary>Stopień węzła sieci (liczba odcinków). Węzeł z jednym odcinkiem to miejsce, gdzie naczynie wychodzi z płaszczyzny ostrości.</summary>
+    int CapDeg(World w, int i, int j)
+    {
+        long key = ((long)i << 32) ^ (uint)j;
+        lock (_capDeg) if (_capDeg.TryGetValue(key, out int dd)) return dd;
+        int d;
+        d = CapCell(w, i, j).Length;
+        foreach (var e in CapCell(w, i - 1, j)) if (e.Ti == i && e.Tj == j) d++;
+        foreach (var e in CapCell(w, i, j - 1)) if (e.Ti == i && e.Tj == j) d++;
+        foreach (var e in CapCell(w, i - 1, j - 1)) if (e.Ti == i && e.Tj == j) d++;
+        lock (_capDeg) { if (_capDeg.Count > 40000) _capDeg.Clear(); _capDeg[key] = d; }
+        return d;
+    }
+    /// <summary>Droga przebyta przez krew w naczyniach włosowatych (µm) – przesuwa erytrocyty płynące gęsiego.</summary>
+    protected float CapFlowS;
+    static Vector2 Bez(Vector2 a, Vector2 c, Vector2 b, float t) { float u = 1 - t; return a * (u * u) + c * (2 * u * t) + b * (t * t); }
+    Vector2 CapNode(World w, int i, int j) =>
+        new((i + 0.5f + (Hash2(i, j, w.Seed + 301) - 0.5f) * 0.7f) * CapS, (j + 0.5f + (Hash2(i, j, w.Seed + 302) - 0.5f) * 0.7f) * CapS);
+    float VesselDist(World w, float x, float y) { int k = VIdx(y); return MathF.Abs(y - Yc(w, k, x)); }
+    /// <summary>Odcinki naczyń włosowatych wychodzące z węzła (i, j) sieci – deterministycznie z ziarna świata.</summary>
+    CapEdge[] CapCellT(World w, int i, int j) { long t0 = World.TS; var r = CapCell(w, i, j); World.PAdd("cap:cell", t0); return r; }
+    protected CapEdge[] CapCell(World w, int i, int j)
+    {
+        long key = ((long)i << 32) ^ (uint)j;
+        lock (_capCells)
+        {
+            if (_capSeed != w.Seed) { _capCells.Clear(); lock (_capDeg) _capDeg.Clear(); _capSeed = w.Seed; }
+            if (_capCells.TryGetValue(key, out var hit)) return hit;
+        }
+        CapEdge[] arr;
+        var list = new List<CapEdge>(4);
+        var a = CapNode(w, i, j);
+        if (VesselDist(w, a.X, a.Y) > VHW + 12)
+        {
+            void Add(Vector2 b, float bend, int dir, bool drain, int salt, int ti, int tj)
+            {
+                var d = b - a; var c = (a + b) / 2 + new Vector2(-d.Y, d.X) * bend;
+                float len = 0; var q0 = a;
+                for (int s = 1; s <= 12; s++) { var q = Bez(a, c, b, s / 12f); len += (q - q0).Length(); q0 = q; }
+                list.Add(new CapEdge { A = a, C = c, B = b, Len = len, Dir = dir, Drain = drain, Si = i, Sj = j, Ti = ti, Tj = tj, Sp = 9 + 7 * Hash2(i, j, w.Seed + salt + 7), Off = Hash2(i, j, w.Seed + salt + 8) * 40 });
+            }
+            void Link(int i2, int j2, float p, int salt)
+            {
+                if (Hash2(i, j, w.Seed + salt) >= p) return;
+                var b = CapNode(w, i2, j2);
+                if (VesselDist(w, b.X, b.Y) < VHW + 12) return;
+                var d = b - a; float bend = (Hash2(i, j, w.Seed + salt + 50) - 0.5f) * 0.55f;
+                var c = (a + b) / 2 + new Vector2(-d.Y, d.X) * bend;
+                // cały odcinek musi leżeć poza światłem żyłki
+                for (int s = 1; s < 8; s++) { var q = Bez(a, c, b, s / 8f); if (VesselDist(w, q.X, q.Y) < VHW + 4) return; }
+                Add(b, bend, Hash2(i, j, w.Seed + salt + 99) < 0.5f ? 1 : -1, false, salt, i2, j2);
+            }
+            Link(i + 1, j, 0.62f, 303);
+            Link(i, j + 1, 0.55f, 304);
+            Link(i + 1, j + 1, 0.14f, 306);
+            // odpływ do żyłki pozawłośniczkowej – krew płynie od węzła ku żyłce
+            int k = VIdx(a.Y); float yc = Yc(w, k, a.X), dv = MathF.Abs(a.Y - yc);
+            if (dv < VHW + 85 && Hash2(i, j, w.Seed + 305) < 0.8f)
+            {
+                float side = a.Y >= yc ? 1 : -1, bx = a.X + (Hash2(i, j, w.Seed + 307) - 0.5f) * 30;
+                Add(new Vector2(bx, Yc(w, k, bx) + side * (VHW - 0.5f)), (Hash2(i, j, w.Seed + 308) - 0.5f) * 0.4f, 1, true, 305, int.MinValue, 0);
+            }
+        }
+        arr = list.ToArray();
+        lock (_capCells) { if (_capCells.Count > 40000) _capCells.Clear(); _capCells[key] = arr; }
+        return arr;
+    }
+    /// <summary>Czy naczynie jest drożne w punkcie (np. w guzie naczynia są ściśnięte przez komórki – Padera i in. 2004).</summary>
+    protected virtual bool CapOpen(World w, float x, float y) => true;
+    /// <summary>Drożny cały odcinek (ściśnięty w jednym miejscu nie przepuszcza krwi).</summary>
+    protected bool CapEdgeOpen(World w, in CapEdge e)
+    {
+        for (int s = 0; s <= 6; s++) { var q = Bez(e.A, e.C, e.B, s / 6f); if (!CapOpen(w, q.X, q.Y)) return false; }
+        return true;
+    }
+    /// <summary>Odległość od osi najbliższego naczynia włosowatego (µm); openOnly – tylko drożnych (źródło tlenu).</summary>
+    public float CapDist(World w, float x, float y, bool openOnly)
+    {
+        int ci = FloorDiv(x, CapS), cj = FloorDiv(y, CapS); float best = 1e9f;
+        for (int j = cj - 2; j <= cj + 1; j++)
+            for (int i = ci - 2; i <= ci + 1; i++)
+                foreach (var e in CapCell(w, i, j))
+                {
+                    float bx0 = Math.Min(Math.Min(e.A.X, e.B.X), e.C.X), bx1 = Math.Max(Math.Max(e.A.X, e.B.X), e.C.X);
+                    float by0 = Math.Min(Math.Min(e.A.Y, e.B.Y), e.C.Y), by1 = Math.Max(Math.Max(e.A.Y, e.B.Y), e.C.Y);
+                    if (x < bx0 - best || x > bx1 + best || y < by0 - best || y > by1 + best) continue;
+                    if (openOnly && !CapEdgeOpen(w, e)) continue;
+                    var p0 = e.A;
+                    for (int s = 1; s <= 8; s++)
+                    {
+                        var p1 = Bez(e.A, e.C, e.B, s / 8f); var ab = p1 - p0; float l2 = ab.LengthSquared();
+                        float t = l2 < 1e-6f ? 0 : Clamp(((x - p0.X) * ab.X + (y - p0.Y) * ab.Y) / l2, 0, 1);
+                        float d = Hypot(x - p0.X - ab.X * t, y - p0.Y - ab.Y * t);
+                        if (d < best) best = d;
+                        p0 = p1;
+                    }
+                }
+        return best;
+    }
+    static readonly float[] C16 = new float[16], S16 = new float[16];
+    static ScNeutro() { for (int i = 0; i < 16; i++) { C16[i] = MathF.Cos(i * TAU / 16); S16[i] = MathF.Sin(i * TAU / 16); } }
+    /// <summary>Elipsa z 16 punktów – małe krążki krwi wyglądają gładko, a geometria nie rośnie z rozdzielczością ekranu.</summary>
+    static int Ell16(float x, float y, float rx, float ry, float rot, Vector2[] o)
+    {
+        float c = MathF.Cos(rot), s = MathF.Sin(rot);
+        for (int i = 0; i < 16; i++) { float ex = C16[i] * rx, ey = S16[i] * ry; o[i] = new Vector2(x + ex * c - ey * s, y + ex * s + ey * c); }
+        return 16;
+    }
+    /// <summary>Naczynia włosowate: ściana ze śródbłonkiem (spłaszczone jądra), pericyty, erytrocyty płynące gęsiego.</summary>
+    void DrawCapillaries(World w, Painter p, View v, int part = 0, int parts = 1)
+    {
+        int i0 = FloorDiv(v.X0, CapS) - 2, i1 = FloorDiv(v.X1, CapS) + 1, j0 = FloorDiv(v.Y0, CapS) - 2, j1 = FloorDiv(v.Y1, CapS) + 1;
+        // równoległe rysowanie: część bierze co parts-tą komórkę siatki (przeplot – równe obciążenie wątków)
+        var c = p.Shape; var top = p.Shape2; var bot = p.Buf2;
+        // erytrocyty jak w żyłkach (niebarwione, w kontraście fazowym): jaśniejszy środek, ciemniejszy brzeg
+        Span<float> rts = stackalloc float[] { 0f, 0.5f, 0.85f, 1f };
+        Span<Color> rc0 = stackalloc Color[] { Rgb(200, 150, 135, 0.38f), Rgb(160, 92, 82, 0.46f), Rgb(140, 74, 66, 0.56f), Rgb(95, 48, 42, 0.55f) };
+        Span<Color> rcs = stackalloc Color[4];
+        const int K = 6;
+        for (int j = j0; j <= j1; j++)
+            for (int i = i0; i <= i1; i++)
+                if (((i + j * 7) % parts + parts) % parts == part)
+                foreach (var e in CapCellT(w, i, j))
+                {
+                    float bx0 = Math.Min(Math.Min(e.A.X, e.B.X), e.C.X) - 8, bx1 = Math.Max(Math.Max(e.A.X, e.B.X), e.C.X) + 8;
+                    float by0 = Math.Min(Math.Min(e.A.Y, e.B.Y), e.C.Y) - 8, by1 = Math.Max(Math.Max(e.A.Y, e.B.Y), e.C.Y) + 8;
+                    if (bx1 < v.X0 || bx0 > v.X1 || by1 < v.Y0 || by0 > v.Y1) continue;
+                    int n = (int)Clamp(e.Len / Math.Max(3, v.Px * 18), 10, 48);
+                    for (int s = 0; s <= n; s++) c[s] = Bez(e.A, e.C, e.B, (float)s / n);
+                    // koniec odcinka bez dalszych połączeń: naczynie schodzi w głąb tkanki, poza płaszczyznę ostrości – blednie
+                    long tdg = World.TS;
+                    bool fadeA = CapDeg(w, e.Si, e.Sj) <= 1, fadeB = !e.Drain && CapDeg(w, e.Ti, e.Tj) <= 1;
+                    World.PAdd("cap:deg", tdg);
+                    float Al(float t) => (fadeA ? Smooth(t / 0.45f) : 1) * (fadeB ? Smooth((1 - t) / 0.45f) : 1) * (0.78f + 0.22f * Noise1(t * 2.3f + e.Off));
+                    long top0 = World.TS; bool open = CapEdgeOpen(w, e); World.PAdd("cap:open", top0);
+                    if (!open)
+                    {
+                        // naczynie ściśnięte przez komórki guza: zapadnięte, bez przepływu krwi (Padera i in. 2004)
+                        for (int kc = 0; kc < K; kc++)
+                        {
+                            int s0 = kc * n / K, s1 = (kc + 1) * n / K; float al = Al((s0 + s1) * 0.5f / n); if (al < 0.03f) continue;
+                            p.Stroke(new ReadOnlySpan<Vector2>(c, s0, s1 - s0 + 1), false, 1.2f, Rgb(115, 88, 84, 0.4f * al), true);
+                        }
+                        continue;
+                    }
+                    for (int s = 0; s <= n; s++)
+                    {
+                        var t = c[Math.Min(n, s + 1)] - c[Math.Max(0, s - 1)]; float l = Math.Max(t.Length(), 1e-4f);
+                        var nr = new Vector2(-t.Y / l, t.X / l);
+                        top[s] = c[s] + nr * CapR; bot[s] = c[s] - nr * CapR;
+                    }
+                    for (int kc = 0; kc < K; kc++)
+                    {
+                        int s0 = kc * n / K, s1 = (kc + 1) * n / K; float al = Al((s0 + s1) * 0.5f / n); if (al < 0.03f) continue;
+                        var seg = new ReadOnlySpan<Vector2>(c, s0, s1 - s0 + 1);
+                        p.SoftStroke(seg, false, CapR * 2 + 3, Rgb(255, 255, 240, 0.13f * al));
+                        p.Stroke(seg, false, CapR * 2, Rgb(212, 194, 182, 0.2f * al));
+                    }
+                    // erytrocyty gęsiego: w świetle ~6 µm krążek 7,8 µm wydłuża się i wygina w „spadochron”
+                    float sp = e.Sp, off = e.Off + e.Dir * CapFlowS;
+                    int nr0 = (int)(e.Len / sp);
+                    for (int k = 0; k < nr0; k++)
+                    {
+                        float sAl = ((off + k * sp) % e.Len + e.Len) % e.Len, tt = sAl / e.Len, al = Al(tt);
+                        if (al < 0.05f) continue;
+                        var q = Bez(e.A, e.C, e.B, tt); if (!v.Vis(q.X, q.Y, 6)) continue;
+                        var d = Bez(e.A, e.C, e.B, Math.Min(1, tt + 0.02f)) - Bez(e.A, e.C, e.B, Math.Max(0, tt - 0.02f));
+                        float ang = MathF.Atan2(d.Y, d.X), fx = MathF.Cos(ang) * e.Dir, fy = MathF.Sin(ang) * e.Dir;
+                        // środek krążka przesunięty ku tyłowi: przód wypukły, tył wklęsły jak czasza spadochronu
+                        if (p.Tex != null) { p.Tex.TexEllipse(q.X, q.Y, 3.4f, CapR * 0.84f, ang, q.X - fx * 1.3f, q.Y - fy * 1.3f, SpriteAtlas.Pad[SpriteAtlas.Rbc] * 0.6f, SpriteAtlas.Uv[SpriteAtlas.Rbc], new Color(1, 0.94f, 0.94f, 0.9f * al)); continue; }
+                        for (int m = 0; m < 4; m++) rcs[m] = Mul(rc0[m], al);
+                        int ne = Ell16(q.X, q.Y, 3.4f, CapR * 0.84f, ang, p.Buf);
+                        p.FillRadial(new ReadOnlySpan<Vector2>(p.Buf, 0, ne), q.X - fx * 1.3f, q.Y - fy * 1.3f, rts, rcs);
+                    }
+                    for (int kc = 0; kc < K; kc++)
+                    {
+                        int s0 = kc * n / K, s1 = (kc + 1) * n / K; float al = Al((s0 + s1) * 0.5f / n); if (al < 0.03f) continue;
+                        p.Stroke(new ReadOnlySpan<Vector2>(top, s0, s1 - s0 + 1), false, 0.4f, Rgb(95, 72, 70, 0.5f * al));
+                        p.Stroke(new ReadOnlySpan<Vector2>(bot, s0, s1 - s0 + 1), false, 0.4f, Rgb(95, 72, 70, 0.5f * al));
+                    }
+                    // spłaszczone jądra komórek śródbłonka i pojedyncze pericyty na zewnątrz ściany
+                    for (float s = e.Off * 0.6f + 8; s < e.Len - 6; s += 34)
+                    {
+                        float tt = s / e.Len, al = Al(tt); if (al < 0.05f) continue;
+                        var q = Bez(e.A, e.C, e.B, tt); var d = Bez(e.A, e.C, e.B, Math.Min(1, tt + 0.03f)) - Bez(e.A, e.C, e.B, Math.Max(0, tt - 0.03f));
+                        float ang = MathF.Atan2(d.Y, d.X), sd = ((int)(s / 34)) % 2 == 0 ? 1 : -1;
+                        float nx = -MathF.Sin(ang) * sd, ny = MathF.Cos(ang) * sd;
+                        p.FillEllipse(q.X + nx * (CapR + 0.3f), q.Y + ny * (CapR + 0.3f), 3.4f, 0.8f, ang, Rgb(92, 82, 112, 0.45f * al));
+                        if (((int)(s / 34) + (int)e.Off) % 3 == 0) p.FillEllipse(q.X - nx * (CapR + 1.3f), q.Y - ny * (CapR + 1.3f), 2.6f, 1.2f, ang, Rgb(125, 118, 108, 0.4f * al));
+                    }
+                }
+    }
 
     void Bact(World w, Chunk c, List<Ent> loc, int clusters, int chains)
     {
@@ -456,7 +720,7 @@ public class ScNeutro : Scenario
     public override void GenerateChunk(World w, Chunk c)
     {
         var loc = new List<Ent>();
-        int col = c.Biome switch { 0 => 6, 1 => 18, 2 => 5, _ => 4 };
+        int col = c.Biome switch { 0 => 10, 1 => 26, 2 => 7, _ => 6 };
         for (int i = 0; i < col; i++) { var (x, y) = Spot(w, c, 8, loc, 5); if (!InVessel(w, x, y, 12)) Put(w, loc, new Collagen(w, x, y, Rand(0, TAU), Rand(25, 80), Rand(0.5f, 0.9f))); }
         // krwinki czerwone i płytki trafiają do tkanki tylko przy uszkodzeniu naczyń (wylew) albo w stanie zapalnym
         int rbc = c.Biome == 3 ? 14 : c.Biome == 2 ? RandI(0, 2) : 0, plt = c.Biome == 3 ? 8 : c.Biome == 2 ? RandI(0, 2) : 0;
@@ -475,9 +739,13 @@ public class ScNeutro : Scenario
                 if (ok) Put(w, loc, new Adipocyte(w, x, y, r));
             }
         }
-        for (int i = RandI(1, 2) + (c.Biome == 1 ? 2 : 0); i > 0; i--) { var (x, y) = Spot(w, c, 30, loc, 10); if (!InVessel(w, x, y, 14)) Put(w, loc, new Fibroblast(w, x, y, Rand(0, TAU))); }
-        for (int i = RandI(0, 2); i > 0; i--) { var (x, y) = Spot(w, c, 7, loc, 8); if (!InVessel(w, x, y, 8)) Put(w, loc, new MastCell(w, x, y)); }
-        if (Chance(c.Biome == 2 ? 0.9f : 0.35f)) { var (x, y) = Spot(w, c, 12, loc, 10); if (!InVessel(w, x, y, 12)) Put(w, loc, new Macrophage(w, x, y)); }
+        // skóra właściwa: tkanka luźna (brodawkowa) jest bogata w fibroblasty, zbita (siateczkowata) – uboga w komórki, a gęsta
+        // w kolagen (Korosec i in. 2019); mastocytów w górnej skórze właściwej ~50/mm² przekroju (Wilkinson i in. 1992) –
+        // ok. 1 na 2 pola 100 × 100 µm, w ognisku zapalnym więcej
+        for (int i = c.Biome == 1 ? RandI(1, 2) : RandI(3, 5); i > 0; i--) { var (x, y) = Spot(w, c, 30, loc, 10); if (!InVessel(w, x, y, 14)) Put(w, loc, new Fibroblast(w, x, y, Rand(0, TAU))); }
+        for (int i = RandI(0, 1) + (c.Biome == 2 ? 1 : 0); i > 0; i--) { var (x, y) = Spot(w, c, 7, loc, 8); if (!InVessel(w, x, y, 8)) Put(w, loc, new MastCell(w, x, y)); }
+        for (int i = c.Biome == 2 ? RandI(1, 2) : Chance(0.7f) ? 1 : 0; i > 0; i--) { var (x, y) = Spot(w, c, 12, loc, 10); if (!InVessel(w, x, y, 12)) Put(w, loc, new Macrophage(w, x, y)); }
+        if (!Infection) return;
         if (Math.Abs(c.X) + Math.Abs(c.Y) <= 1) { Bact(w, c, loc, RandI(1, 2), 0); return; }
         // Candida: drożdżaki w ognisku zakażenia, czasem już ze strzępką
         if (c.Biome == 2 && Chance(0.35f))
@@ -499,8 +767,17 @@ public class ScNeutro : Scenario
         var n = w.Add(new Neutrophil(w, x, y, side > 0 ? PI / 2 : -PI / 2)); n.Lineage = true;
         return n;
     }
+    /// <summary>Stan wspólny światów tkankowych (scenariusz jest jeden na wiele rozgrywek).</summary>
+    /// <summary>Test: wyłącza napływ neutrofili z krwi (osobne sprawdzenie odpowiedzi ogólnoustrojowej na zakażenie).</summary>
+    public bool NoRecruit;
+    protected void ResetTissue()
+    {
+        Chemo = 0; _recAcc = 0; _sigT = 0; CapFlowS = 0; NoRecruit = false;
+        _beac.Clear(); _ltb.Clear(); _bin.Clear();
+    }
     public override void Init(World w)
     {
+        ResetTissue();
         w.CamX = 50; w.CamY = 60;
         w.UpdateChunks(true);
         var me = Diapedesis(w, 50, 60);
@@ -508,11 +785,25 @@ public class ScNeutro : Scenario
         Diapedesis(w, -60, 60); Diapedesis(w, 170, -60);
         w.Log("Jesteś neutrofilem, który wyszedł z żyłki. Tkanka ciągnie się bez końca – szukaj ognisk zakażenia (żółte strefy na radarze).", "info");
     }
+    /// <summary>
+    /// Żyłka to rurka (Ø ~32 µm) w grubej, trójwymiarowej tkance, a nie nieskończona ściana: pełzające komórki odporności
+    /// obchodzą ją nad lub pod naczyniem (w rzucie 2D – przechodzą nad pasmem żyłki). Droga wokół rurki jest ~π/2 razy dłuższa
+    /// niż na wprost (półobwód π·r zamiast średnicy 2r), więc w paśmie naczynia idą ~1,6× wolniej (opór +0,57).
+    /// Nieruchome bakterie i komórki raka (te wchodzą do naczynia przez ścianę – intrawazacja) nadal zatrzymują się na ścianie.
+    /// </summary>
+    static bool GoesAround(Ent e) => e is Neutrophil or Macrophage or Lymphocyte or Killer { InBlood: false };
     public override void Constrain(World w, Ent e)
     {
         if (e.Fixed || e is Net) return;
         int k = VIdx(e.Y); float yc = Yc(w, k, e.X), dy = e.Y - yc, m = VHW + Math.Min(e.Prim.R, 6) * 0.8f;
-        if (MathF.Abs(dy) < m) e.Y = yc + (dy >= 0 ? m : -m);
+        if (MathF.Abs(dy) >= m) return;
+        if (GoesAround(e))
+        {
+            e.Mesh += 0.57f;
+            if (e.IsPlayer && !w.Preview) w.LogOnce("vessel-around", "Obchodzisz żyłkę: to rurka w trójwymiarowej tkance, więc komórka pełznie nad nią (albo pod nią) – dłuższą drogą, wolniej.", "info", 120);
+            return;
+        }
+        e.Y = yc + (dy >= 0 ? m : -m);
     }
     float _hrv = 1, _sev;
     /// <summary>
@@ -551,33 +842,112 @@ public class ScNeutro : Scenario
         // zapalenie rozszerza naczynia i spowalnia przepływ (zastój, marginacja leukocytów)
         w.BloodV = 300 * (1 - 0.45f * w.Severity) * pulse / mean;
         w.BloodS += w.BloodV * gdt;
+        // naczynia włosowate: krew płynie wolniej (~⅓ prędkości w żyłce) i prawie bez pulsowania – fala tętna jest tu wytłumiona
+        CapFlowS += 300 * (1 - 0.45f * w.Severity) * 0.33f * (0.9f + 0.1f * pulse / mean) * gdt;
     }
     public override void Update(World w, float dt, float gdt)
     {
         Circulation(w, gdt);
+        UpdateSignals(w, gdt);
         if (!w.EverySecond(gdt)) return;
         int n = w.Count(e => e is Staph s && s.State == St.Free);
         if (n > 400) w.GameOver($"Infekcja w okolicy wymknęła się spod kontroli ({n} bakterii)");
         if (w.T > 5 && (int)w.T % 100 == 0)
         {
+            // rana nie jest jeszcze zamknięta: przez uszkodzony nabłonek wnikają kolejne bakterie
             w.Wave++;
             w.Banner($"Fala {w.Wave}", "Kolejne bakterie przedostają się do tkanki...");
-            foreach (var c in w.Active) if (Chance(0.25f + w.Wave * 0.04f)) Bact(w, c, new List<Ent>(), RandI(1, 1 + w.Wave), w.Wave > 2 ? 1 : 0);
+            foreach (var c in w.Active) if (Chance(0.22f + w.Wave * 0.03f)) Bact(w, c, new List<Ent>(), RandI(1, 2 + w.Wave / 2), w.Wave > 2 ? 1 : 0);
         }
-        if (w.Stat("histamine") > w.Stat("histDone") && w.Player != null)
+        // histamina z mastocytu rozszerza naczynia i zwiększa ich przepuszczalność – śródbłonek łatwiej przepuszcza leukocyty
+        while (w.Stat("histamine") > w.Stat("histDone"))
         {
-            w.AddStat("histDone", 1);
-            if (w.Count(e => e is Neutrophil) < 9)
-            {
-                Diapedesis(w, w.Player.X + Rand(-80, 80), w.Player.Y);
-                w.LogOnce("hist", "Histamina z mastocytu → rozszerzenie naczyń: z żyłki wychodzą kolejne neutrofile.", "good", 30);
-            }
+            w.AddStat("histDone", 1); Chemo += 10;
+            w.LogOnce("hist", "Histamina z mastocytu → rozszerzenie naczyń: z żyłki wychodzą kolejne neutrofile.", "good", 30);
         }
-        int neut = w.Count(e => e is Neutrophil);
-        if (neut < 5 && (w.T % 35f) < gdt * 1.5f && w.Player != null)
+        Recruitment(w, n);
+    }
+
+    // ------------------------------------------------ rekrutacja neutrofili i rojenie
+    /// <summary>
+    /// Poziom sygnałów zapalnych w tkance (w umownych jednostkach ≈ liczba bakterii, które je wywołują): peptydy formylowe
+    /// bakterii (fMLP), dopełniacz C5a, chemokiny makrofagów i mastocytów (CXCL8/IL-8, CXCL1/2), TNF, IL-1β i histamina.
+    /// Aktywują śródbłonek żyłek pozawłośniczkowych (selektyny, ICAM-1), więc neutrofile wychodzą z krwi.
+    /// </summary>
+    public float Chemo;
+    float _recAcc, _sigT;
+    /// <summary>Źródło sygnału chemotaktycznego: skupisko bakterii (fMLP, C5a) albo LTB4/chemokiny od komórek odporności.</summary>
+    public struct Beacon { public float X, Y, S; }
+    readonly List<Beacon> _beac = new(), _ltb = new();
+    readonly Dictionary<long, Vector3> _bin = new();
+    /// <summary>Limit neutrofili w aktywnym oknie (wydajność gry; w tkance bywa ich znacznie więcej).</summary>
+    protected virtual int NeutroCap => 44;
+    public int Beacons => _beac.Count + _ltb.Count;
+    /// <summary>
+    /// Sygnał od komórki odporności: neutrofil, który fagocytuje albo ginie, wydziela leukotrien B4 – przekaźnik, który
+    /// wielokrotnie poszerza zasięg rekrutacji i skupia neutrofile w rój (Lämmermann i in., Nature 2013); makrofag wydziela
+    /// chemokiny CXCL1/2 i IL-8 (De Filippo i in. 2013).
+    /// </summary>
+    public void Attract(float x, float y, float s)
+    {
+        for (int i = 0; i < _ltb.Count; i++)
         {
-            Diapedesis(w, w.Player.X + Rand(-150, 150), w.Player.Y);
-            w.Log("Diapedeza: nowy neutrofil przeciska się przez śródbłonek żyłki.", "info");
+            var b = _ltb[i];
+            if (Hypot(b.X - x, b.Y - y) < 25) { b.S = Math.Min(40, b.S + s); b.X = Lerp(b.X, x, 0.3f); b.Y = Lerp(b.Y, y, 0.3f); _ltb[i] = b; return; }
+        }
+        if (_ltb.Count < 48) _ltb.Add(new Beacon { X = x, Y = y, S = s });
+    }
+    void UpdateSignals(World w, float gdt)
+    {
+        // LTB4 i chemokiny szybko się rozkładają – bez podtrzymania sygnał gaśnie w ~minutę gry
+        for (int i = _ltb.Count - 1; i >= 0; i--) { var b = _ltb[i]; b.S *= MathF.Exp(-gdt / 25f); if (b.S < 0.3f) _ltb.RemoveAt(i); else _ltb[i] = b; }
+        _sigT -= gdt; if (_sigT > 0) return; _sigT = 1;
+        // skupiska drobnoustrojów w oczkach 40 µm (środek ciężkości, siła = liczba bakterii; strzępka liczy się za kilka)
+        _beac.Clear(); _bin.Clear();
+        foreach (var e in w.Ents)
+        {
+            if (!e.Alive) continue;
+            float s = e is Staph st && st.State == St.Free ? 1 : e is CandidaYeast cy && cy.State == St.Free ? 2 : e is CandidaHypha ? 8 : 0;
+            if (s <= 0) continue;
+            long k = ((long)FloorDiv(e.X, 40) << 32) ^ (uint)FloorDiv(e.Y, 40);
+            _bin.TryGetValue(k, out var acc); _bin[k] = new Vector3(acc.X + e.X * s, acc.Y + e.Y * s, acc.Z + s);
+        }
+        foreach (var acc in _bin.Values) _beac.Add(new Beacon { X = acc.X / acc.Z, Y = acc.Y / acc.Z, S = acc.Z });
+    }
+    /// <summary>Najsilniejsze źródło sygnału w zasięgu (siła maleje z odległością – gradient stężenia).</summary>
+    public bool Attractant(float x, float y, float range, out float tx, out float ty)
+    {
+        tx = ty = 0; float best = 0;
+        foreach (var b in _beac) { float d = Hypot(b.X - x, b.Y - y); if (d > range || d < 6) continue; float sc = b.S / (1 + d / 80); if (sc > best) { best = sc; tx = b.X; ty = b.Y; } }
+        foreach (var b in _ltb) { float d = Hypot(b.X - x, b.Y - y); if (d > range || d < 6) continue; float sc = b.S / (1 + d / 80); if (sc > best) { best = sc; tx = b.X; ty = b.Y; } }
+        return best > 0.15f;
+    }
+    /// <summary>
+    /// Kaskada adhezji leukocytów: toczenie po selektynach, zatrzymanie przez chemokiny i integryny, diapedeza (Ley i in. 2007).
+    /// Makrofagi i mastocyty wykrywają drobnoustroje, a śródbłonek żyłek najbliżej ogniska się aktywuje – neutrofile wychodzą
+    /// z krwi dziesiątkami, a w ciągu godzin do ogniska docierają ich setki i tworzą roje (Kolaczkowska i Kubes 2013; Liese i in. 2013).
+    /// </summary>
+    void Recruitment(World w, int bact)
+    {
+        float drive = 0; foreach (var b in _beac) drive += b.S;
+        // sygnał narasta w ciągu minut, a po opanowaniu zakażenia wygasa w ciągu ~godziny (czas w tkance)
+        float tau = drive > Chemo ? 600 : 2400;
+        Chemo += (drive - Chemo) * Math.Min(1, w.TimeScale / tau);
+        int live = w.Count(e => e is Neutrophil nn && !nn.Apoptotic);
+        int want = Math.Min(NeutroCap, 3 + (int)(Chemo / 2.5f));
+        if (live >= want || Chemo < 1 || w.Player == null || NoRecruit) { _recAcc = 0; return; }
+        // tempo diapedezy: przy silnym sygnale ~1 komórka na sekundę gry (≈ na 40 s w tkance)
+        _recAcc += Clamp(Chemo * 0.012f, 0.05f, 0.9f);
+        while (_recAcc >= 1 && live < want)
+        {
+            _recAcc -= 1; live++;
+            // neutrofil wychodzi z żyłki najbliżej źródła sygnału (losowanie ważone siłą)
+            float x = w.Player.X + Rand(-120, 120), y = w.Player.Y, tot = 0;
+            foreach (var b in _beac) tot += b.S;
+            float r = Rand(0, tot);
+            foreach (var b in _beac) { r -= b.S; if (r <= 0) { x = b.X + Rand(-40, 40); y = b.Y; break; } }
+            Diapedesis(w, x, y);
+            w.LogOnce("dia", "Diapedeza: śródbłonek żyłki przy ognisku zakażenia jest aktywny – neutrofile toczą się, zatrzymują i przeciskają do tkanki.", "info", 90);
         }
     }
     void DrawVessel(World w, Painter p, int k, float x0, float x1)
@@ -625,7 +995,14 @@ public class ScNeutro : Scenario
                 float y = Yc(w, k, x) + lane * (VHW - 4.2f);
                 float rx = 3.9f * stretch, ry = 3.9f * (0.3f + 0.7f * tilt); // krążek widziany pod różnym kątem
                 // jeden gradient: jaśniejszy dwuwklęsły środek (widoczny, gdy krążek leży płasko), ciemniejszy brzeg
-                int ne = p.EllipsePts(x, y, rx, ry, Ang(x), p.Buf);
+                if (p.Tex != null)
+                {
+                    // krążek z tekstury: płasko leżący – z jasnym środkiem, widziany z boku – ciemniejszy, bez przejaśnienia
+                    var tint = tilt > 0.45f ? new Color(1, 0.9f, 0.88f, 0.95f) : new Color(0.82f, 0.62f, 0.58f, 0.95f);
+                    p.Tex.TexEllipse(x, y, rx, ry, Ang(x), x, y, SpriteAtlas.Pad[SpriteAtlas.Rbc] * 0.5f, SpriteAtlas.Uv[SpriteAtlas.Rbc], tint);
+                    continue;
+                }
+                int ne = Ell16(x, y, rx, ry, Ang(x), p.Buf);
                 p.FillRadial(new ReadOnlySpan<Vector2>(p.Buf, 0, ne), x, y, rts, tilt > 0.45f ? rcsF : rcsE);
             }
         }
@@ -639,11 +1016,17 @@ public class ScNeutro : Scenario
                 p.FillEllipse(xx, yc + sd * (VHW - 1.2f), 7, 1.4f, ang, Rgb(90, 80, 110, 0.45f));
             }
     }
-    public override void DrawUnder(World w, Painter p, View v)
+    public override void DrawUnder(World w, Painter p, View v) { for (int i = 0; i < UnderParts; i++) DrawUnderPart(w, p, v, i); }
+    /// <summary>Tło tkanki równolegle: naczynia włosowate w 3 pasach + żyłki (i kiełki naczyń w trybie nowotworu).</summary>
+    public override int UnderParts => 7;
+    public override void DrawUnderPart(World w, Painter p, View v, int part)
     {
+        if (part < 6) { DrawCapillaries(w, p, v, part, 6); return; }
         int k0 = VIdx(v.Y0 - 60), k1 = VIdx(v.Y1 + 60);
         for (int k = k0; k <= k1; k++) DrawVessel(w, p, k, v.X0 - 40, v.X1 + 40);
+        DrawUnderExtra(w, p, v);
     }
+    protected virtual void DrawUnderExtra(World w, Painter p, View v) { }
     public override void DrawMinimap(World w, Painter p)
     {
         float x0 = w.WinX0, x1 = w.WinX0 + w.WinW;
@@ -655,14 +1038,16 @@ public class ScNeutro : Scenario
             p.Stroke(s, false, VHW * 2, Rgb(170, 70, 70, 0.55f));
         }
     }
+    public override string[] KeyRows => new[] { "Fagosomy", "Ziarnistości" };
     public override List<(string, string)> Hud(World w)
     {
         var p = w.Player as Neutrophil;
         return new()
         {
-            ("Sfagocytowane", N(w.Stat("engulfed"))), ("Zabite bakterie", N(w.Stat("killed"))),
+            ("Sfagocytowane (Ty)", N(w.Stat("p_engulfed"))), ("Zabite bakterie (Ty / rój)", $"{N(w.Stat("p_killed"))} / {N(w.Stat("killed"))}"),
             ("Fagosomy", p != null ? $"{p.Phagos.Count}/{p.MaxPhago}" : "-"), ("Ziarnistości", p != null ? Pct((float)p.GranLeft / p.G) : "-"),
-            ("Bakterie w okolicy", w.Count(e => e is Staph s && s.State == St.Free).ToString()), ("Neutrofile", w.Count(e => e is Neutrophil).ToString()),
+            ("Bakterie w okolicy", w.Count(e => e is Staph s && s.State == St.Free).ToString()), ("Neutrofile w okolicy", w.Count(e => e is Neutrophil n && !n.Apoptotic).ToString()),
+            ("Chemokiny i C5a", Chemo < 3 ? "brak" : Chemo < 25 ? "narastają – śródbłonek aktywny" : Chemo < 80 ? "wysokie – napływ neutrofili" : "bardzo wysokie – rojenie"),
             ("Rezerwa z krwi", N(5 - w.Stat("reinf"))), ("Fala", w.Wave.ToString()),
             ("Tętno", $"{w.HeartBpm:0}/min"), ("Temperatura ciała", $"{w.TempC:0.0} °C"),
         };
@@ -671,7 +1056,7 @@ public class ScNeutro : Scenario
     {
         if (w.Player is not Neutrophil p) return null;
         var l = new List<(string, float, Color)> { ("Integralność błony", p.Hp, p.Hp < 0.35f ? Hex("#e05a4a") : Hex("#c9b8d8")) };
-        if (p.NetCharge > 0) l.Add(("NEToza – trzymaj Spację", p.NetCharge, Hex("#9cd2ff")));
+        if (p.NetCharge > 0) l.Add(("NEToza", p.NetCharge, Hex("#9cd2ff")));
         return l;
     }
     public override int MapKind(World w, Ent e)
@@ -682,7 +1067,7 @@ public class ScNeutro : Scenario
     }
     public override bool OnPlayerLost(World w, Ent p)
     {
-        var n = w.Near(p.X, p.Y, 1e9f, e => e is Neutrophil);
+        var n = w.Near(p.X, p.Y, 1e9f, e => e is Neutrophil nn && !nn.Apoptotic && nn.Holder == null);
         if (n == null && w.Stat("reinf") < 5)
         {
             w.AddStat("reinf", 1);
@@ -705,6 +1090,7 @@ public sealed class ScMacro : ScNeutro
     public ScMacro()
     {
         Id = "macro"; Name = "Makrofag"; Latin = "Makrofag tkankowy (Homo sapiens)"; TypeName = "Komórka odporności (fagocyt)"; Size = "≈ 20–25 µm"; Color = Hex("#cbbf9c");
+        ReproFact = "Makrofagi tkankowe mogą się dzielić na miejscu (klon w tkance), ale jako komórki somatyczne nie przekazują genów kolejnemu pokoleniu organizmu – robią to tylko komórki rozrodcze gospodarza.";
         Desc = "Powolny, ale żarłoczny strażnik tkanki. Pochłaniaj bakterie i drożdże, cytokinami wzywaj neutrofile, a potem po nich sprzątaj: zjadaj umierające neutrofile, zanim pękną, i erytrocyty z wylewów.";
         ViewW = 95; TimeScale = 90; Bio = 0.5f; NeutroLife = 4 * 3600;
         Mag = "Obiektyw 40× (400×) – time-lapse ×90"; ScoreLabel = "punktów sprzątania";
@@ -712,12 +1098,14 @@ public sealed class ScMacro : ScNeutro
         Goals = new[]
         {
             new Goal("Sfagocytuj 8 bakterii lub drożdży", 8, w => w.Stat("m_eng")),
-            new Goal("Wezwij neutrofile cytokinami (Spacja)", 1, w => w.Stat("m_signal")),
+            new Goal("Wezwij neutrofile cytokinami", 1, w => w.Stat("m_signal")),
             new Goal("Eferocytoza: pochłoń 3 apoptotyczne neutrofile", 3, w => w.Stat("m_effero")),
             new Goal("Oczyść wylew: pochłoń 6 erytrocytów (czerwona strefa)", 6, w => w.Stat("m_rbc")),
             new Goal("Zabij 60 drobnoustrojów", 60, w => w.Stat("m_killed")),
         };
         LoseText = "Makrofagi zginęły – tkanka została bez strażnika";
+        SomaticShort = "Komórka somatyczna: możesz się dzielić (klon w tkance), ale geny przejdą dalej tylko przez komórki rozrodcze gospodarza.";
+        SomaticNote = "Makrofag tkankowy może się dzielić: po eferocytozie wchodzi w cykl komórkowy i tworzy lokalny klon (Gerlach i in., Cell Metab 2021). To jednak komórka somatyczna – klon ginie razem z gospodarzem. Jego „dostosowanie” mierzy się przeżyciem i rozrodem gospodarza, któremu pomaga wygasić zapalenie i naprawić tkankę.";
         Facts = new[]
         {
             "Makrofag tkankowy ma ≈ 20–25 µm: pofałdowany brzeg (ruffling), nerkowate jądro, setki lizosomów. W tkance pełza ≈ 0,6 µm/min (tryb mezenchymalny) do ≈ 3 µm/min (ameboidalny) – kilka razy wolniej niż neutrofil.",
@@ -732,13 +1120,17 @@ public sealed class ScMacro : ScNeutro
             "Tony serca: S1 („lub”, ~150 ms, 50–130 Hz) i S2 („dub”, ~120 ms, 75–200 Hz). Serce bije w czasie rzeczywistym; krew w żyłkach jest spowolniona ok. 4×, żeby było widać krwinki przyspieszające po każdym skurczu.",
             "Time-lapse ×90: 1 s gry ≈ 1,5 min w tkance. Trawienie w fagolizosomie trwa od kilkudziesięciu minut (bakterie) do godzin (erytrocyt).",
             "Gdy makrofag zginie, z krwi przez żyłkę wychodzi monocyt i w tkance różnicuje się w nowego makrofaga (w grze – rezerwa 3).",
+            "Makrofagi tkankowe w dużej mierze odnawiają się same, przez podziały na miejscu (Hashimoto i in., Immunity 2013). Eferocytoza dostarcza nukleotydów i przez szlak Myc pobudza podział – nowe makrofagi szybciej sprzątają i wygaszają zapalenie (Gerlach i in., Cell Metab 2021). W grze: po strawieniu apoptotycznego neutrofila, w fenotypie naprawczym, Twój makrofag zaokrągla się i dzieli.",
+            "Rzut 2D trójwymiarowej tkanki: żyłka to rurka, a fibroblast – płaska komórka w sieci kolagenu, więc leukocyt obchodzi je nad nimi albo pod nimi (w grze – wolniej i rysowany na wierzchu). Przeszkodą, którą trzeba obejść bokiem, są tylko duże adipocyty zrazików tłuszczowych.",
         };
     }
-    /// <summary>Neutrofile wezwane cytokinami: wychodzą z najbliższej żyłki (diapedeza).</summary>
+    protected override int NeutroCap => 36;
+    /// <summary>Neutrofile wezwane cytokinami: wychodzą z najbliższej żyłki (diapedeza), a chemokiny makrofaga dalej ściągają kolejne.</summary>
     public void Recruit(World w, float x, float y, int n)
     {
         int have = w.Count(e => e is Neutrophil nn && !nn.Apoptotic);
-        for (int i = 0; i < n && have + i < 16; i++) Diapedesis(w, x + Rand(-45, 45), y);
+        for (int i = 0; i < n && have + i < NeutroCap; i++) Diapedesis(w, x + Rand(-45, 45), y);
+        Chemo += 20; Attract(x, y, 12);
     }
     public override void GenerateChunk(World w, Chunk c)
     {
@@ -753,6 +1145,7 @@ public sealed class ScMacro : ScNeutro
     }
     public override void Init(World w)
     {
+        ResetTissue();
         w.CamX = 40; w.CamY = 95;
         w.UpdateChunks(true);
         var me = w.Add(new Macrophage(w, 40, 95, 11.5f)); me.Lineage = true;
@@ -765,6 +1158,7 @@ public sealed class ScMacro : ScNeutro
         base.Update(w, dt, gdt);
         if (w.EverySecond(gdt)) w.Stats["m_score"] = w.Stat("m_killed") + 5 * w.Stat("m_effero") + 3 * w.Stat("m_rbc");
     }
+    public override string[] KeyRows => new[] { "Fagosomy", "Fenotyp", "Cytokiny" };
     public override List<(string, string)> Hud(World w)
     {
         var p = w.Player as Macrophage;
@@ -774,9 +1168,10 @@ public sealed class ScMacro : ScNeutro
             ("Eferocytoza", N(w.Stat("m_effero"))), ("Erytrocyty → hemosyderyna", N(w.Stat("m_rbc"))),
             ("Fagosomy", p != null ? $"{p.Phagos.Count} ({Pct(p.Load / Macrophage.MaxLoad)})" : "-"),
             ("Fenotyp", p == null ? "-" : p.M2 > 0.3f ? "naprawczy (TGF-β, IL-10)" : "prozapalny (TNF, IL-1β)"),
-            ("Cytokiny", p == null ? "-" : p.CytoCD > 0 ? $"za {p.CytoCD:0} s" : "gotowe (Spacja)"),
+            ("Cytokiny", p == null ? "-" : p.CytoCD > 0 ? $"za {p.CytoCD:0} s" : "gotowe"),
             ("Martwica wtórna", N(w.Stat("necro"))), ("Neutrofile", w.Count(e => e is Neutrophil n && !n.Apoptotic).ToString()),
             ("Rezerwa monocytów", N(3 - w.Stat("mono"))),
+            ("Mitoza", p == null ? "-" : p.Mit > 0 ? Pct(p.Mit) : p.M2 > 0.5f ? $"strawiono {Pct(Math.Min(1, p.Nutr / 26))}" : "wymaga eferocytozy"),
             ("Tętno", $"{w.HeartBpm:0}/min"), ("Temperatura ciała", $"{w.TempC:0.0} °C"),
         };
     }
@@ -818,6 +1213,13 @@ public sealed class ScMacro : ScNeutro
 // =====================================================================
 public abstract class ScPond : Scenario
 {
+    public override string InspectAt(World w, float x, float y)
+    {
+        float lux = Light(w, x, y);
+        if (lux >= 0 && lux < 250) return "lemna";
+        if (w.Bact != null && w.Bact.Density(x, y, 20) >= 3) return "bacteria-cloud";
+        return "pond-water";
+    }
     protected bool Ciliates;
     protected ScPond()
     {
@@ -825,6 +1227,9 @@ public abstract class ScPond : Scenario
         ChunkSize = 1400; ActiveR = 2; ParkCap = 60;
         BiomeNames = new[] { "Otwarta woda", "Zarośla skrętnicy", "Osad denny", "Chmury bakterii" };
         BiomeColors = new[] { Rgb(90, 140, 160), Rgb(80, 170, 80), Rgb(150, 125, 85), Rgb(190, 170, 100) };
+        // kropla stawowa: poza ostrością wiszą kłaczki detrytusu, grudki osadu, kolonie glonów i nici skrętnicy
+        Look = BgLook.Pond;
+        Zones = new[] { new BgZone(0.16f, 0.22f, 0.12f, 0.4f, 0.06f), new BgZone(0.15f, 0.35f, 0.6f, 0.4f, 0.12f, 0.46f, 0.53f, 0.45f), new BgZone(0.7f, 0.2f, 0.22f, 0.6f, 0.3f, 0.53f, 0.5f, 0.44f), new BgZone(0.25f, 0.15f, 0.08f, 0.75f, 0.45f, 0.52f, 0.51f, 0.46f) };
         DebrisN = 2400; DebrisS0 = 3; DebrisS1 = 16; DebrisD = 0.5f; DebrisCols = new[] { Rgb(70, 66, 45, 0.45f), Rgb(255, 255, 235, 0.4f), Rgb(40, 50, 35, 0.5f) };
     }
     protected static void Habitat(World w, Chunk c, List<Ent> loc)
@@ -949,8 +1354,9 @@ public sealed class ScAmoeba : ScPond
     public ScAmoeba()
     {
         Id = "amoeba"; Name = "Ameba"; Latin = "Amoeba proteus"; TypeName = "Pierwotniak (Amoebozoa)"; Size = "≈ 200–800 µm"; Color = Hex("#b9c4a4");
+        ReproFact = "Amoeba proteus rozmnaża się wyłącznie bezpłciowo: zaokrągla się, jądro dzieli się mitotycznie, a komórka rozrywa się na dwie (w hodowli co 1–2 doby, przy obfitym pokarmie). Rozmnażania płciowego u niej nie opisano.";
         Desc = "Olbrzymia komórka bez stałego kształtu w nieskończonym stawie. Otaczaj okrzemki, desmidie i wrotki, traw je w wodniczkach i dziel się – zanim zagłodzisz się na śmierć.";
-        ViewW = 1150; TimeScale = 25; Bio = 30; Flow = 1.2f; ChunkSize = 1600; Mag = "Obiektyw 10× (100×) – time-lapse"; ScoreLabel = "biomasy";
+        ViewW = 1150; TimeScale = 25; Bio = 30; Flow = 1.2f; ChunkSize = 1600; Mag = "Obiektyw 10× (100×) – time-lapse"; LineUnit = "ameb";
         Controls = "WASD / przytrzymaj LPM – wysuwaj nibynóżkę w danym kierunku · otocz pokarm, by go wchłonąć";
         Goals = new[]
         {
@@ -1010,7 +1416,6 @@ public sealed class ScAmoeba : ScPond
         {
             ("Zjedzone", N(w.Stat("eaten"))), ("Biomasa (pokarm)", $"{w.Stat("biomass"):0.0}"), ("Do podziału", p != null ? Pct(Math.Min(1, p.EnergyFrac)) : "-"),
             ("Wodniczki pokarmowe", p != null ? p.Meals.Count.ToString() : "-"), ("Średnica zastępcza", p != null ? $"{2 * MathF.Sqrt(p.A0 / PI):0} µm" : "-"),
-            ("Twoja populacja", w.CountAll(e => e is Amoeba && e.Lineage).ToString()),
         };
     }
     public override List<(string label, float v, Color col)> Bars(World w)
@@ -1023,7 +1428,7 @@ public sealed class ScAmoeba : ScPond
         if (e.Edible && e.State is St.Free or St.Swim or St.Avoid && e.Holder == null && e.Length < 330 && !(e is Amoeba)) return 1;
         return e is Amoeba && e.Lineage && e != w.Player ? 3 : 0;
     }
-    public override float Score(World w) => w.Stat("biomass");
+    public override int LinePop(World w) => w.CountAll(e => e is Amoeba && e.Lineage);
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new Amoeba(w, 0, 0, 150)); return (e, 620); }
 }
 
@@ -1032,9 +1437,10 @@ public sealed class ScDidinium : ScPond
     public ScDidinium()
     {
         Id = "didinium"; Name = "Didinium"; Latin = "Didinium nasutum"; TypeName = "Orzęsek drapieżny"; Size = "≈ 60–200 µm"; Color = Hex("#d4c79a");
-        Desc = "Beczułkowaty drapieżnik z ryjkiem w nieskończonym stawie. Szukaj stad pantofelków (najwięcej w chmurach bakterii), trafiaj je przodem i połykaj – głód oznacza encystację.";
-        ViewW = 1050; TimeScale = 0.5f; Bio = 250; Starve = 75; Flow = 8; Mag = "Obiektyw 10× (100×)"; ScoreLabel = "pantofelków"; Ciliates = true;
-        Controls = "WASD / przytrzymaj LPM – płyń · Shift – szybciej · uderz ryjkiem (przodem) w pantofelka · głód = encystacja!";
+        ReproFact = "Podział poprzeczny, gdy zje i strawi 1–2 pantofelki. Przy braku ofiar tworzy cystę spoczynkową i czeka – nawet latami – aż pokarm wróci.";
+        Desc = "Beczułkowaty drapieżnik z ryjkiem w nieskończonym stawie. Szukaj stad pantofelków (najwięcej w chmurach bakterii), trafiaj je przodem, połykaj i dziel się. Głód zamyka Cię w cyście, dopóki nie wrócą ofiary.";
+        ViewW = 1050; TimeScale = 0.5f; Bio = 250; Starve = 75; Flow = 8; Mag = "Obiektyw 10× (100×)"; LineUnit = "Didinium"; Ciliates = true;
+        Controls = "WASD / przytrzymaj LPM – płyń · Shift – szybciej · uderz ryjkiem (przodem) w pantofelka · głód = cysta (czeka na ofiary; czas przyspiesza)";
         Goals = new[]
         {
             new Goal("Upoluj pierwszego pantofelka", 1, w => w.Stat("eaten")),
@@ -1048,7 +1454,7 @@ public sealed class ScDidinium : ScPond
             "Wyspecjalizowany drapieżnik pantofelków – ofiara bywa 1,5–2× większa od niego.",
             "Po kontakcie ryjka z ofiarą wystrzeliwuje toksycysty (paraliżujące) i peksycysty (przytrzymujące). Cytostom rozciąga się ogromnie.",
             "Pantofelek broni się, wystrzeliwując trichocysty – przeciw Didinium tylko częściowo skutecznie.",
-            "Głodujący Didinium tworzy cystę spoczynkową – w grze oznacza to koniec rozgrywki.",
+            "Głodujący Didinium tworzy cystę spoczynkową z grubą ścianą i prawie zatrzymuje metabolizm. Cysta przetrwa miesiące, a nawet lata; gdy w wodzie znów pojawią się pantofelki, orzęsek się z niej wydostaje (ekscystacja; Beers 1946, Butzel i Horwitz 1965). To nie śmierć – to czekanie na lepsze czasy.",
             HabitatFacts[0], HabitatFacts[1], HabitatFacts[3], LifeFacts[0], LifeFacts[3], LifeFacts[4], LifeFacts[5], LifeFacts[6],
         };
     }
@@ -1058,8 +1464,8 @@ public sealed class ScDidinium : ScPond
         Habitat(w, c, loc); InitialBact(c);
         int b = c.Biome;
         Many(w, c, loc, b == 3 ? 7 : b == 0 ? 3 : 2, 130, (x, y) => new Paramecium(w, x, y, Rand(0, TAU)));
-        Many(w, c, loc, b == 0 ? 5 : 3, 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
-        Many(w, c, loc, RandI(1, 2), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, b == 0 ? RandI(8, 12) : RandI(4, 7), 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, b == 2 ? RandI(6, 10) : RandI(2, 4), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
         if (Math.Abs(c.X) + Math.Abs(c.Y) > 1 && Chance(0.08f)) Many(w, c, loc, 1, 80, (x, y) => new Didinium(w, x, y, Rand(0, TAU)));
         PondLife(w, c, loc);
     }
@@ -1074,6 +1480,8 @@ public sealed class ScDidinium : ScPond
     public override void Update(World w, float dt, float gdt)
     {
         w.Bact.Update(dt, gdt);
+        // w cyście nic się nie dzieje – czas płynie szybciej, aż wrócą ofiary
+        w.Ff = w.Player is Didinium pd && pd.State == St.Cyst ? 6 : 1;
         if (!w.EverySecond(gdt)) return;
         RegrowBact(w);
         if (w.Count(e => e is Paramecium q && q.State != St.Eaten) < 40) { var (x, y) = SpawnAway(w, 130); w.Add(new Paramecium(w, x, y, Rand(0, TAU))); }
@@ -1081,11 +1489,11 @@ public sealed class ScDidinium : ScPond
     public override List<(string, string)> Hud(World w)
     {
         var p = w.Player as Didinium;
-        string st = p == null ? "-" : p.State switch { St.Swim => "polowanie", St.Capture => "toksycysty!", St.Swallow => "połykanie", St.Digest => "trawienie", St.Cyst => "encystacja", _ => "-" };
+        string st = p == null ? "-" : p.State switch { St.Swim => "polowanie", St.Capture => "toksycysty!", St.Swallow => "połykanie", St.Digest => "trawienie", St.Cyst => p.Cyst < 1 && p.Excyst ? "ekscystacja" : "cysta (czeka na ofiary)", _ => "-" };
         return new()
         {
             ("Stan", st), ("Zjedzone pantofelki", N(w.Stat("eaten"))),
-            ("Twoja populacja", w.CountAll(e => e is Didinium && e.Lineage).ToString()), ("Pantofelki w okolicy", w.Count(e => e is Paramecium q && q.State != St.Eaten).ToString()),
+            ("Pantofelki w okolicy", w.Count(e => e is Paramecium q && q.State != St.Eaten).ToString()),
         };
     }
     public override List<(string label, float v, Color col)> Bars(World w)
@@ -1099,7 +1507,7 @@ public sealed class ScDidinium : ScPond
         if (PondThreat(e, w.Player)) return 2;
         return e is Didinium && e.Lineage && e != w.Player ? 3 : 0;
     }
-    public override float Score(World w) => w.Stat("eaten");
+    public override int LinePop(World w) => w.CountAll(e => e is Didinium && e.Lineage);
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new Didinium(w, 0, 0, 0)); return (e, 220); }
 }
 
@@ -1108,8 +1516,9 @@ public sealed class ScPara : ScPond
     public ScPara()
     {
         Id = "para"; Name = "Pantofelek"; Latin = "Paramecium caudatum"; TypeName = "Orzęsek"; Size = "≈ 200 µm"; Color = Hex("#b0c8c0");
-        Desc = "Wsysaj bakterie rowkiem gębowym i rozmnażaj się w nieskończonym stawie. Na otwartej wodzie polują Didinium (Spacja – trichocysty); w zaroślach skrętnicy jest bezpieczniej.";
-        ViewW = 900; TimeScale = 0.5f; Bio = 150; Starve = 160; Flow = 8; Mag = "Obiektyw 10× (100×)"; ScoreLabel = "bakterii"; Ciliates = true;
+        ReproFact = "Bezpłciowo: podział poprzeczny (mikronukleus dzieli się mitotycznie, makronukleus amitotycznie), w dobrych warunkach 1–3 razy na dobę. Płciowo: koniugacja – dwie komórki różnych typów koniugacyjnych wymieniają haploidalne mikrojądra; wyzwala ją głód. Klon, który zbyt długo się nie koniuguje, starzeje się i wymiera (Sonneborn 1954: u P. aurelia po ok. 200 podziałach).";
+        Desc = "Wsysaj bakterie rowkiem gębowym i rozmnażaj się w nieskończonym stawie. Na otwartej wodzie polują Didinium (obrona: trichocysty); w zaroślach skrętnicy jest bezpieczniej.";
+        ViewW = 900; TimeScale = 0.5f; Bio = 150; Starve = 160; Flow = 8; Mag = "Obiektyw 10× (100×)"; LineUnit = "pantofelków"; Ciliates = true;
         Controls = "WASD / przytrzymaj LPM – płyń · Shift – ucieczka · Spacja – trichocysty · przepływaj przez chmury bakterii";
         Goals = new[]
         {
@@ -1135,8 +1544,8 @@ public sealed class ScPara : ScPond
         Habitat(w, c, loc); InitialBact(c);
         int b = c.Biome;
         Many(w, c, loc, RandI(1, 2), 130, (x, y) => new Paramecium(w, x, y, Rand(0, TAU)));
-        Many(w, c, loc, 3, 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
-        Many(w, c, loc, RandI(1, 2), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, b == 0 ? RandI(8, 12) : RandI(4, 7), 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, b == 2 ? RandI(6, 10) : RandI(2, 4), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
         float pd = b switch { 0 => 0.45f, 3 => 0.3f, 2 => 0.2f, _ => 0.08f };
         if (Math.Abs(c.X) + Math.Abs(c.Y) > 1 && Chance(pd)) Many(w, c, loc, 1, 80, (x, y) => new Didinium(w, x, y, Rand(0, TAU)));
         PondLife(w, c, loc);
@@ -1164,7 +1573,7 @@ public sealed class ScPara : ScPond
         {
             ("Zjedzone bakterie", N(w.Stat("bact"))), ("Wodniczki pokarmowe", p != null ? p.Fv.Count.ToString() : "-"),
             ("Do podziału", p != null ? Pct(Math.Min(1, p.Energy / 6)) : "-"), ("Trichocysty", p != null ? (p.TrichCD > 0 ? $"ładowanie {p.TrichCD:0.0} s" : "gotowe") : "-"),
-            ("Twoja populacja", w.CountAll(e => e is Paramecium q && q.Lineage && q.State != St.Eaten).ToString()), ("Drapieżniki w okolicy", w.Count(e => e is Didinium).ToString()),
+            ("Drapieżniki w okolicy", w.Count(e => e is Didinium).ToString()),
         };
     }
     public override List<(string label, float v, Color col)> Bars(World w)
@@ -1182,7 +1591,7 @@ public sealed class ScPara : ScPond
         x = y = 0; var p = w.Player;
         return p != null && w.Bact.Densest(p.X, p.Y, ViewW * 3, out x, out y);
     }
-    public override float Score(World w) => w.Stat("bact");
+    public override int LinePop(World w) => w.CountAll(e => e is Paramecium q && q.Lineage && q.State != St.Eaten);
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new Paramecium(w, 0, 0, 0)); return (e, 290); }
 }
 
@@ -1195,13 +1604,14 @@ public sealed class ScEuglena : ScPond
     public ScEuglena()
     {
         Id = "euglena"; Name = "Klejnotka"; Latin = "Euglena gracilis"; TypeName = "Wiciowiec fotosyntetyzujący (Euglenozoa)"; Size = "≈ 50–85 µm"; Color = Hex("#8fc46a");
+        ReproFact = "Podział podłużny od przodu ku tyłowi (w hodowli mniej więcej raz na dobę, gdy komórka zgromadzi dość paramylonu). Rozmnażania płciowego u Euglena nie stwierdzono.";
         Desc = "Żyjesz ze światła. Szukaj półcienia – pełne słońce niszczy chloroplasty, a w ciemności kończy się zapas. Gromadź paramylon, dziel się wzdłuż ciała i chowaj w detrytusie przed orzęskami.";
-        ViewW = 330; TimeScale = 0.5f; Bio = 150; Flow = 4; Mag = "Obiektyw 40× (400×)"; ScoreLabel = "podziałów";
+        ViewW = 330; TimeScale = 0.5f; Bio = 150; Flow = 4; Mag = "Obiektyw 40× (400×)"; LineUnit = "klejnotek";
         Controls = "WASD / przytrzymaj LPM – płyń (wić) · Shift – szybciej · Spacja (przytrzymaj) – metabolia: pełzanie i chowanie się w kłaczkach detrytusu";
         Goals = new[]
         {
             new Goal("Znajdź półcień i zgromadź 80% paramylonu", 0.8f, w => w.Stat("paramax")),
-            new Goal("Schowaj się w detrytusie (metabolia – przytrzymaj Spację)", 1, w => w.Stat("hidden")),
+            new Goal("Schowaj się w detrytusie (metabolia)", 1, w => w.Stat("hidden")),
             new Goal("Podziel się podłużnie (populacja 2)", 2, w => w.CountAll(e => e is Protist q && q.S.Photo && q.Lineage)),
             new Goal("Twoja populacja: 6 klejnotek", 6, w => w.CountAll(e => e is Protist q && q.S.Photo && q.Lineage)),
         };
@@ -1254,8 +1664,8 @@ public sealed class ScEuglena : ScPond
         Habitat(w, c, loc);
         int b = c.Biome;
         for (int i = b == 2 ? RandI(6, 10) : RandI(3, 6); i > 0; i--) { var (x, y) = Spot(w, c, 60, loc, 60); Put(w, loc, new Detritus(w, x, y, Rand(25, 70))); }
-        Many(w, c, loc, b == 0 ? 6 : 3, 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
-        Many(w, c, loc, RandI(1, 2), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, b == 0 ? RandI(8, 12) : RandI(4, 7), 10, (x, y) => new Chlamy(w, x, y, Rand(0, TAU)));
+        Many(w, c, loc, b == 2 ? RandI(6, 10) : RandI(2, 4), 60, (x, y) => new Diatom(w, x, y, Rand(0, TAU)));
         Many(w, c, loc, RandI(0, 1), 130, (x, y) => new Paramecium(w, x, y, Rand(0, TAU)));
         PondLife(w, c, loc);
     }
@@ -1320,7 +1730,6 @@ public sealed class ScEuglena : ScPond
             ("Fotosynteza", p != null ? Pct(p.PhotoRate) : "-"),
             ("Paramylon", p != null ? Pct(Math.Min(1, p.Paramylon)) : "-"),
             ("Fotouszkodzenie PSII", p != null ? Pct(p.PhotoDmg) : "-"),
-            ("Twoja populacja", w.CountAll(e => e is Protist q && q.S.Photo && q.Lineage).ToString()),
         };
     }
     public override List<(string label, float v, Color col)> Bars(World w)
@@ -1339,6 +1748,6 @@ public sealed class ScEuglena : ScPond
         if (PondThreat(e, me)) return 2;
         return e is Protist r && r.S.Photo && r.Lineage && e != me ? 3 : 0;
     }
-    public override float Score(World w) => w.Stat("pop") - 1;
+    public override int LinePop(World w) => w.CountAll(e => e is Protist q && q.S.Photo && q.Lineage);
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new Protist(w, Species.Euglena, 0, 0, 0)); e.Paramylon = 0.7f; return (e, 110); }
 }

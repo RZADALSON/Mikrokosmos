@@ -22,9 +22,9 @@ public sealed class Microbe : Ent
         {
             case MicroType.Bacillus:
                 _cells = Math.Max(1, cells); Wd = Rand(0.8f, 1.0f); L = _cells * Rand(2.2f, 3.2f); Speed = _cells == 1 ? Rand(15, 25) : 0;
-                _spore = Chance(0.3f); Name = "laseczka sienna"; Latin = "Bacillus subtilis (Gram+)"; Soft = 0.05f; D = 0.01f; Dr = _cells == 1 ? 0.05f : 0.002f; break;
+                _spore = Chance(0.3f); Name = "laseczka sienna"; Latin = "Bacillus subtilis (Gram+)"; Soft = 0.05f; D = _cells == 1 ? 0.25f : 0.05f; Dr = _cells == 1 ? 0.05f : 0.002f; break;
             case MicroType.Pseudomonas:
-                Wd = Rand(0.5f, 0.7f); L = Rand(1.5f, 2.6f); Speed = Rand(35, 55); Name = "pałeczka ropy błękitnej"; Latin = "Pseudomonas aeruginosa"; Soft = 0.08f; D = 0.05f; Dr = 0.08f; break;
+                Wd = Rand(0.5f, 0.7f); L = Rand(1.5f, 2.6f); Speed = Rand(35, 55); Name = "pałeczka ropy błękitnej"; Latin = "Pseudomonas aeruginosa"; Soft = 0.08f; D = 0.4f; Dr = 0.1f; break;
             case MicroType.Caulobacter:
                 Wd = Rand(0.5f, 0.6f); L = Rand(1.4f, 2.0f); _stalk = Rand(1.5f, 3.5f); Name = "Caulobacter (komórka z trzonkiem)"; Latin = "Caulobacter crescentus"; Soft = 0.05f; Fixed = !float.IsNaN(stalkAng); FlowK = 0;
                 if (Fixed) { _ax = x; _ay = y; A = stalkAng; X = x + MathF.Cos(A) * (_stalk + L / 2); Y = y + MathF.Sin(A) * (_stalk + L / 2); } break;
@@ -56,6 +56,8 @@ public sealed class Microbe : Ent
     const float HelixAmp = 2.2f, HelixLam = 11;
     float HelixY(float x) => HelixAmp * MathF.Sin(TAU * x / HelixLam + _hp);
     public override bool Collides(Ent o) => State is not (St.Cup or St.Vac);
+    /// <summary>Bakterie z rzęskami to „pchacze” (siła napędu z tyłu ciała).</summary>
+    public override float Dipole => Speed > 0 && T != MicroType.Yeast ? 1 : 0;
     public override void Step(float dt, float gdt)
     {
         _ph += gdt * TAU * 3;

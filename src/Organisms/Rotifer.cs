@@ -10,7 +10,7 @@ public sealed class Rotifer : Ent
     enum Mode { Feed, Crawl, Retract }
     Mode _mode = Mode.Feed;
     public float Lmax, Wd, Ext = 1, Corona = 1, Cph, Mph, St0, Gut;
-    float _dir;
+    float _dir, _crawl;
 
     public override float Length => Lmax * (0.45f + 0.55f * Ext);
     public override float Radius => Wd / 2;
@@ -19,6 +19,10 @@ public sealed class Rotifer : Ent
     {
         Kind = Kind.Rotifer; Layer = 3; Lmax = Rand(300, 440); Wd = Lmax * 0.2f; Mass = 30; R = Lmax / 2 + 20;
         Edible = true; Food = 3; Name = "wrotek"; Latin = "Philodina"; Soft = 0.2f; State = St.Free; St0 = Rand(4, 12); _dir = a;
+        bool moss = w?.Sc is ScTardi;
+        Body = moss ? Rgb(196, 162, 112, 0.38f) : Rgb(165, 165, 140, 0.34f);
+        GutC = moss ? Rgb(205, 110, 35, 0.6f) : Rgb(110, 130, 60, 0.5f);
+        if (moss) Latin = "Philodina roseola";
     }
     public override void UpdatePrim() => AxisParts(3, Length / 2, Wd / 2, t => Math.Max(0.3f, HalfW((t + 1) / 2) / (Wd / 2)), 0);
     public override bool Collides(Ent o) => State == St.Free;
@@ -55,10 +59,15 @@ public sealed class Rotifer : Ent
             case Mode.Crawl:
                 Fixed = false;
                 Corona = Lerp(Corona, 0, Damp(4, dt));
-                float cyc = MathF.Sin(W.T * 2.4f + Id);
-                Ext = 0.65f + 0.35f * cyc;
-                A = Turn(A, _dir, 0.4f * dt);
-                float v = Math.Max(0, -MathF.Cos(W.T * 2.4f + Id)) * 90;
+                // chód pijawkowaty: przy wydłużaniu stopa stoi przyklejona, a głowa (rostrum) sięga naprzód – wtedy też skręca;
+                // przy skracaniu przyklejona jest głowa, a stopa podciąga się do przodu. Któryś koniec zawsze stoi w miejscu,
+                // więc środek ciała przesuwa się o połowę zmiany długości.
+                float l0 = Length;
+                _crawl += dt * 2.4f;
+                Ext = 0.65f + 0.35f * MathF.Sin(_crawl);
+                float dl = Length - l0;
+                if (dl > 0) A = Turn(A, _dir, 0.9f * dt);
+                float v = dt > 1e-6f ? MathF.Abs(dl) * 0.5f / dt : 0;
                 Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v;
                 if (St0 <= 0) { _mode = Mode.Feed; St0 = Rand(10, 25); }
                 break;
@@ -106,7 +115,12 @@ public sealed class Rotifer : Ent
         return Lerp(PW[i], PW[i + 1], s) * Wd / 2;
     }
 
-    static readonly Color Body = Rgb(165, 165, 140, 0.34f), Edge = Rgb(60, 60, 45, 0.55f), GutC = Rgb(110, 130, 60, 0.5f);
+    static readonly Color Edge = Rgb(60, 60, 45, 0.55f);
+    /// <summary>
+    /// Barwa: wrotki stawowe – przejrzyste z zielonkawym od glonów żołądkiem; w mchu częste bdelloidy pomarańczowe
+    /// i różowe od karotenoidów (np. Philodina roseola), z pomarańczowobrązowym żołądkiem.
+    /// </summary>
+    Color Body, GutC;
     readonly float[] _ox = new float[80], _oy = new float[80];
 
     public override void Draw(Painter p, View v)
@@ -115,7 +129,7 @@ public sealed class Rotifer : Ent
         p.Local(X, Y, A, 1 - Dig * 0.3f);
         float L = Length, lw = Math.Max(v.Px, Wd * 0.012f);
         // lekkie wygięcie ciała przy pełzaniu (pijawkowaty ruch)
-        float bend = MathF.Sin(W.T * 2.4f + Id) * 0.04f * (1 - Ext) * Wd;
+        float bend = MathF.Sin(_crawl) * 0.04f * (1 - Ext) * Wd;
         const int N = 40;
         for (int i = 0; i < N; i++)
         {
@@ -124,10 +138,9 @@ public sealed class Rotifer : Ent
         }
         int ns = Painter.SmoothClosed(_ox, _oy, 2 * N, p.Shape, 2);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
-        p.SoftStroke(sh, true, Wd * 0.12f, Rgb(255, 255, 240, 0.26f));
         Span<float> ts = stackalloc float[] { 0f, 0.7f, 1f };
         Span<Color> cs = stackalloc Color[] { Rgb(190, 190, 165, 0.26f), Body, Rgb(130, 130, 105, 0.45f) };
-        p.FillRadial(sh, 0, 0, ts, cs);
+        p.BodyPoly(sh, Wd * 0.12f, Rgb(255, 255, 240, 0.26f), 0, 0, ts, cs);
         // pseudosegmenty stopy i tułowia: łukowate fałdy kutykuli (teleskopowo chowane przy skurczu)
         for (int k = 0; k < 6; k++)
         {
@@ -190,6 +203,8 @@ public sealed class Rotifer : Ent
 /// </summary>
 public sealed class Acanth : Ent
 {
+    /// <summary>Pełza/chodzi po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     const int NN = 56;
     public float Rb;
     readonly float[] _rr = new float[NN];
@@ -282,12 +297,11 @@ public sealed class Acanth : Ent
     {
         int n = Mem.Smooth(p.Shape, 2);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
-        p.SoftStroke(sh, true, 1.6f, Rgb(255, 255, 240, 0.3f));
         Span<float> ts = stackalloc float[] { 0f, 0.7f, 1f };
         Span<Color> cs = stackalloc Color[] { Rgb(105, 110, 98, 0.55f), Rgb(125, 130, 118, 0.45f), Rgb(175, 180, 168, 0.3f) };
-        p.FillRadial(sh, X, Y, ts, cs);
+        p.Body(Mem, sh, 2, 1.6f, Rgb(255, 255, 240, 0.3f), X, Y, ts, cs);
         p.Stroke(sh, true, 0.12f, Rgb(40, 44, 38, 0.75f));
-        p.Local(X, Y, 0);
+        p.Local(X, Y, 0); p.Warp(Mem);
         foreach (var g in _gran) p.Dot(g.X * Rb, g.Y * Rb, 0.22f, g.Z > 0 ? Rgb(35, 40, 35, 0.5f) : Rgb(235, 240, 225, 0.55f));
         float nx = -Rb * 0.15f, ny = Rb * 0.1f;
         p.FillCircle(nx, ny, Rb * 0.28f, Rgb(185, 190, 175, 0.55f));

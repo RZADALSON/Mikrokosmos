@@ -101,6 +101,6 @@ public static class Geo
         ContactX = x1 + nx * (a.R - pen * 0.5f); ContactY = y1 + ny * (a.R - pen * 0.5f);
         return true;
     }
-    /// <summary>Punkt kontaktu z ostatniego wykrytego zderzenia (PrimPrim / EntEnt).</summary>
-    public static float ContactX, ContactY;
+    /// <summary>Punkt kontaktu z ostatniego wykrytego zderzenia (PrimPrim / EntEnt) – osobny dla każdego wątku.</summary>
+    [ThreadStatic] public static float ContactX, ContactY;
 }

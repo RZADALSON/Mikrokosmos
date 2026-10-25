@@ -133,6 +133,7 @@ public sealed class BactField
     {
         p.Identity();
         float sz = Math.Max(1.1f, v.Px * 1.6f);
+        bool round = sz > v.Px * 7;
         var c = Rgb(30, 36, 30, 0.6f);
         int i0 = CellI(v.X0, _ox, _nx), i1 = CellI(v.X1, _ox, _nx), j0 = CellI(v.Y0, _oy, _ny), j1 = CellI(v.Y1, _oy, _ny);
         for (int j = j0; j <= j1; j++)
@@ -140,9 +141,30 @@ public sealed class BactField
                 for (int k = _head[j * _nx + ci]; k >= 0; k = _next[k])
                 {
                     if (_dead[k] != 0) continue;
-                    float x = X[k], y = Y[k];
-                    if ((_o[k] & 1) == 1) p.Rect(x - sz, y - sz * 0.45f, sz * 2, sz * 0.9f, c); else p.Rect(x - sz * 0.45f, y - sz, sz * 0.9f, sz * 2, c);
+                    // pałeczka: dowolna orientacja (kąt złoty z indeksu – stały dla danej komórki) i zaokrąglone, półkoliste końce
+                    float x = X[k], y = Y[k], a = k * 2.39996f + _o[k] * 0.7f, ca = MathF.Cos(a) * sz * 0.55f, sa = MathF.Sin(a) * sz * 0.55f;
+                    // kilka pikseli na ekranie: sam czworokąt (4 wierzchołki) – zaokrąglone końce i tak by nie były widoczne
+                    if (round) p.Line(x - ca, y - sa, x + ca, y + sa, sz * 0.9f, c, true);
+                    else p.Seg(x - ca, y - sa, x + ca, y + sa, sz * 0.9f, c);
                 }
+    }
+    /// <summary>
+    /// Murawa bakterii jako ciągła mgiełka: w rzeczywistości na agarze leży ~1 komórka na µm² (tu rysowana jest tylko część
+    /// z nich), więc gęsta murawa wygląda jak lekko ziarnisty, szarożółty nalot. Tam, gdzie ameby wyjadły bakterie,
+    /// powstają jaśniejsze „łysinki” (plaki).
+    /// </summary>
+    public void DrawLawn(Painter p, View v, Color col, float full)
+    {
+        p.Identity();
+        int i0 = CellI(v.X0 - CELL, _ox, _nx), i1 = CellI(v.X1 + CELL, _ox, _nx), j0 = CellI(v.Y0 - CELL, _oy, _ny), j1 = CellI(v.Y1 + CELL, _oy, _ny);
+        for (int j = j0; j <= j1; j++)
+            for (int ci = i0; ci <= i1; ci++)
+            {
+                int n = 0; float sx = 0, sy = 0;
+                for (int k = _head[j * _nx + ci]; k >= 0; k = _next[k]) if (_dead[k] == 0) { n++; sx += X[k]; sy += Y[k]; }
+                if (n < 2) continue;
+                p.Glow(sx / n, sy / n, CELL * 0.95f, Mul(col, Math.Min(1, n / full)));
+            }
     }
     /// <summary>Rozkład gęstości na minimapie.</summary>
     public void DrawMap(Painter p, Color col)
@@ -313,7 +335,7 @@ public sealed class Paramecium : Ent
         {
             var e = W.Add(new Paramecium(W, X + c * off * sg, Y + s * off * sg, A, L * Rand(0.92f, 1.0f), 0, Green));
             e.Sw.V = Sw.V; e._head = _head;
-            e.Lineage = Lineage || IsPlayer; e.Sk = 0.62f; e.GrowBack = true; return e;
+            W.Born(this, e, sg > 0); e.Sk = 0.62f; e.GrowBack = true; return e;
         }
         var A1 = Mk(1); Mk(-1);
         Alive = false;
@@ -371,8 +393,8 @@ public sealed class Paramecium : Ent
         if (!eaten && detail)
         {
             float fx = MathF.Cos(A), fy = MathF.Sin(A), cl = 9 * sk, cw = Math.Max(0.9f, v.Px * 0.8f);
-            int n = m.N;
-            for (int i = 0; i < n * 2; i++)
+            int n = m.N, cst = L * sk / Math.Max(v.Px, 1e-6f) > 250 ? 1 : 2;
+            for (int i = 0; i < n * 2; i += cst)
             {
                 int a = i >> 1, b = (a + 1) % n; bool h = (i & 1) == 1;
                 float px = h ? (m.Px[a] + m.Px[b]) / 2 : m.Px[a], py = h ? (m.Py[a] + m.Py[b]) / 2 : m.Py[a];
@@ -383,22 +405,29 @@ public sealed class Paramecium : Ent
                 p.Seg(px, py, px + dx / l * cl, py + dy / l * cl, cw, CiliaC);
             }
         }
-        int ns = m.Smooth(p.Shape, detail && L * sk / Math.Max(v.Px, 1e-6f) > 220 ? 3 : 2);
+        int psub = detail && L * sk / Math.Max(v.Px, 1e-6f) > 220 ? 3 : 2;
+        int ns = m.Smooth(p.Shape, psub);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
-        p.SoftStroke(sh, true, 11, HaloC);
         Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
         Span<Color> bcs = stackalloc Color[] { Protist.Shade(BodyC, 1.12f, 0.85f), BodyC, Protist.Shade(BodyC, 0.8f, 1.2f) };
-        p.FillRadial(sh, X, Y, bts, bcs);
+        p.Body(m, sh, psub, 11, HaloC, X, Y, bts, bcs);
         p.Stroke(sh, true, 1.0f, EdgeC);
         int n2 = m.SmoothInset(p.Shape2, 2.4f * sk, p.Tx, p.Ty);
-        p.Dashed(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 2.4f * sk, 0.8f * sk, 1.4f * sk, TrichC);
-        p.Local(X, Y, A);
+        // trichocysty co ~2 µm: z bliska przerywana palisada, z daleka (kreski ~1 px) – jednolity, blady pas
+        if (2.2f * sk / Math.Max(v.Px, 1e-6f) > 5) p.Dashed(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 2.4f * sk, 0.8f * sk, 1.4f * sk, TrichC);
+        else p.Thin(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 2.4f * sk, Mul(TrichC, 0.4f));
+        BodyLocal(p);
         if (Green)
         {
             foreach (var z in _zoo) p.Dot(z.X * L2 * 0.46f, z.Y * W2 * 0.43f, 2.7f * z.Z * sk, ZooC);
             foreach (var z in _zoo) if (z.Z > 1.05f) p.Dot(z.X * L2 * 0.46f - 0.6f, z.Y * W2 * 0.43f - 0.6f, 1.0f * sk, ZooH);
         }
-        else foreach (var g in _gran) p.Rect(g.X * L2 * 0.45f, g.Y * W2 * 0.42f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? GranD : GranB);
+        else
+        {
+            // ziarnistości ~1–2 px: co trzecia (ziarnistość cytoplazmy daje też tekstura)
+            int gs = p.Tex != null && 1.4f / Math.Max(v.Px, 1e-6f) < 1.6f ? 3 : 1;
+            for (int gi = 0; gi < _gran.Length; gi += gs) { var g = _gran[gi]; p.Rect(g.X * L2 * 0.45f, g.Y * W2 * 0.42f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? 1.4f : 1.2f, g.Z > 0 ? GranD : GranB); }
+        }
         // rowek gębowy
         var buf = p.Buf2;
         float rc = MathF.Cos(_spin); // obrót wokół długiej osi – rowek przechodzi z jednej strony na drugą
@@ -441,6 +470,8 @@ public sealed class Didinium : Ent, ICaptor
     const int NN = 48;
     public float L, Wd, Speed, St0, Swell = 1, Mouth, Stun, Roll, Cph, Hunger, Cyst, TurnT;
     public int Meals;
+    /// <summary>Ekscystacja w toku (cysta pęka, orzęsek wychodzi) i czas spędzony w cyście.</summary>
+    public bool Excyst; float _cystT;
     public Paramecium Prey;
     public Steer Sw;
     float _psx, _psy, _psa, _head;
@@ -476,22 +507,23 @@ public sealed class Didinium : Ent, ICaptor
     }
     public override void UpdatePrim() { float sw = MathF.Sqrt(Swell); SetCapsule(L * 0.08f * sw, Wd / 2 * sw * 0.95f); }
     public override bool Collides(Ent o) => o != Prey;
-    public override bool CanControl() => State != St.Cyst;
+    public override bool CanControl() => true;
 
     public override void Step(float dt, float gdt)
     {
         float bdt = dt * W.Bio;
         Cph += gdt * TAU * (State == St.Cyst ? 0 : 5);
         Stun -= gdt;
-        if (State == St.Cyst) { Cyst = Math.Min(1, Cyst + gdt / 2.5f); Vx = Vy = 0; ComputeRest(); return; }
+        if (State == St.Cyst) { StepCyst(gdt); Vx = Vy = 0; ComputeRest(); return; }
         if (State is St.Cup or St.Vac) { Vx = Vy = 0; ComputeRest(); return; }
         if ((IsPlayer || Lineage) && !W.Preview)
         {
             Hunger += gdt / W.Sc.Starve * (State == St.Digest ? 0 : 1);
-            if (Hunger >= 1 && IsPlayer)
+            if (Hunger >= 1 && (State == St.Swim || State == St.Capture))
             {
-                State = St.Cyst; W.Log("Głód → encystacja. Didinium otacza się ścianą cysty.", "bad");
-                W.After(2.6f, () => W.GameOver("Encystacja z głodu"));
+                if (State == St.Capture) Release(false);
+                State = St.Cyst; _cystT = 0; Excyst = false; W.Sfx("cyst", X, Y);
+                if (IsPlayer) W.Log("Głód → encystacja. Didinium wciąga rzęski, zaokrągla się i otacza grubą ścianą cysty. Metabolizm prawie staje – czekasz, aż w wodzie znów pojawią się pantofelki.", "bad");
                 return;
             }
         }
@@ -584,6 +616,23 @@ public sealed class Didinium : Ent, ICaptor
         if (pr.IsPlayer) W.Log("TOKSYCYSTY! Didinium Cię trafił – wystrzel trichocysty (Spacja)!", "bad");
         if (!pr.IsPlayer && Chance(0.9f)) W.After(0.15f, () => { if (pr.Alive && pr.State == St.Caught) pr.Discharge(); });
     }
+    /// <summary>Cysta spoczynkowa: przeczekuje głód; gdy w pobliżu znów pływają pantofelki, orzęsek się wydostaje.</summary>
+    void StepCyst(float gdt)
+    {
+        if (Excyst)
+        {
+            Cyst = Math.Max(0, Cyst - gdt / 3);
+            if (Cyst <= 0) { State = St.Swim; Excyst = false; Hunger = 0.5f; if (IsPlayer) W.Log("Ekscystacja! Ściana cysty pęka, Didinium odtwarza wieńce rzęsek i znów poluje – zanim znów zgłodnieje.", "good"); }
+            return;
+        }
+        Cyst = Math.Min(1, Cyst + gdt / 2.5f);
+        _cystT += gdt;
+        if (_cystT > 6 && W.Near(X, Y, 500, e => e is Paramecium q && q.State is St.Swim or St.Avoid) != null)
+        {
+            Excyst = true; W.Sfx("hatch", X, Y, 0.8f);
+            if (IsPlayer) W.Log("Woda niesie sygnały ofiar – zaczyna się ekscystacja.", "info");
+        }
+    }
     public void Release(bool escaped)
     {
         var P = Prey;
@@ -596,7 +645,7 @@ public sealed class Didinium : Ent, ICaptor
     {
         float c = MathF.Cos(A), s = MathF.Sin(A);
         var e = W.Add(new Didinium(W, X - c * L * 0.6f, Y - s * L * 0.6f, A + Rand(-1, 1), L));
-        e.Lineage = true;
+        W.Born(this, e, true); W.Born(this, this, false);
         W.AddStat("pop", 1);
         if (IsPlayer) W.Log("Podział! Twoja linia Didinium rośnie.", "good");
     }
@@ -606,13 +655,12 @@ public sealed class Didinium : Ent, ICaptor
         var m = Mem; float sw = MathF.Sqrt(Swell), L2 = L * sw, W2 = Wd * sw, cy = Smooth(Cyst);
         int ns = m.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
-        p.SoftStroke(sh, true, 11, Rgb(255, 255, 240, 0.26f));
         Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
         Span<Color> bcs = stackalloc Color[] { Rgb(150, 146, 124, 0.38f), Rgb(128, 124, 104, 0.45f), Rgb(105, 100, 82, 0.55f) };
-        p.FillRadial(sh, X, Y, bts, bcs);
+        p.Body(m, sh, 3, 11, Rgb(255, 255, 240, 0.26f), X, Y, bts, bcs);
         p.Stroke(sh, true, 1.0f, Rgb(46, 44, 34, 0.7f));
         if (cy > 0) p.Stroke(sh, true, 6 * cy, Rgb(200, 190, 150, 0.7f * cy));
-        p.Local(X, Y, A);
+        BodyLocal(p);
         float A2 = L2 / 2, B2 = W2 / 2;
         bool detail = L2 / Math.Max(v.Px, 1e-6f) > 70;
         if (detail) foreach (var g in _gran) p.Dot(g.X * A2, g.Y * B2, g.Z > 0 ? 0.9f : 0.75f, g.Z > 0 ? Rgb(48, 46, 36, 0.35f) : Rgb(235, 230, 210, 0.3f));
@@ -659,6 +707,8 @@ public sealed class Didinium : Ent, ICaptor
 /// <summary>Chlamydomonas (~10 µm): 2 wici (styl "żabka"), kubkowaty chloroplast z pirenoidem, czerwona plamka oczna; ~100–120 µm/s.</summary>
 public sealed class Chlamy : Ent
 {
+    /// <summary>Dwie wici z przodu biją jak ramiona żabki – Chlamydomonas „ciągnie” wodę (Guasto i in., PRL 2010).</summary>
+    public override float Dipole => -1;
     public float Rr, Speed, Beat, Roll;
     public override float Radius => Rr;
     public Chlamy(World w, float x, float y, float a) : base(w, x, y, a)

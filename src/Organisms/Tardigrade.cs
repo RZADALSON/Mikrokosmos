@@ -106,7 +106,9 @@ public sealed class AlgaField
 
 /// <summary>
 /// Listek mchu – jedna warstwa wydłużonych komórek z chloroplastami, z żeberkiem (costa) pośrodku.
-/// Dla mikroskopijnych zwierząt to ściana labiryntu; między listkami utrzymuje się błonka wody.
+/// To podłoże, a nie ściana: blaszka ma grubość jednej komórki (~10–15 µm), a niesporczak, wrotek czy nicień chodzą po
+/// jej powierzchni w błonce wody i przechodzą przez krawędź na drugą stronę albo na sąsiedni listek (poduszka mchu jest
+/// trójwymiarowa – listki leżą na sobie warstwami). W rzucie 2D zwierzęta są więc rysowane na listku i nie zderzają się z nim.
 /// </summary>
 public sealed class MossLeaf : Ent
 {
@@ -116,7 +118,7 @@ public sealed class MossLeaf : Ent
     static float Prof(float t) => MathF.Pow(Math.Max(0, 1 - t * t), 0.7f) * (t > 0 ? 1 - 0.45f * t : 1);
     public MossLeaf(World w, float x, float y, float a, float len) : base(w, x, y, a)
     {
-        Kind = Kind.None; Layer = 1; Fixed = true; FlowK = 0; Mass = 1e6f; Name = "listek mchu"; Latin = "Bryophyta (np. Brachythecium)";
+        Kind = Kind.None; Layer = 1; Fixed = true; Solid = false; FlowK = 0; Mass = 1e6f; Name = "listek mchu"; Latin = "Bryophyta (np. Brachythecium)";
         _l = len; _w = len * Rand(0.2f, 0.28f); R = _l / 2 + 10;
         // komórki blaszki: kolumny wydłużonych komórek (≈ 10–15 × 50–80 µm), przesunięte względem siebie
         _cellX = new float[(int)(_l / 60) + 2];
@@ -125,6 +127,7 @@ public sealed class MossLeaf : Ent
         for (int i = 0; i < _chl.Length; i++) { float t = Rand(-0.92f, 0.92f); _chl[i] = new Vector3(t, Rand(-0.9f, 0.9f) * Prof(t), Rand(1.8f, 2.8f)); }
     }
     public override void UpdatePrim() => AxisParts(5, _l / 2, _w / 2, Prof, 0);
+    public override bool StaticDraw => true;
     public override void Draw(Painter p, View v)
     {
         if (!v.Vis(X, Y, _l * 0.5f + 8)) return; // liść jest długi – margines silnika (1,6 R) rysowałby dziesiątki liści poza kadrem
@@ -173,8 +176,12 @@ public sealed class MossLeaf : Ent
 public sealed class Exuvia : Ent
 {
     readonly float _l; readonly int _n; float _t; readonly Vector2[] _eggs; readonly bool _mine;
-    public Exuvia(World w, float x, float y, float a, float len, int eggs, bool mine) : base(w, x, y, a)
+    readonly int _pGen; readonly float _pBorn;
+    /// <summary>Jaja Twojej linii (żywe potomstwo, choć jeszcze niewyklute).</summary>
+    public int MineEggs => _mine && Alive ? _n : 0;
+    public Exuvia(World w, float x, float y, float a, float len, int eggs, bool mine, int pGen = 0, float pBorn = 0) : base(w, x, y, a)
     {
+        _pGen = pGen; _pBorn = pBorn;
         Kind = Kind.None; Layer = 1; Solid = false; FlowK = 0; _l = len; _n = eggs; _mine = mine; R = len / 2 + 5; Name = "wylinka z jajami"; Latin = "Hypsibius exemplaris";
         _eggs = new Vector2[eggs];
         for (int i = 0; i < eggs; i++) _eggs[i] = new Vector2(Rand(-0.3f, 0.3f) * len, Rand(-0.1f, 0.1f) * len);
@@ -189,8 +196,9 @@ public sealed class Exuvia : Ent
             for (int i = 0; i < _n; i++)
             {
                 ToWorld(_eggs[i].X, _eggs[i].Y, out float x, out float y);
-                var j = W.Add(new Tardigrade(W, x, y, Rand(0, TAU), false, 0.42f)); j.Lineage = _mine; j.Energy = 0.25f;
+                var j = W.Add(new Tardigrade(W, x, y, Rand(0, TAU), false, 0.42f)); W.Born(_pGen, _pBorn, _mine, j, i == 0); j.Energy = 0.25f;
             }
+            W.Sfx("hatch", X, Y, 0.9f);
             if (_mine) { W.AddStat("hatched", _n); W.Log($"Z jaj w wylince wykluło się {_n} młodych niesporczaków.", "good"); }
             Alive = false;
         }
@@ -213,17 +221,21 @@ public sealed class Exuvia : Ent
 
 /// <summary>
 /// Niesporczak (Tardigrada). Hypsibius exemplaris (~250 µm): 4 pary krępych nóżek z pazurkami, chodzi jak owady
-/// (średnio ~160 µm/s, do ~2 długości ciała/s – Nirody i in., PNAS 2021). Przebija komórki glonów sztyletami
+/// (średnio ~163 µm/s, ok. 0,5 długości ciała/s, zakres ~80–260 µm/s – Nirody i in., PNAS 2021). Przebija komórki glonów sztyletami
 /// i wysysa zawartość. Przy wysychaniu zwija się w "beczułkę" (tun) i przechodzi w anhydrobiozę.
 /// Milnesium – drapieżny niesporczak z szerokim otworem gębowym; poluje na wrotki i mniejsze niesporczaki.
 /// </summary>
 public sealed class Tardigrade : Ent
 {
+    /// <summary>Pełza/chodzi po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     public readonly bool Predator;
     public float L, Wd, Energy = 0.4f, Tun, Molt, Stylet, Walk, Grow = 1;
     public bool TunWant;
     public Steer Sw;
     float _head, _wT, _seekT, _eatCD, _dmgFlash; Ent _prey;
+    /// <summary>Wygięcie osi ciała (y = Bend·x²): szkielet hydrostatyczny – ciało wygina się w stronę skrętu.</summary>
+    public float Bend;
     readonly Vector3[] _store;
     public override float Length => L * Grow * (1 - 0.45f * Tun);
     public override float Radius => Wd * Grow * (1 + 0.05f * Tun) / 2;
@@ -233,12 +245,14 @@ public sealed class Tardigrade : Ent
     public Tardigrade(World w, float x, float y, float a, bool predator = false, float grow = 1) : base(w, x, y, a)
     {
         Predator = predator; Grow = grow;
-        Kind = Kind.Metazoan; Layer = 3; Soft = 0.35f; Edible = !predator; Food = 2;
+        Kind = Kind.Metazoan; Layer = 3; Soft = 0.18f; // szkielet hydrostatyczny pod oskórkiem: ciało lekko ustępuje, ale nie przenika się z innymi Edible = !predator; Food = 2;
         Name = predator ? "niesporczak drapieżny" : "niesporczak"; Latin = predator ? "Milnesium inceptum" : "Hypsibius exemplaris";
-        L = predator ? Rand(420, 600) : Rand(220, 290); Wd = L * (predator ? 0.3f : 0.36f);
+        // H. exemplaris: ~250 × 65–75 µm (smukły, ok. 3,5 : 1); Milnesium: do ~0,7 mm, szerszy przód
+        L = predator ? Rand(420, 600) : Rand(220, 290); Wd = L * (predator ? 0.3f : 0.29f);
         Mass = L * Wd / 250; R = L / 2 + 40; _head = a;
-        _store = new Vector3[26];
-        for (int i = 0; i < _store.Length; i++) _store[i] = new Vector3(Rand(-0.6f, 0.45f), Rand(-0.6f, 0.6f), Rand(0, TAU));
+        // komórki zapasowe (celomocyty) – setki okrągłych komórek ~5–12 µm swobodnie krążących w jamie ciała
+        _store = new Vector3[70];
+        for (int i = 0; i < _store.Length; i++) _store[i] = new Vector3(Rand(-0.72f, 0.55f), Rand(-0.75f, 0.75f), Rand(0, TAU));
     }
     static float Prof(float t)
     {
@@ -246,7 +260,10 @@ public sealed class Tardigrade : Ent
         float b = MathF.Pow(Math.Max(0, 1 - t * t), 0.45f);
         return b * (1 + 0.035f * MathF.Cos((t + 1) * PI * 4.5f));
     }
-    public override void UpdatePrim() => AxisParts(3, Length / 2, Radius, Prof, 0);
+    public override void UpdatePrim() => AxisParts(3, Length / 2, Radius, Prof, Bend);
+    /// <summary>Długość kroku (µm) i udział fazy podporu: stopa stoi na podłożu, gdy ciało przesuwa się nad nią.</summary>
+    float Stride => 0.16f * L * Grow;
+    const float Duty = 0.6f;
     public override bool CanControl() => Alive;
     public override bool Collides(Ent o) => !(o is Exuvia);
 
@@ -262,7 +279,7 @@ public sealed class Tardigrade : Ent
         else if (!TunWant && !dry && moist > 0.3f) Tun = Math.Max(0, Tun - dt / 4);
         if (Tun > 0.05f || dry)
         {
-            Vx = Vy = 0; Sw.V = 0; Sw.Omega = 0;
+            Vx = Vy = 0; Sw.V = 0; Sw.Omega = 0; Bend *= 1 - Damp(3, dt);
             return;
         }
         // linienie: zrzucenie oskórka i złożenie jaj do wylinki
@@ -273,7 +290,7 @@ public sealed class Tardigrade : Ent
             {
                 Molt = 0;
                 int eggs = RandI(2, 6);
-                W.Add(new Exuvia(W, X - MathF.Cos(A) * L * 0.1f, Y - MathF.Sin(A) * L * 0.1f, A, L * Grow, eggs, Lineage || IsPlayer));
+                W.Add(new Exuvia(W, X - MathF.Cos(A) * L * 0.1f, Y - MathF.Sin(A) * L * 0.1f, A, L * Grow, eggs, Lineage || IsPlayer, Gen, BornT));
                 Energy = 0.3f;
                 if (IsPlayer || Lineage) W.AddStat("eggs", eggs);
                 if (IsPlayer) W.Log($"Linienie zakończone: {eggs} jaj zostało w zrzuconym oskórku (wylince). Młode wyklują się za kilka dni (w grze ~50 s).", "good");
@@ -285,11 +302,13 @@ public sealed class Tardigrade : Ent
         {
             var I = W.Input; bool on = I.Mag > 0.05f;
             if (on) _head = I.Ang;
-            v = (on ? I.Mag : 0) * (I.Boost ? 330 : 160) * Grow * (0.6f + 0.4f * moist);
+            v = (on ? I.Mag : 0) * (I.Boost ? 260 : 160) * Grow * (0.6f + 0.4f * moist); // maks. zmierzone ≈ 264 µm/s
         }
         else Ai(dt, ref v);
         Sw.Update(this, dt, _head, v, maxW, 5, 6);
-        Walk += dt * Math.Abs(Sw.V) / Math.Max(1, L * Grow) * TAU * 1.1f;
+        // cykl kroku związany z przebytą drogą: w fazie podporu stopa stoi w miejscu na podłożu (bez „ślizgania” nóg)
+        Walk += dt * Math.Abs(Sw.V) / (Stride / Duty) * TAU;
+        Bend += (Sw.Bend(L * Grow, Wd * Grow, 160, 0.35f) - Bend) * Damp(6, dt);
         // koszt życia i chodzenia
         Energy = Math.Max(0, Energy - dt * (0.0012f + Math.Abs(Sw.V) * 0.000006f));
         if (Energy <= 0 && !W.Preview) { Hp -= dt / 60; if (Hp <= 0) { if (player) W.Log("Niesporczak umarł z głodu.", "bad"); Kill(); return; } }
@@ -357,34 +376,49 @@ public sealed class Tardigrade : Ent
         Alive = false;
     }
 
-    static readonly Color Cut = Rgb(205, 200, 178, 0.45f), EdgeC = Rgb(70, 66, 50, 0.7f), ClawC = Rgb(45, 40, 30, 0.85f), StoreC = Rgb(225, 220, 200, 0.45f);
+    static readonly Color Cut = Rgb(205, 200, 178, 0.45f), EdgeC = Rgb(70, 66, 50, 0.7f), ClawC = Rgb(70, 62, 44, 0.6f), StoreC = Rgb(225, 220, 200, 0.45f);
     public override void Draw(Painter p, View v)
     {
         float g = Grow, tun = Smooth(Tun), hl = Length / 2, hw = Radius;
-        p.Local(X, Y, A);
+        p.Local(X, Y, A); p.Warp(X, Y, A, Bend); // cały niesporczak (tułów, nogi, głowa) wygina się razem
         float lw = Math.Max(v.Px, L * g * 0.004f);
         bool detail = L * g / Math.Max(v.Px, 1e-6f) > 60;
-        // nóżki (lobopodia) – rysowane pod tułowiem; fala kroków od tyłu do przodu, strony naprzemiennie
+        // nóżki (lobopodia) – rysowane pod tułowiem; fala kroków od tyłu do przodu, strony naprzemiennie.
+        // Krępy, stożkowy wyrostek (ok. tak długi jak szeroki) z dwoma podwójnymi pazurkami typu Hypsibius na końcu.
         if (tun < 0.7f && detail)
         {
-            float[] lt = { 0.52f, 0.18f, -0.18f, -0.62f };
+            float[] lt = { 0.5f, 0.17f, -0.17f, -0.64f };
+            var lb = p.Shape2;
             for (int i = 0; i < 4; i++)
                 for (int sd = -1; sd <= 1; sd += 2)
                 {
-                    float ph = Walk - i * 1.4f + (sd > 0 ? PI : 0), swing = MathF.Sin(ph), lift = Math.Max(0, MathF.Cos(ph));
-                    float t = lt[i], bx = t * hl, by = sd * Prof(t) * hw * 0.78f;
-                    float len = hw * (0.5f - 0.1f * lift) * (1 - tun), ang = i == 3 ? PI - sd * 0.9f : sd * (PI / 2 + 0.1f);
-                    float dx = MathF.Cos(ang) * len + (i == 3 ? 0 : swing * hw * 0.22f), dy = MathF.Sin(ang) * len;
-                    // krępa nóżka (lobopodium): stożek z obrysem, na końcu dwa podwójne pazurki
-                    float lwid = hw * 0.15f * (1 - tun * 0.5f), la = MathF.Atan2(dy, dx), ll = Hypot(dx, dy);
-                    p.Line(bx, by, bx + dx, by + dy, lwid * 2 + lw * 1.6f, Rgb(95, 88, 66, 0.55f), true);
-                    p.Line(bx, by, bx + dx, by + dy, lwid * 2, Rgb(205, 200, 178, 0.75f), true);
-                    float cx = bx + dx * 1.08f, cy = by + dy * 1.08f;
+                    Foot(i, sd, out float bx, out float by, out float fx, out float fy, out _);
+                    float len = Hypot(fx - bx, fy - by) * (1 - tun);
+                    float ang = MathF.Atan2(fy - by, fx - bx);
+                    float ca = MathF.Cos(ang), sa = MathF.Sin(ang), nx = -sa, ny = ca;
+                    float bw = hw * 0.2f, tw = hw * 0.13f * (1 - tun * 0.4f);
+                    float tx = bx + ca * len, ty = by + sa * len;
+                    // obrys nóżki: podstawa szeroka, koniec zaokrąglony
+                    int k = 0;
+                    lb[k++] = new Vector2(bx + nx * bw, by + ny * bw);
+                    lb[k++] = new Vector2(bx + ca * len * 0.55f + nx * bw * 0.85f, by + sa * len * 0.55f + ny * bw * 0.85f);
+                    for (int q = 0; q <= 6; q++) { float a2 = ang + PI / 2 - q * PI / 6; lb[k++] = new Vector2(tx + MathF.Cos(a2) * tw, ty + MathF.Sin(a2) * tw); }
+                    lb[k++] = new Vector2(bx + ca * len * 0.55f - nx * bw * 0.85f, by + sa * len * 0.55f - ny * bw * 0.85f);
+                    lb[k++] = new Vector2(bx - nx * bw, by - ny * bw);
+                    var leg = new ReadOnlySpan<Vector2>(lb, 0, k);
+                    p.FillFan(leg, bx + ca * len * 0.5f, by + sa * len * 0.5f, Rgb(214, 210, 192, 0.6f));
+                    p.Stroke(leg, false, lw * 0.9f, Rgb(92, 86, 66, 0.55f));
+                    // pazurki: dwa podwójne, zakrzywione haczyki (zewnętrzny dłuższy)
+                    float cx = tx + ca * tw * 0.8f, cy = ty + sa * tw * 0.8f, cl = hw * 0.16f * (1 - tun), cwid = Math.Max(lw * 0.9f, hw * 0.022f);
                     for (int c = -1; c <= 1; c += 2)
                     {
-                        float ba = la + c * 0.35f, hx = cx + MathF.Cos(ba) * hw * 0.12f, hy = cy + MathF.Sin(ba) * hw * 0.12f;
-                        p.Line(cx - MathF.Cos(la) * hw * 0.05f, cy - MathF.Sin(la) * hw * 0.05f, hx, hy, Math.Max(lw, hw * 0.035f), ClawC, true);
-                        p.Line(hx, hy, hx + MathF.Cos(ba + c * 1.3f) * hw * 0.06f, hy + MathF.Sin(ba + c * 1.3f) * hw * 0.06f, Math.Max(lw, hw * 0.03f), ClawC, true);
+                        float ba = ang + c * 0.32f, lc = cl * (c > 0 ? 1 : 0.8f);
+                        float mx = cx + MathF.Cos(ba) * lc * 0.6f, my = cy + MathF.Sin(ba) * lc * 0.6f;
+                        float ex2 = mx + MathF.Cos(ba + c * 0.9f) * lc * 0.5f, ey2 = my + MathF.Sin(ba + c * 0.9f) * lc * 0.5f;
+                        p.Line(cx, cy, mx, my, cwid, ClawC, true);
+                        p.Line(mx, my, ex2, ey2, cwid * 0.8f, ClawC, true);
+                        // krótsza gałąź wtórna
+                        p.Line(mx - MathF.Cos(ba) * lc * 0.25f, my - MathF.Sin(ba) * lc * 0.25f, mx + MathF.Cos(ba - c * 0.7f) * lc * 0.25f, my + MathF.Sin(ba - c * 0.7f) * lc * 0.25f, cwid * 0.7f, ClawC, true);
                     }
                 }
         }
@@ -407,7 +441,16 @@ public sealed class Tardigrade : Ent
         var gc = Predator ? Rgb(150, 110, 60, 0.3f + 0.35f * gut) : Rgb(70, 130, 45, 0.25f + 0.45f * gut);
         p.FillEllipse(-hl * 0.12f, 0, hl * 0.48f * (1 - 0.3f * tun), hw * 0.42f, 0, gc);
         // komórki zapasowe swobodnie pływające w jamie ciała
-        foreach (var c in _store) { float jx = c.X + MathF.Sin(W.T * 0.7f + c.Z) * 0.03f, jy = c.Y + MathF.Cos(W.T * 0.6f + c.Z) * 0.03f; p.Dot(jx * hl, jy * Prof(jx) * hw * 0.85f, hw * 0.07f, StoreC); }
+        foreach (var c in _store)
+        {
+            // krążą z płynem jamy ciała, przepychane skurczami mięśni przy chodzeniu
+            float jx = c.X + MathF.Sin(W.T * 0.7f + c.Z + Walk * 0.3f) * 0.04f, jy = c.Y + MathF.Cos(W.T * 0.6f + c.Z) * 0.04f;
+            float cr = hw * (0.05f + 0.035f * MathF.Sin(c.Z * 3.7f) * MathF.Sin(c.Z * 3.7f));
+            float sx = jx * hl, sy = jy * Prof(jx) * hw * 0.82f;
+            p.FillCircle(sx, sy, cr, StoreC);
+            p.Circle(sx, sy, cr, Math.Max(v.Px * 0.7f, cr * 0.18f), Rgb(120, 112, 86, 0.35f));
+            p.Dot(sx - cr * 0.3f, sy - cr * 0.3f, cr * 0.3f, Rgb(250, 248, 235, 0.55f));
+        }
         // oocyty przy dużym zapasie energii
         if (!Predator && Energy > 0.6f && g >= 1) for (int k = 0; k < 3; k++) p.FillCircle(-hl * (0.35f + k * 0.13f), (k - 1) * hw * 0.25f, hw * 0.16f * Math.Min(1, (Energy - 0.6f) * 2.5f), Rgb(225, 215, 180, 0.55f));
         if (tun > 0.5f) return;
@@ -424,4 +467,21 @@ public sealed class Tardigrade : Ent
         if (!Predator) for (int k = -1; k <= 1; k++) p.Line(bulbX - hw * 0.12f + k * hw * 0.09f, -hw * 0.08f, bulbX - hw * 0.12f + k * hw * 0.09f, hw * 0.08f, Math.Max(lw, hw * 0.04f), Rgb(60, 52, 36, 0.7f));
     }
     public void Hurt() { _dmgFlash = 0.3f; }
+    static readonly float[] LegT = { 0.5f, 0.17f, -0.17f, -0.64f };
+    /// <summary>
+    /// Kinematyka nogi i (0 = przednia) po stronie sd (układ ciała): nasada (bx, by) i stopa (fx, fy); stance = stopa na podłożu.
+    /// Chód: fala kroków od tyłu ku przodowi, nogi jednej pary w przeciwfazie (Nirody i in., PNAS 2021); w podporze stopa jest
+    /// nieruchoma względem podłoża (cofa się względem ciała o długość kroku), w przenoszeniu – uniesiona wraca do przodu.
+    /// </summary>
+    public void Foot(int i, int sd, out float bx, out float by, out float fx, out float fy, out bool stance)
+    {
+        float tun = Smooth(Tun), hl = Length / 2, hw = Radius;
+        float u = ((Walk + (3 - i) * 1.3f + (sd > 0 ? PI : 0)) / TAU % 1 + 1) % 1, off, lift;
+        stance = u < Duty;
+        if (stance) { off = 0.5f - u / Duty; lift = 0; }
+        else { float s2 = (u - Duty) / (1 - Duty); off = -0.5f + Smooth(s2); lift = MathF.Sin(PI * s2); }
+        float t = LegT[i]; bx = t * hl; by = sd * Prof(t) * hw * 0.8f;
+        float reach = hw * (0.62f - 0.1f * lift), str = Stride * (i == 3 ? 0.35f : 1) * (1 - tun);
+        fx = i == 3 ? bx - reach * 0.75f + off * str : bx + off * str; fy = by + sd * (i == 3 ? reach * 0.55f : reach);
+    }
 }

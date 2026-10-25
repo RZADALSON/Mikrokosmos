@@ -75,7 +75,19 @@ public sealed class Protist : Ent, ICaptor
     static readonly Vector2[] _poly = new Vector2[128];
 
     public float LenK => Lerp(1, S.Contract > 0 ? S.Contract : 1, Smooth(Contr)) * (1 - 0.22f * Meta);
-    public float WidK => 1 / MathF.Sqrt(LenK);
+    /// <summary>
+    /// Poszerzenie przy skurczu. Swobodne pływaki (Spirostomum) grubieją jak walec (L·W² = const); osiadły Stentor ma szeroką
+    /// tarczę gębową, więc skurczony zwija się w kulkę/gruszkę mniej więcej tak szeroką jak tarcza.
+    /// </summary>
+    public float WidK => S.Move == Motion.Sessile && S.Contract > 0 ? 1 + 0.08f * Smooth(Contr) : 1 / MathF.Sqrt(LenK);
+    /// <summary>Profil ciała: przy skurczu Stentora trąbka przechodzi w gruszkę.</summary>
+    float Prof(float t)
+    {
+        float w = S.Profile(t);
+        if (S.Move == Motion.Sessile && S.Contract > 0 && Contr > 0)
+            w = Lerp(w, MathF.Sqrt(Math.Max(0, 1 - t * t)) * (0.86f + 0.14f * t), Smooth(Contr));
+        return w;
+    }
     public override float Length => L * LenK;
     public override float Radius => Wd * WidK / 2;
     public override St FreeState => St.Swim;
@@ -125,7 +137,7 @@ public sealed class Protist : Ent, ICaptor
         for (int k = 0; k <= M; k++)
         {
             float t = -1 + 2f * k / M, x = t * hl;
-            float w = S.Profile(t) * hw;
+            float w = Prof(t) * hw;
             if (Meta > 0) w *= 1 + Meta * 0.5f * MathF.Sin(t * 3.2f - MetaPh);
             float yc = S.Bend * hw * (t * t - 0.35f);
             _poly[k] = new Vector2(x, yc + Math.Max(w, hw * 0.04f));
@@ -159,7 +171,7 @@ public sealed class Protist : Ent, ICaptor
         if (State is St.Cup or St.Vac) { SetCircle(Math.Max(0.1f, Radius * 0.5f)); return; }
         float hl = L * LenK / 2, hw = Wd * WidK / 2;
         // kształt kolizyjny = profil ciała (stożek Stentora, gruszka Blepharisma, wrzeciono Eugleny), wygięty jak membrana
-        AxisParts(L / Wd > 5 ? 6 : 4, hl, hw, S.Profile, Mem.Bend, S.Bend != 0 ? t => S.Bend * hw * (t * t - 0.35f) : null);
+        AxisParts(L / Wd > 5 ? 6 : 4, hl, hw, Prof, Mem.Bend, S.Bend != 0 ? t => S.Bend * hw * (t * t - 0.35f) : null);
     }
     public override bool Collides(Ent o) => State is not (St.Cup or St.Vac or St.Caught) && !(o.Holder == this);
 
@@ -345,7 +357,7 @@ public sealed class Protist : Ent, ICaptor
         {
             var e = W.Add(new Protist(W, S, X + nx * off * sg, Y + ny * off * sg, A + sg * 0.2f));
             e.L = L; e.Wd = Wd; e.R = R; e._lk = -1; e.Compute(); e.Mem.Follow(e.X, e.Y, e.A, 1, 1);
-            e.Paramylon = 0.32f; e.Lineage = true; e._head = e.A; e.Sw.V = Sw.V * 0.5f; e.Hp = Math.Max(0.6f, Hp);
+            e.Paramylon = 0.32f; W.Born(this, e, sg > 0); e._head = e.A; e.Sw.V = Sw.V * 0.5f; e.Hp = Math.Max(0.6f, Hp);
             return e;
         }
         var a1 = Mk(1); Mk(-1);
@@ -518,8 +530,8 @@ public sealed class Protist : Ent, ICaptor
         {
             float fx = MathF.Cos(A), fy = MathF.Sin(A), cl = S.Cilia, cw = Math.Max(Math.Min(0.9f, S.Cilia * 0.1f), v.Px * 0.8f);
             var cc = Mul(S.Edge, 0.55f);
-            int n = m.N;
-            for (int i = 0; i < n * 2; i++)
+            int n = m.N, cst = pxLen > 250 ? 1 : 2;
+            for (int i = 0; i < n * 2; i += cst)
             {
                 int a = i >> 1, b = (a + 1) % n; bool h = (i & 1) == 1;
                 float px = h ? (m.Px[a] + m.Px[b]) / 2 : m.Px[a], py = h ? (m.Py[a] + m.Py[b]) / 2 : m.Py[a];
@@ -530,20 +542,24 @@ public sealed class Protist : Ent, ICaptor
                 p.Seg(px, py, px + dx / l * cl, py + dy / l * cl, cw, cc);
             }
         }
-        int ns = m.Smooth(p.Shape, pxLen > 220 ? 3 : pxLen > 60 ? 2 : 1);
+        int sub = pxLen > 220 ? 3 : pxLen > 60 ? 2 : 1;
+        int ns = m.Smooth(p.Shape, sub);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
-        p.SoftStroke(sh, true, Clamp(Wd * 0.2f, 1.5f, 14), S.Halo);
-        Mem.Centroid(out float bcx, out float bcy);
-        Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
-        Span<Color> bcs = stackalloc Color[] { Shade(S.Body, 1.12f, 0.85f), S.Body, Shade(S.Body, 0.8f, 1.2f) };
-        p.FillRadial(sh, bcx, bcy, bts, bcs);
-        p.Stroke(sh, true, Clamp(Wd * 0.02f, 0.25f, 1.4f), S.Edge);
+        {
+            // ziarnista cytoplazma z tekstury, rozpięta na membranie (wygina się razem z ciałem), halo pod nią
+            Mem.Centroid(out float bcx, out float bcy);
+            Span<float> bts = stackalloc float[] { 0f, 0.65f, 1f };
+            Span<Color> bcs = stackalloc Color[] { Shade(S.Body, 1.12f, 0.85f), S.Body, Shade(S.Body, 0.8f, 1.2f) };
+            p.Body(m, sh, sub, Clamp(Wd * 0.2f, 1.5f, 14), S.Halo, bcx, bcy, bts, bcs);
+        }
+        // cienka linia błony (w kontraście fazowym brzeg jest ciemny, ale nie konturowy)
+        p.Stroke(sh, true, Clamp(Wd * 0.013f, 0.2f, 0.9f), S.Edge);
         if (S.Armor)
         {
             int n2 = m.SmoothInset(p.Shape2, Wd * 0.06f, p.Tx, p.Ty);
             p.Stroke(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, Wd * 0.03f, Rgb(235, 235, 210, 0.4f));
         }
-        p.Local(X, Y, A);
+        BodyLocal(p);
         // pancerz z płytek (Coleps)
         if (S.Armor)
         {
@@ -560,18 +576,24 @@ public sealed class Protist : Ent, ICaptor
         // paski pigmentu (Stentor)
         if (S.Stripes)
         {
-            var buf = p.Buf2;
-            for (int r = -9; r <= 9; r++)
+            // pasy ziaren stentoryny między rzędami rzęsek (kinetami): wąskie, liczne, zbiegające się ku stopce;
+            // przy oddaleniu co drugi (i tak zlewają się w delikatne prążkowanie)
+            var buf = p.Buf2; int nr = pxLen > 260 ? 15 : 8;
+            float sw = Math.Max(hw * 0.012f, v.Px * 0.9f);
+            for (int r = -nr; r <= nr; r++)
             {
                 for (int k = 0; k <= 16; k++)
                 {
-                    float t = -0.92f + 1.76f * k / 16, x = t * hl, y = S.Profile(t) * hw * r / 10.5f;
-                    float d = Hypot(x, y), rm = Rr(MathF.Atan2(y, x)) * 0.94f;
+                    float t = -0.95f + 1.83f * k / 16, x = t * hl, y = Prof(t) * hw * r / (nr + 1.2f);
+                    float d = Hypot(x, y), rm = Rr(MathF.Atan2(y, x)) * 0.95f;
                     if (d > rm) { x *= rm / d; y *= rm / d; }
                     buf[k] = new Vector2(x, y);
                 }
-                p.Stroke(new ReadOnlySpan<Vector2>(buf, 0, 17), false, Math.Max(hw * 0.018f, v.Px), S.StripeC);
+                p.Thin(new ReadOnlySpan<Vector2>(buf, 0, 17), false, sw, (r & 1) == 0 ? S.StripeC : Mul(S.StripeC, 0.55f));
             }
+            // stopka: przyczep z krótkimi wypustkami (Stentor siedzi na podłożu i może się odczepić)
+            if (S.Move == Motion.Sessile && detail)
+                for (int k = -2; k <= 2; k++) p.Seg(-hl * 0.99f, k * hw * 0.012f, -hl * 1.04f - MathF.Abs(k) * hw * 0.01f, k * hw * 0.045f, Math.Max(v.Px, hw * 0.01f), Mul(S.Edge, 0.6f));
         }
         if (tiny) { p.Alpha = oldA; return; }
         // pellikula Eugleny: białkowe paski biegnące helikalnie pod błoną (widoczne jako skośne prążki)
@@ -592,11 +614,16 @@ public sealed class Protist : Ent, ICaptor
             }
         }
         int gstep = detail ? 1 : 3;
+        // ziarna ≲ 1 px: tylko co czwarte – ziarnistość cytoplazmy daje tekstura
+        if (p.Tex != null && S.GranR / Math.Max(v.Px, 1e-6f) < 1) gstep = Math.Max(gstep, 4);
         _gp ??= Prep(_gran); _cp ??= Prep(_chl);
         // chloroplasty; przy fotouszkodzeniu bledną (rozkład chlorofilu)
         var chl = S.Chl;
         if (PhotoDmg > 0) chl = new Color(Lerp(chl.R, 0.72f, PhotoDmg * 0.6f), Lerp(chl.G, 0.7f, PhotoDmg * 0.4f), Lerp(chl.B, 0.35f, PhotoDmg * 0.6f), chl.A);
-        for (int ci = 0; ci < _cp.Length; ci += detail ? 1 : 2) { Pt(in _cp[ci], out float x, out float y); p.Dot(x, y, S.ChlR * _cp[ci].Z * (detail ? 1 : 1.3f), chl); }
+        // chloroplasty / ziarna pigmentu: gdy mają 1–2 px, co drugi lub trzeci, odpowiednio większy (ta sama barwa i ziarnistość)
+        float crp = S.ChlR / Math.Max(v.Px, 1e-6f);
+        int cstep = crp < 1.5f ? 3 : crp < 2.5f || !detail ? 2 : 1; float csz = cstep == 3 ? 1.55f : cstep == 2 ? 1.3f : 1;
+        for (int ci = 0; ci < _cp.Length; ci += cstep) { Pt(in _cp[ci], out float x, out float y); p.Dot(x, y, S.ChlR * _cp[ci].Z * csz, chl); }
         if (S.ChlN > 0 && S.ChlR * v.S > 2.5f && detail) for (int ci = 0; ci < _cp.Length; ci++) if (_cp[ci].Z > 1.05f) { Pt(in _cp[ci], out float x, out float y); p.Dot(x - S.ChlR * 0.25f, y - S.ChlR * 0.25f, S.ChlR * 0.35f, S.ChlHi); }
         if (S.Photo)
         {
@@ -620,8 +647,10 @@ public sealed class Protist : Ent, ICaptor
         var nucF = Rgb(165, 170, 150, 0.45f); var nucE = Rgb(70, 74, 62, 0.5f);
         if (S.Beads)
         {
-            int nb = L > 400 ? 12 : 7; float br = Math.Min(hw * 0.2f, L * 0.013f);
-            for (int k = 0; k < nb; k++) { float t = -0.45f + 1.0f * k / (nb - 1), yy = MathF.Sin(k * 1.3f + _seed) * Math.Min(hw * 0.12f, S.Profile(t) * hw * 0.4f); p.FillCircle(t * hl, yy, br, nucF); p.Circle(t * hl, yy, br, Math.Max(v.Px, br * 0.1f), nucE); }
+            // makronukleus paciorkowaty: łańcuszek jaśniejszych owalnych paciorków ciągnący się wzdłuż ciała
+            int nb = L > 400 ? 13 : 7; float br = Math.Min(hw * 0.15f, L * 0.011f);
+            var bc = new Color(nucF.R, nucF.G, nucF.B, nucF.A * 0.7f); var be = new Color(nucE.R, nucE.G, nucE.B, nucE.A * 0.55f);
+            for (int k = 0; k < nb; k++) { float t = -0.5f + 1.05f * k / (nb - 1), yy = MathF.Sin(k * 0.9f + _seed) * Math.Min(hw * 0.14f, Prof(t) * hw * 0.35f) + hw * 0.18f * t; p.FillEllipse(t * hl, yy, br * 1.25f, br * 0.9f, t * 0.4f, bc); p.Ellipse(t * hl, yy, br * 1.25f, br * 0.9f, t * 0.4f, Math.Max(v.Px * 0.8f, br * 0.08f), be); }
         }
         else if (S.MacroC) p.Arc(-hl * 0.05f, 0, hw * 0.55f, -2.2f, 2.2f, hw * 0.16f, nucF, true);
         else if (S.Muller) { for (int k = -1; k <= 1; k += 2) { p.FillCircle(k * hl * 0.12f, hw * 0.1f, hw * 0.16f, Rgb(215, 150, 60, 0.55f)); p.Circle(k * hl * 0.12f, hw * 0.1f, hw * 0.16f, Math.Max(v.Px, hw * 0.02f), nucE); } }
@@ -648,12 +677,22 @@ public sealed class Protist : Ent, ICaptor
         if (S.OralRing && Contr < 0.6f)
         {
             // membranelle biegną wokół brzegu tarczy gębowej; fala metachroniczna obiega wieniec
+            // strefa membranelli (AZM) obiega krawędź tarczy: ciemniejszy pas i gęsty szereg bijących membranelli
+            var band = p.Buf2; int nbd = 0;
             for (int i = 0; i < NN; i++)
             {
                 float th = i * TAU / NN, r0 = _rr[i], x = MathF.Cos(th) * r0, y = MathF.Sin(th) * r0;
+                if (x < hl * 0.7f) continue;
+                band[nbd++] = new Vector2(x * 0.96f, y * 0.96f);
+            }
+            if (nbd > 1) p.Thin(new ReadOnlySpan<Vector2>(band, 0, nbd), false, Math.Max(v.Px, hw * 0.04f), Rgb(35, 70, 90, 0.35f));
+            int nm = detail ? NN * 2 : NN;
+            for (int i = 0; i < nm; i++)
+            {
+                float th = i * TAU / nm, r0 = Rr(th), x = MathF.Cos(th) * r0, y = MathF.Sin(th) * r0;
                 if (x < hl * 0.72f) continue;
-                float ph = MathF.Sin(Cph * 1.3f - i * 0.9f), len = hw * (0.1f + 0.05f * ph), a = th + ph * 0.35f;
-                p.Seg(x, y, x + MathF.Cos(a) * len, y + MathF.Sin(a) * len, Math.Max(v.Px, hw * 0.02f), Rgb(40, 60, 70, 0.5f));
+                float ph = MathF.Sin(Cph * 1.3f - i * 0.6f), len = hw * (0.07f + 0.035f * ph), a = th + ph * 0.3f;
+                p.Seg(x, y, x + MathF.Cos(a) * len, y + MathF.Sin(a) * len, Math.Max(v.Px * 0.8f, hw * 0.012f), Rgb(35, 55, 65, 0.45f));
             }
         }
         // cirry (Euplotes) – "nóżki"
@@ -759,7 +798,7 @@ public static class Species
     {
         Id = "stentor", Name = "trębacz", Latin = "Stentor coeruleus", L0 = 500, L1 = 1100, Aspect = 0.34f,
         Profile = t => (0.08f + 0.92f * MathF.Pow((t + 1) / 2, 2.2f)) * (t > 0.78f ? 1 - 0.4f * Sq((t - 0.78f) / 0.22f) : 1), Speed = 0, Move = Motion.Sessile,
-        Body = Rgb(125, 170, 190, 0.36f), Edge = Rgb(30, 70, 90, 0.7f), GranN = 90, Stripes = true, StripeC = Rgb(40, 100, 160, 0.4f), Beads = true, OralRing = true, CV = 1,
+        Body = Rgb(112, 152, 160, 0.4f), Edge = Rgb(34, 72, 88, 0.55f), GranN = 90, Stripes = true, StripeC = Rgb(38, 92, 138, 0.32f), Beads = true, OralRing = true, CV = 1,
         Soft = 0.45f, BactFeed = 110, Suck = 260, Edible = false, Food = 5, Contract = 0.35f,
         Eats = (me, o) => o.Alive && o.State is St.Free or St.Swim or St.Avoid && !o.Fixed && o.Kind != Kind.None && o.Kind != Kind.Bot && o.Length < me.Length * 0.28f && (o is Chlamy || o is Protist || o is Paramecium || o is Rotifer),
         Fact = "Stentor coeruleus – trąbkowaty orzęsek do 2 mm, niebieski od stentoryny. Przytwierdzony stopką, wieńcem membranelli tworzy wir; zjada bakterie, glony, orzęski, a nawet wrotki. Podrażniony kurczy się błyskawicznie w kulkę.",

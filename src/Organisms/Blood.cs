@@ -17,6 +17,8 @@ public static class RadialUtil
 /// </summary>
 public sealed class Neutrophil : Ent
 {
+    /// <summary>Pełza/chodzi po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     public const int NN = 64;
     public float R0 = 6, Pol = 0.3f, Vmax = 30f / 60f, Seed;
     public readonly float[] Rr = new float[NN];
@@ -46,13 +48,15 @@ public sealed class Neutrophil : Ent
         Lysis.Start(this, Rgb(112, 118, 108, 0.5f), Rgb(36, 40, 36, 0.75f), Rgb(238, 242, 226, 0.8f), Rgb(30, 34, 30, 0.6f));
         W.Fx.Spill(X, Y, 50, new FX.SpillOpt { Speed = 6, R = 0.15f, Life = 6, R0 = R0 * 0.6f, D = 0.05f, Cols = new[] { Rgb(238, 242, 226, 0.7f), Rgb(30, 34, 30, 0.5f) } });
         W.Sfx("pop", X, Y);
+        // śmierć komórki uwalnia DAMP, a sąsiednie neutrofile – LTB4: to wyzwala rojenie (Lämmermann i in. 2013)
+        if (W.Sc is ScNeutro sn) sn.Attract(X, Y, 6);
         if (IsPlayer) W.Log(release ? "Leukocydyny S. aureus przebiły błonę – neutrofil ginie, bakterie uciekają z fagosomów!" : "Neutrofil zginął.", "bad");
         Alive = false;
     }
     /// <summary>NEToza: samobójcze wyrzucenie sieci chromatyny, która unieruchamia i zabija bakterie.</summary>
     public void NetOsis()
     {
-        W.Add(new Net(W, X, Y, 24));
+        W.Add(new Net(W, X, Y, 24) { ByPlayer = IsPlayer });
         W.AddStat("nets", 1);
         W.Sfx("net", X, Y);
         if (IsPlayer) W.Log("NETOZA! Chromatyna z histonami i elastazą wyrzucona na zewnątrz – sieć pułapkuje bakterie. Neutrofil ginie.", "good");
@@ -165,6 +169,15 @@ public sealed class Neutrophil : Ent
             var b = W.Near(X, Y, 90, e => e is Staph s && s.State == St.Free || e is CandidaYeast cy && cy.State == St.Free);
             if (b != null) { on = true; tgtA = MathF.Atan2(b.Y - Y, b.X - X); mag = 0.9f; }
             else if (W.Preview) { on = true; tgtA = 0; mag = 1; }
+            else if (W.Sc is ScNeutro sn && sn.Attractant(X, Y, 360, out float ax, out float ay))
+            {
+                // chemotaksja z daleka: w górę gradientu fMLP, C5a, chemokin i LTB4 (dryf kierunku jak u prawdziwych komórek)
+                on = true; tgtA = MathF.Atan2(ay - Y, ax - X) + 0.35f * Noise1(W.T * 0.4f + Seed);
+                // w środku roju komórki zwalniają i stają (sygnał „stop” – odczulenie receptorów przez GRK2; Kienle i in. 2021)
+                int crowd = 0; foreach (var o in Nb) if (o is Neutrophil) crowd++;
+                float d = Hypot(ax - X, ay - Y);
+                mag = crowd >= 4 && d < 40 ? 0.08f : 0.85f * Clamp((d - 10) / 30, 0.15f, 1);
+            }
             else
             {
                 // patrol: trwałe błądzenie przypadkowe (neutrofile w tkance ciągle "przeczesują" okolicę)
@@ -191,7 +204,7 @@ public sealed class Neutrophil : Ent
         }
         // strzępki Candida: za duże do fagocytozy – neutrofil atakuje je degranulacją z zewnątrz
         if (!W.Preview) foreach (var o in _q) if (o is CandidaHypha hy && hy.Alive && hy.Near(X, Y, R0 + 2)) { hy.Hurt(gdt * 0.004f); break; }
-        float v = Vmax * mag * Smooth(Pol) * (1 - fill * 0.5f) * (0.4f + 0.6f * Hp);
+        float v = Vmax * mag * Smooth(Pol) * (1 - fill * 0.5f) * (0.4f + 0.6f * Hp) / (1 + Math.Min(Mesh, 1.5f)); Mesh = 0;
         Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v;
         if (Phagos.Count < MaxPhago)
             foreach (var o in Nb)
@@ -216,6 +229,7 @@ public sealed class Neutrophil : Ent
                 {
                     p.Cup = false; p.St = 0; o.State = St.Vac;
                     if (IsPlayer || Lineage) W.AddStat("engulfed", 1);
+                    if (IsPlayer) W.AddStat("p_engulfed", 1);
                     Degranulate(p);
                     if (IsPlayer) W.Log("Fagosom zamknięty. Wybuch tlenowy (NADPH-oksydaza) + fuzja ziarnistości.", "good");
                 }
@@ -228,28 +242,37 @@ public sealed class Neutrophil : Ent
                 {
                     o.Alive = false; Phagos.RemoveAt(k);
                     if (IsPlayer || Lineage) W.AddStat("killed", 1);
+                    if (IsPlayer) W.AddStat("p_killed", 1);
                     Age += 1200; // apoptoza indukowana fagocytozą
                     continue;
                 }
             }
             ToWorld(p.Lx, p.Ly, out o.X, out o.Y);
         }
-        float jr = MathF.Sqrt(gdt);
-        for (int i = 0; i < G; i++)
+        // ziarnistości drgają (ruchy Browna w cytoplazmie) – liczone tylko w pobliżu kadru; kształt poza kadrem rzadziej
+        bool vis = W.Preview || W.OnScreen(this, 1.3f);
+        if (vis)
         {
-            if (_gty[i] == 0) continue;
-            if (_gty[i] == 3) { _gfT[i] -= gdt; if (_gfT[i] <= 0 || _gfu[i] >= Phagos.Count) _gty[i] = 0; continue; }
-            float th = _gth[i] += RandN() * 0.09f * jr;
-            float rmax = 0.76f - 0.34f * Pol * Sq(Math.Max(0, MathF.Cos(th)));
-            _grho[i] = Clamp(_grho[i] + RandN() * 0.05f * jr, 0.08f, rmax);
+            float jr = MathF.Sqrt(gdt);
+            for (int i = 0; i < G; i++)
+            {
+                if (_gty[i] == 0) continue;
+                if (_gty[i] == 3) { _gfT[i] -= gdt; if (_gfT[i] <= 0 || _gfu[i] >= Phagos.Count) _gty[i] = 0; continue; }
+                float th = _gth[i] += RandN() * 0.09f * jr;
+                float rmax = 0.76f - 0.34f * Pol * Sq(Math.Max(0, MathF.Cos(th)));
+                _grho[i] = Clamp(_grho[i] + RandN() * 0.05f * jr, 0.08f, rmax);
+            }
         }
-        ComputeRest();
+        else for (int i = 0; i < G; i++) if (_gty[i] == 3 && (_gfT[i] -= gdt) <= 0) _gty[i] = 0;
+        if (vis || Phagos.Count > 0 || ((W.Frame + Id) & 3) == 0) ComputeRest();
     }
     void Engulf(Staph o, float lx, float ly)
     {
         o.State = St.Cup; o.Solid = false; o.Owner = this; o.Holder = this;
         float ang = MathF.Atan2(ly, lx), rin = Rand(0.25f, 0.5f) * R0;
         Phagos.Add(new Phago { O = o, Sx = lx, Sy = ly, Lx = lx, Ly = ly, Tx = MathF.Cos(ang) * rin, Ty = MathF.Sin(ang) * rin });
+        // walczący neutrofil wydziela LTB4 – przyciąga kolejne neutrofile w to miejsce (rojenie)
+        if (W.Sc is ScNeutro sn) sn.Attract(X, Y, 2);
         if (IsPlayer) W.Log("Kontakt! Receptory (FcγR, CR3) wiążą opsonizowaną bakterię – tworzy się miseczka fagocytarna.", "info");
     }
     void Degranulate(Phago p)
@@ -272,13 +295,12 @@ public sealed class Neutrophil : Ent
         if (Holder is Macrophage) return; // rysuje go makrofag (ciałko apoptotyczne w fagosomie)
         int n = Mem.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
-        p.SoftStroke(sh, true, 2.4f, Apo > 0 ? Rgb(255, 255, 240, 0.28f + 0.14f * ApoK) : HaloN);
         ToWorld(-1.4f, 0, out float cx, out float cy);
         Span<float> ts = stackalloc float[] { 0f, 0.55f, 1f };
         Span<Color> cs = stackalloc Color[] { Rgb(96, 102, 94, 0.62f), Rgb(112, 118, 108, 0.52f), Rgb(178, 184, 172, 0.22f) };
-        p.FillRadial(sh, cx, cy, ts, cs);
+        p.Body(Mem, sh, 3, 2.4f, Apo > 0 ? Rgb(255, 255, 240, 0.28f + 0.14f * ApoK) : HaloN, cx, cy, ts, cs);
         p.Stroke(sh, true, 0.13f, EdgeN);
-        p.Local(X, Y, A);
+        BodyLocal(p);
         float ak = ApoK;
         if (ak > 0)
         {
@@ -338,6 +360,8 @@ public sealed class RBC : Ent
     public override void Draw(Painter p, View v)
     {
         if (Holder is Macrophage) return;
+        // tekstura na membranie: ten sam wygląd i odkształcenie, ~40 wierzchołków zamiast ~1000
+        if (p.Tex != null) { p.Tex.TexFan(Mem, SpriteAtlas.Pad[SpriteAtlas.Rbc], SpriteAtlas.Uv[SpriteAtlas.Rbc], new Color(1, 1, 1, p.Alpha)); return; }
         int n = Mem.Smooth(p.Shape, 2);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
         p.SoftStroke(sh, true, 2.2f, Rgb(255, 255, 240, 0.26f));
@@ -400,10 +424,11 @@ public sealed class Lymphocyte : Ent
     {
         int n = Mem.Smooth(p.Shape, 2);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
-        p.SoftStroke(sh, true, 2.2f, Rgb(255, 255, 240, 0.28f));
-        p.FillFan(sh, X, Y, Rgb(150, 158, 150, 0.35f));
+        Span<float> lts = stackalloc float[] { 0f, 1f };
+        Span<Color> lcs = stackalloc Color[] { Rgb(150, 158, 150, 0.35f), Rgb(150, 158, 150, 0.35f) };
+        p.Body(Mem, sh, 3, 2.2f, Rgb(255, 255, 240, 0.28f), X, Y, lts, lcs);
         p.Stroke(sh, true, 0.12f, Rgb(40, 44, 40, 0.7f));
-        p.Local(X, Y, A);
+        BodyLocal(p);
         p.FillCircleGrad(0.3f, 0, Rr * 0.8f, Rgb(80, 84, 104, 0.55f), Rgb(60, 62, 82, 0.6f));
         p.Circle(0.3f, 0, Rr * 0.8f, 0.14f, Rgb(35, 36, 50, 0.5f));
     }

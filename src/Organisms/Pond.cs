@@ -408,7 +408,7 @@ public sealed class Lacrymaria : Ent, ICaptor
         p.SoftStroke(sh, true, 10, Rgb(255, 255, 240, 0.26f));
         p.FillFan(sh, X, Y, Rgb(140, 145, 125, 0.42f));
         p.Stroke(sh, true, 1, Rgb(40, 44, 36, 0.7f));
-        p.Local(X, Y, A);
+        BodyLocal(p);
         var cc = Rgb(50, 54, 44, 0.3f);
         for (int k = -4; k <= 4; k++)
         {

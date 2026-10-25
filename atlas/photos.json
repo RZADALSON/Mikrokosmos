@@ -1,0 +1,442 @@
+{
+ "t4": {
+  "photo": "t4.jpg",
+  "credit": "7USSR7 · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:T4_phage_EM.jpg"
+ },
+ "lambda": {
+  "photo": "lambda.jpg",
+  "credit": "ViralZone, SIB Swiss Institute of Bioinformatics: Siphoviri… · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Lambda_EM.jpg"
+ },
+ "omv": {
+  "photo": "omv.jpg",
+  "credit": "Rakeshyashroy · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Human_Salmonella_secreting_outer_membrane_vesicles_in_vivo_in_chicken_ileum_(Original_work_of_Dr_R_C_YashRoy).png"
+ },
+ "flagfrag": {
+  "photo": "flagfrag.jpg",
+  "credit": "No machine-readable author provided. Graham Bradley assumed… · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dvulgaris_micrograph.JPG"
+ },
+ "acanth": {
+  "photo": "acanth.jpg",
+  "credit": "Jacob Lorenzo-Morales, Naveed A. Khan and Julia Walochnik · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Parasite140120-fig5_Acanthamoeba_keratitis.png"
+ },
+ "grain": {
+  "photo": "grain.jpg",
+  "credit": "CBlaeuer · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:0136_02_P4_1_Bb175um_182_xPol.JPG"
+ },
+ "bacillus": {
+  "photo": "bacillus.jpg",
+  "credit": "So-loll · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bacillus_subtilis_light_micrograph.jpg"
+ },
+ "pseudomonas": {
+  "photo": "pseudomonas.jpg",
+  "credit": "Photo Credit: Janice Haney Carr Content Providers(s): CDC/ … · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Pseudomonas_aeruginosa_SEM.jpg"
+ },
+ "caulobacter": {
+  "photo": "caulobacter.jpg",
+  "credit": "Unknown authorUnknown author · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Caulobacter_crescentus.jpg"
+ },
+ "staphylococcus": {
+  "photo": "staphylococcus.jpg",
+  "credit": "NIAID_Flickr · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Scanning_electron_micrograph_of_Methicillin-resistant_Staphylococcus_aureus_(MRSA)_and_a_dead_Human_neutrophil_-_NIAID.jpg"
+ },
+ "streptococcus": {
+  "photo": "streptococcus.jpg",
+  "credit": "NIAID · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Streptococcus_Pyogenes_(Group_A_Strep)_(52602892639).jpg"
+ },
+ "neutrophil": {
+  "photo": "neutrophil.jpg",
+  "credit": "Tommaso Leonardi · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Neutrophil2.jpg"
+ },
+ "rbc": {
+  "photo": "rbc.jpg",
+  "credit": "Scootdive (talk, contribs) · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Red_blood_cells_(2).jpg"
+ },
+ "platelet": {
+  "photo": "platelet.jpg",
+  "credit": "Electron Microscopy Facility at The National Cancer Institu… · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Red_White_Blood_cells.jpg"
+ },
+ "macrophage": {
+  "photo": "macrophage.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Cytology_of_a_macrophage.png"
+ },
+ "fibroblast": {
+  "photo": "fibroblast.jpg",
+  "credit": "Pinky9697 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Fibroblast_cells_under_microscope_20x.jpg"
+ },
+ "adipocyte": {
+  "photo": "adipocyte.jpg",
+  "credit": "autor nieznany · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Yellow_adipose_tissue_in_paraffin_section_-_lipids_washed_out.jpg"
+ },
+ "mastcell": {
+  "photo": "mastcell.jpg",
+  "credit": "Vortioxetine · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Mast_cells_in_bone_marrow.jpg"
+ },
+ "candidayeast": {
+  "photo": "candidayeast.jpg",
+  "credit": "Centers for Disease Control and Prevention · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Candida_albicans_1964.jpg"
+ },
+ "candidahypha": {
+  "photo": "candidahypha.jpg",
+  "credit": "Michael R Francisco from Bongabon, Nueva Ecija Philippines · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Candida_albicans_(1000X_magnification)_(6500725393).jpg"
+ },
+ "collagen": {
+  "photo": "collagen.jpg",
+  "credit": "Vincesherman · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Collagen_fibrils_in_rabbit_skin.jpg"
+ },
+ "net": {
+  "photo": "net.jpg",
+  "credit": "CHDENK · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Neutrophil_Extracellular_Trap.jpg"
+ },
+ "lysis": {
+  "photo": "lysis.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histopathology_of_adrenal_cortical_necrosis.jpg"
+ },
+ "paramecium": {
+  "photo": "paramecium.png",
+  "credit": "Deuterostome · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Paramecium_caudatum_Ehrenberg,_1833.jpg"
+ },
+ "chlamy": {
+  "photo": "chlamy.jpg",
+  "credit": "Dartmouth Electron Microscope Facility, Dartmouth College · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Chlamydomonas6-1.jpg"
+ },
+ "loxodes": {
+  "photo": "loxodes.png",
+  "credit": "Micropix · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Loxodes_sp.jpg"
+ },
+ "blepharisma": {
+  "photo": "blepharisma.jpg",
+  "credit": "Frank Fox · CC BY-SA 3.0 de · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Mikrofoto.de-Blepharisma_japonicum_15.jpg"
+ },
+ "euglena": {
+  "photo": "euglena.jpg",
+  "credit": "naturalismus · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Euglena_gracilis.jpg"
+ },
+ "spirostomum": {
+  "photo": "spirostomum.jpg",
+  "credit": "Viktoria Hyzhniak · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Spirostomum_ambiguum.jpg"
+ },
+ "stentor": {
+  "photo": "stentor.jpg",
+  "credit": "Flupke59 · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Stentor_coeruleus_extended.jpg"
+ },
+ "euplotes": {
+  "photo": "euplotes.jpg",
+  "credit": "ValeSer23 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:AZM_Euplotes_vanleeuwenhoeki.tif"
+ },
+ "nematode": {
+  "photo": "nematode.jpg",
+  "credit": "The original uploader was Kbradnam at English Wikipedia. (O… · CC BY-SA 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Adult_Caenorhabditis_elegans.jpg"
+ },
+ "oscillatoria": {
+  "photo": "oscillatoria.jpg",
+  "credit": "Wiedehopf20 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Oscillatoria_filaments.jpg"
+ },
+ "lacrymaria": {
+  "photo": "lacrymaria.jpg",
+  "credit": "Picturepest · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Lacrymaria_olor_(8122155639).jpg"
+ },
+ "daphnia": {
+  "photo": "daphnia.png",
+  "credit": "(Photo: Paul Hebert) · CC BY 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Daphnia_pulex.png"
+ },
+ "volvox": {
+  "photo": "volvox.png",
+  "credit": "Matthew Herron · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Volvox_aureus.jpg"
+ },
+ "diatom": {
+  "photo": "diatom.jpg",
+  "credit": "zookanthos · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Navicula_oblonga_115647672.jpg"
+ },
+ "amoeba": {
+  "photo": "amoeba.png",
+  "credit": "SmallRex · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Amoeba_proteus_locomotive_form.jpg"
+ },
+ "rotifer": {
+  "photo": "rotifer.jpg",
+  "credit": "Juan Carlos Fonseca Mata · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Philodina_sp._(Class%CB%90_Bdelloidea)_-_Rotifera.jpg"
+ },
+ "vorticella": {
+  "photo": "vorticella.jpg",
+  "credit": "Bwiltz · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Vorticella_1.jpg"
+ },
+ "spirocell": {
+  "photo": "spirocell.jpg",
+  "credit": "Wiedehopf20 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:The_freshwater_alga_Spirogyra.jpg"
+ },
+ "tardigrade": {
+  "photo": "tardigrade.png",
+  "credit": "Willow Gabriel, Goldstein Lab · CC BY-SA 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Hypsibiusdujardini.jpg"
+ },
+ "milnesium": {
+  "photo": "milnesium.jpg",
+  "credit": "Hoddyfool · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Milnesium_tardigradum.jpg"
+ },
+ "mossleaf": {
+  "photo": "mossleaf.jpg",
+  "credit": "Des_Callaghan · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bryum_capillare_leaf_cells.jpg"
+ },
+ "exuvia": {
+  "photo": "exuvia.jpg",
+  "credit": "Bob Blaylock · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:TardigradeEggsInShedCuticle.jpg"
+ },
+ "chlorella": {
+  "photo": "chlorella.jpg",
+  "credit": "ja:User:NEON / User:NEON_ja · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Chlorella_vulgaris_NIES2170.jpg"
+ },
+ "mound": {
+  "photo": "mound.jpg",
+  "credit": "Bruno in Columbus · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dictyostelium_Late_Aggregation_1.JPG"
+ },
+ "slug": {
+  "photo": "slug.jpg",
+  "credit": "Tyler J Larsen · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dictyostelium_discoideum_slug_1.tif"
+ },
+ "sperm": {
+  "photo": "sperm.jpg",
+  "credit": "Enver Kerem Dirican · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Human_Spermatozoa,_Scanning_Electron_Micrograph.jpg"
+ },
+ "oocyte": {
+  "photo": "oocyte.jpg",
+  "credit": "ZEISS Microscopy from Germany · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Oocyte_with_Zona_pellucida_(27771482282).jpg"
+ },
+ "tumorcell": {
+  "photo": "tumorcell.jpg",
+  "credit": "Catfaster · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:HeLa_Cells_Culture_Phase_Contrast_1_v1.jpg"
+ },
+ "ctl": {
+  "photo": "ctl.jpg",
+  "credit": "The National Institutes of Health · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Killer_T_cells_surround_a_cancer_cell.png"
+ },
+ "nk": {
+  "photo": "nk.png",
+  "credit": "NIAID · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Human_Natural_Killer_Cell_-_51630111330.jpg"
+ },
+ "kupffer": {
+  "photo": "kupffer.jpg",
+  "credit": "Nephron · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Kupffer_cells_high_mag_cropped.jpg"
+ },
+ "tem": {
+  "photo": "tem.jpg",
+  "credit": "Gannu03 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Transmission_electron_microscope_(2).jpg"
+ },
+ "biofilm": {
+  "photo": "biofilm.jpg",
+  "credit": "Krzysztof A. Zacharski · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Mixed-culture_biofilm.jpg"
+ },
+ "venule": {
+  "photo": "venule.jpg",
+  "credit": "Doc. RNDr. Josef Reischig, CSc. · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Venule_(238_12A)_With_a_vein_valve;_cross-section;_human.jpg"
+ },
+ "endothelium": {
+  "photo": "endothelium.jpg",
+  "credit": "BigLew99 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:HUVECs.jpg"
+ },
+ "interstitium": {
+  "photo": "interstitium.jpg",
+  "credit": "Berkshire Community College Bioscience Image Library · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Connective_Tissue_Loose_Aerolar_(41743649782).jpg"
+ },
+ "sprout": {
+  "photo": "sprout.jpg",
+  "credit": "Piotr Cywoniuk, Foundation of Research and Science Developm… · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Formation_of_the_new_blood_vessels.jpg"
+ },
+ "pond-water": {
+  "photo": "pond-water.jpg",
+  "credit": "Kittycatcrunchie · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Hay_Infusion_from_Cape_Water_Source_(x400).jpg"
+ },
+ "bacteria-cloud": {
+  "photo": "bacteria-cloud.jpg",
+  "credit": "Doc. RNDr. Josef Reischig, CSc. · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bacteria_(259_05).jpg"
+ },
+ "moss-water": {
+  "photo": "moss-water.jpg",
+  "credit": "Roger Jones · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Cushion_Moss_-_geograph.org.uk_-_2501012.jpg"
+ },
+ "agar": {
+  "photo": "agar.jpg",
+  "credit": "autor nieznany · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Agar_plate_with_colonies.jpg"
+ },
+ "klebsiella": {
+  "photo": "klebsiella.jpg",
+  "credit": "Trance Gemini · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Myxo_eats_through_bacterial_lawn.jpg"
+ },
+ "vagina": {
+  "photo": "vagina.jpg",
+  "credit": "Jpogi at English Wikipedia · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Vagina_(mucosa).JPG"
+ },
+ "cervix": {
+  "photo": "cervix.jpg",
+  "credit": "User:Acaparadora · CC BY-SA 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Cervical_mucus1.jpg"
+ },
+ "oviduct": {
+  "photo": "oviduct.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histology_of_ciliated_columnar_epithelium_of_the_fallopian_tube.jpg"
+ },
+ "cumulus": {
+  "photo": "cumulus.jpg",
+  "credit": "Prue Talbot and Karen Riveles in Reproductive Biology and E… · CC BY 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Hamster_Oviduct.JPG"
+ },
+ "blood-plasma": {
+  "photo": "blood-plasma.jpg",
+  "credit": "Andykatib · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Plasma_bag,_9_April_2024.jpg"
+ },
+ "tsetse": {
+  "photo": "tsetse.png",
+  "credit": "Estefanía Alonso Gómez · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Glossina_morsitans_morsitans_(white_paper).jpeg"
+ },
+ "ecoli": {
+  "photo": "ecoli.jpg",
+  "credit": "Janice Haney Carr · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Escherichia_coli_electron_microscopy.jpg"
+ },
+ "bdello": {
+  "photo": "bdello.jpg",
+  "credit": "Eikosi · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Slice_from_electron_cryotomogram_of_Bdellovibrio_bacteriovorus_cell.jpg"
+ },
+ "lymphocyte": {
+  "photo": "lymphocyte.jpg",
+  "credit": "Echinaceapallida · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Blood-lymphocyte2.jpg"
+ },
+ "paramecium-bursaria": {
+  "photo": "paramecium-bursaria.jpg",
+  "credit": "Cucumberkvp · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Paramecium_Bursaria.jpg"
+ },
+ "didinium": {
+  "photo": "didinium.jpg",
+  "credit": "S. O. Mast · Public domain · Wikimedia Commons · ilustracja z 1909 r. (S.O. Mast) – brak wolnego zdjęcia",
+  "url": "https://commons.wikimedia.org/wiki/File:Didinium_nasutum_consuming_a_paramecium.jpg"
+ },
+ "coleps": {
+  "photo": "coleps.png",
+  "credit": "Treinisch · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Coleps_hirtus_viridis.jpg"
+ },
+ "tetrahymena": {
+  "photo": "tetrahymena.jpg",
+  "credit": "see source · CC BY 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Tetrahymena_thermophila.png"
+ },
+ "bodo": {
+  "photo": "bodo.jpg",
+  "credit": "Picturepest · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bodo_saltans_-_400x_(13895749563).jpg"
+ },
+ "helio": {
+  "photo": "helio.jpg",
+  "credit": "Bob Blaylock (talk) · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Actinophryid.jpg"
+ },
+ "fruitbody": {
+  "photo": "fruitbody.jpg",
+  "credit": "Bruno in Columbus · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dictyostelium_Fruiting_Bodies.JPG"
+ },
+ "cosmarium": {
+  "photo": "cosmarium.jpg",
+  "credit": "Berezovska · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Algae_Cosmarium.jpg"
+ },
+ "closterium": {
+  "photo": "closterium.jpg",
+  "credit": "derekkeats · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:The_desmid,_Clostarium.jpg"
+ },
+ "trypanosome": {
+  "photo": "trypanosome.jpg",
+  "credit": "Photo Credit: Content Providers: CDC/Dr. Myron G. Schultz · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Trypanosoma_sp._PHIL_613_lores_(cropped).jpg"
+ },
+ "lemna": {
+  "photo": "lemna.jpg",
+  "credit": "Kostka Martin · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Lemna_minor_plants.jpg"
+ },
+ "uterus": {
+  "photo": "uterus.jpg",
+  "credit": "Douglas A. Gibson, Ioannis Simitsidellis, Frances Collins a… · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histology_of_proliferative_endometrium.jpg"
+ },
+ "necrosis": {
+  "photo": "lysis.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histopathology_of_adrenal_cortical_necrosis.jpg"
+ },
+ "caf": {
+  "photo": "fibroblast.jpg",
+  "credit": "Pinky9697 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Fibroblast_cells_under_microscope_20x.jpg"
+ }
+}

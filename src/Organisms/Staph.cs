@@ -3,7 +3,7 @@ namespace Mikro;
 /// <summary>Staphylococcus aureus – ziarniak ~0,9 µm, nieruchomy; podział w 3 prostopadłych płaszczyznach → "grona".</summary>
 public sealed class Staph : Ent
 {
-    public float Rr, Cyc, Plane, Div, Gen;
+    public float Rr, Cyc, Plane, Div, CycK;
     /// <summary>Streptococcus: podział zawsze w tej samej płaszczyźnie → łańcuszki.</summary>
     public bool Strep;
     public Ent Owner;
@@ -16,7 +16,7 @@ public sealed class Staph : Ent
         Kind = Kind.Staph; Layer = 3; Name = strep ? "paciorkowiec" : "gronkowiec złocisty"; Latin = strep ? "Streptococcus pyogenes" : "Staphylococcus aureus";
         Rr = strep ? Rand(0.36f, 0.42f) : Rand(0.42f, 0.5f); R = Rr + 0.35f; Mass = 0.25f; D = 0.002f;
         State = St.Free; Cyc = cyc >= -0.5f ? cyc : Rand(0, 0.9f); Plane = float.IsNaN(plane) ? Rand(0, TAU) : plane;
-        Gen = Rand(0.85f, 1.2f);
+        CycK = Rand(0.85f, 1.2f);
     }
     public override void UpdatePrim() => SetCircle(Rr * (1 + 0.35f * Div));
     public override bool Collides(Ent o) => State == St.Free;
@@ -26,13 +26,13 @@ public sealed class Staph : Ent
         if (State == St.Caught)
         {
             Dig += gdt / 40;
-            if (Dig >= 1) { Alive = false; W.AddStat("killed", 1); }
+            if (Dig >= 1) { Alive = false; W.AddStat("killed", 1); if (Owner is Net { ByPlayer: true }) W.AddStat("p_killed", 1); }
             return;
         }
         if (State != St.Free || W.Preview) return;
         float bdt = dt * W.Bio;
         if (Div > 0 || Cyc >= 1) { Div += bdt / 300; if (Div >= 1) Split(); }
-        else Cyc += bdt / (1800 * Gen);
+        else Cyc += bdt / (1800 * CycK);
     }
     void Split()
     {

@@ -162,6 +162,8 @@ public sealed class Floc : Food
 /// </summary>
 public sealed class Amoeba : Ent
 {
+    /// <summary>Pełza/chodzi po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     const int NN = 96;
     public float Rb, A0, Vmax = 2.5f, Seed, Energy, Div, DivA, AiT, AiA, Hunger;
     public bool Dividing;
@@ -353,7 +355,7 @@ public sealed class Amoeba : Ent
     {
         float c = MathF.Cos(DivA), s = MathF.Sin(DivA), off = Rb * 0.75f;
         var child = W.Add(new Amoeba(W, X - c * off, Y - s * off, Rb));
-        child.A0 = A0 / 2; child.Lineage = true;
+        child.A0 = A0 / 2; W.Born(this, child, true); W.Born(this, this, false);
         A0 /= 2; X += c * off * 0.5f; Y += s * off * 0.5f;
         Div = 0; Dividing = false; Energy = 0;
         _pods = new List<Pod> { new Pod { Ang = DivA, Len = 40, Tgt = 40, W = 0.4f } };
@@ -369,15 +371,16 @@ public sealed class Amoeba : Ent
         var m = Mem;
         int n = m.Smooth(p.Shape);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
-        p.SoftStroke(sh, true, 16, Rgb(255, 255, 240, 0.22f));
-        p.FillFan(sh, X, Y, Rgb(128, 136, 120, 0.38f));
+        Span<float> ets = stackalloc float[] { 0f, 1f };
+        Span<Color> ecs = stackalloc Color[] { Rgb(122, 130, 114, 0.4f), Rgb(134, 142, 126, 0.34f) };
+        p.Body(m, sh, 3, 16, Rgb(255, 255, 240, 0.22f), X, Y, ets, ecs);
         // endoplazma (ziarnista) – przeskalowany obrys
         for (int i = 0; i < n; i++) p.Shape2[i] = new Vector2(X + (p.Shape[i].X - X) * 0.84f, Y + (p.Shape[i].Y - Y) * 0.84f);
         Span<float> ts = stackalloc float[] { 0f, 0.8f, 1f };
         Span<Color> cs = stackalloc Color[] { Rgb(86, 94, 80, 0.2f), Rgb(86, 94, 80, 0.16f), Rgb(86, 94, 80, 0f) };
         p.FillRadial(new ReadOnlySpan<Vector2>(p.Shape2, 0, n), X, Y, ts, cs, false);
         p.Stroke(sh, true, 1.3f, Rgb(40, 46, 40, 0.55f));
-        p.Local(X, Y, 0);
+        p.Local(X, Y, 0); p.Warp(Mem);
         p.FillEllipse(_nucX, _nucY, 23, 20, 0.4f, Rgb(158, 166, 146, 0.42f));
         p.Ellipse(_nucX, _nucY, 23, 20, 0.4f, 1.6f, Rgb(62, 68, 56, 0.55f));
         int ne = p.EllipsePts(_nucX, _nucY, 19, 16.5f, 0.4f, p.Buf2);

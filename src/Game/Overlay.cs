@@ -7,14 +7,25 @@ public partial class Overlay : Node2D
     public float CamX, CamY, S, Stretch = 1;
     public Vector2 ScreenSize;
     public bool ShowHud = true, ShowMap = true;
+    /// <summary>Szczegóły (F8): radar i pełny HUD.</summary>
+    public bool Debug;
+    /// <summary>Pasek danych: tryb i obiektyw, powiększenie (rozbłyska po kliknięciu zoomu), tempo czasu.</summary>
+    public string DataCode = "", DataMag = "", DataTime = ""; public float MagFlash;
+    readonly List<(Vector2 pos, string text, int size, Color col)> _texts = new();
+    /// <summary>Tryb podglądu (F): obiekt pod kursorem, wybrany obiekt albo punkt tła, nazwa przy kursorze.</summary>
+    public bool Inspect; public Ent InspHover, InspSel; public Vector2? InspPoint; public string InspHoverName = ""; public Vector2 InspMouse;
     readonly Painter _p = new();
     float _senseT; bool _hasFood, _hasThreat; float _fx, _fy, _tx, _ty;
     readonly List<(Vector2 pos, string text, Color col)> _labels = new();
     Rect2 _map = new(1e6f, 1e6f, 0, 0);
+    World _senseW;
 
     public override void _Process(double delta)
     {
         if (World == null || !ShowHud) return;
+        if (MagFlash > 0) MagFlash = Math.Max(0, MagFlash - (float)delta * 2.2f);
+        // nowy świat (restart, inny tryb) – wskaźniki od razu z nowego świata, nie z poprzedniego
+        if (World != _senseW) { _senseW = World; _senseT = 0; }
         _senseT -= (float)delta;
         if (_senseT <= 0)
         {
@@ -24,22 +35,39 @@ public partial class Overlay : Node2D
         }
     }
 
+    /// <summary>Czas budowania nakładki w ostatniej klatce (ms) – test wydajności.</summary>
+    public double LastMs;
     public override void _Draw()
     {
         if (World == null || !ShowHud) return;
-        _labels.Clear();
+        long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+        try { DrawAll(); } finally { LastMs = (System.Diagnostics.Stopwatch.GetTimestamp() - t0) * 1000.0 / System.Diagnostics.Stopwatch.Frequency; }
+    }
+    void DrawAll()
+    {
+        _labels.Clear(); _texts.Clear();
         _p.Begin(1f / Math.Max(0.25f, Stretch));
-        DrawReticle();
-        if (World.Nano) DrawScanner(); else DrawSense();
-        if (ShowMap) DrawMinimap();
-        DrawScaleBar();
-        _p.Flush(GetCanvasItem());
-        var font = Ui.FontBold;
-        foreach (var (pos, text, col) in _labels)
+        if (Inspect) DrawInspect();
+        else
         {
-            var sz = font.GetStringSize(text, HorizontalAlignment.Left, -1, 13);
-            DrawString(font, pos + new Vector2(-sz.X / 2 + 1, 1), text, HorizontalAlignment.Left, -1, 13, new Color(0, 0, 0, 0.55f));
-            DrawString(font, pos + new Vector2(-sz.X / 2, 0), text, HorizontalAlignment.Left, -1, 13, col);
+            DrawReticle();
+            if (World.Nano) DrawScanner(); else DrawSense();
+        }
+        if (ShowMap && Debug && !Inspect) DrawMinimap();
+        DrawDataBar();
+        _p.Flush(GetCanvasItem());
+        var font = Ui.Scope; var halo = new Color(0, 0, 0, 0.6f);
+        foreach (var (pos, text0, col) in _labels)
+        {
+            string text = Loc.T(text0);
+            var at = pos + new Vector2(-font.GetStringSize(text, HorizontalAlignment.Left, -1, 15).X / 2, 0);
+            DrawStringOutline(font, at, text, HorizontalAlignment.Left, -1, 15, 5, halo);
+            DrawString(font, at, text, HorizontalAlignment.Left, -1, 15, col);
+        }
+        foreach (var (pos, text, size, col) in _texts)
+        {
+            DrawStringOutline(font, pos, text, HorizontalAlignment.Left, -1, size, 6, halo);
+            DrawString(font, pos, text, HorizontalAlignment.Left, -1, size, col);
         }
     }
 
@@ -81,11 +109,12 @@ public partial class Overlay : Node2D
         var c = ss / 2; var d = t - c;
         float sx = d.X != 0 ? (ss.X / 2 - M) / MathF.Abs(d.X) : 1e9f, sy = d.Y != 0 ? (ss.Y / 2 - M) / MathF.Abs(d.Y) : 1e9f;
         var e = c + d * Math.Min(sx, sy);
-        // nie zasłaniaj paneli HUD (lewy górny, prawy górny) ani minimapy (prawy dolny)
-        if (e.X < 330 && e.Y < 380) { if (MathF.Abs(d.X) > MathF.Abs(d.Y)) e.Y = 390; else e.X = 340; }
-        if (e.X > ss.X - 320 && e.Y < 130) e.Y = 140;
+        // nie zasłaniaj opisu w lewym górnym rogu (w szczegółach F8 – panelu i prawego górnego opisu) ani minimapy
+        float hx = Debug ? 330 : 440, hy = Debug ? 380 : 210;
+        if (e.X < hx && e.Y < hy) { if (MathF.Abs(d.X) > MathF.Abs(d.Y)) e.Y = hy + 10; else e.X = hx + 10; }
+        if (Debug && e.X > ss.X - 320 && e.Y < 130) e.Y = 140;
         if (e.Y > ss.Y - 80) e.Y = ss.Y - 80;
-        if (ShowMap && e.X > _map.Position.X - 50 && e.Y > _map.Position.Y - 40) { if (MathF.Abs(d.X) > MathF.Abs(d.Y)) e.Y = _map.Position.Y - 50; else e.X = _map.Position.X - 60; }
+        if (ShowMap && Debug && e.X > _map.Position.X - 50 && e.Y > _map.Position.Y - 40) { if (MathF.Abs(d.X) > MathF.Abs(d.Y)) e.Y = _map.Position.Y - 50; else e.X = _map.Position.X - 60; }
         float a = MathF.Atan2(d.Y, d.X), pulse = 1 + 0.12f * MathF.Sin(World.T * 5);
         _p.Push(); _p.Translate(e.X, e.Y); _p.Rotate(a); _p.Scale(pulse);
         Span<Vector2> tri = stackalloc Vector2[] { new(14, 0), new(-8, -9), new(-4, 0), new(-8, 9) };
@@ -177,16 +206,63 @@ public partial class Overlay : Node2D
         _labels.Add((new Vector2(c.X, c.Y - r - 12), info + state, col));
     }
 
-    void DrawScaleBar()
+    void Ring(Ent e, Color col, float w, float spin)
     {
-        float target = 150 / S;
-        float p = MathF.Pow(10, MathF.Floor(MathF.Log10(target)));
-        float len = p;
-        foreach (float m in new[] { 1f, 2f, 5f, 10f }) if (m * p <= target) len = m * p;
-        float px = len * S, x1 = ScreenSize.X - 28, x0 = x1 - px, y = ScreenSize.Y - 34;
-        _p.Rect(x0 - 1, y - 1, px + 2, 6, new Color(0, 0, 0, 0.35f));
-        _p.Rect(x0, y, px, 4, Colors.White);
-        string lbl = len >= 1000 ? $"{len / 1000:0.###} mm" : len >= 1 ? $"{len:0.###} µm" : $"{MathF.Round(len * 1000)} nm";
-        _labels.Add((new Vector2((x0 + x1) / 2, y - 8), lbl, Colors.White));
+        var tgt = e is ChainSeg cs ? (Ent)cs.Owner : e;
+        var c = ToScreen(e.X, e.Y);
+        float r = Math.Clamp(Math.Max(e.Radius, Math.Max(e.Length * 0.5f, e.Prim.R)) * S + 7, 10, 520);
+        for (int k = 0; k < 4; k++)
+        {
+            float a0 = k * PI / 2 + spin;
+            const int n = 10; Span<Vector2> arc = stackalloc Vector2[n];
+            for (int i = 0; i < n; i++) { float a = a0 + i * 1.0f / (n - 1); arc[i] = new Vector2(c.X + MathF.Cos(a) * r, c.Y + MathF.Sin(a) * r); }
+            _p.Stroke(arc, false, w, col, true);
+        }
     }
+    void DrawInspect()
+    {
+        float t = World.T + (float)Time.GetTicksMsec() / 1000f;
+        if (InspSel != null && InspSel.Alive) Ring(InspSel, new Color(0.55f, 0.9f, 1f, 0.95f), 2.5f, t * 0.6f);
+        if (InspPoint is Vector2 pt)
+        {
+            var c = ToScreen(pt.X, pt.Y);
+            _p.Circle(c.X, c.Y, 12, 2, new Color(0.55f, 0.9f, 1f, 0.95f));
+            _p.Line(c.X - 18, c.Y, c.X - 6, c.Y, 2, new Color(0.55f, 0.9f, 1f, 0.95f)); _p.Line(c.X + 6, c.Y, c.X + 18, c.Y, 2, new Color(0.55f, 0.9f, 1f, 0.95f));
+            _p.Line(c.X, c.Y - 18, c.X, c.Y - 6, 2, new Color(0.55f, 0.9f, 1f, 0.95f)); _p.Line(c.X, c.Y + 6, c.X, c.Y + 18, 2, new Color(0.55f, 0.9f, 1f, 0.95f));
+        }
+        if (InspHover != null && InspHover != InspSel) Ring(InspHover, new Color(1, 1, 1, 0.7f), 1.5f, 0);
+        if (InspHoverName.Length > 0) _labels.Add((InspMouse + new Vector2(0, -22), InspHoverName, new Color(1, 1, 1, 0.95f)));
+    }
+
+    /// <summary>
+    /// Pasek danych jak na mikrografii z mikroskopu elektronowego: z lewej tryb, obiektyw/napięcie, powiększenie i tempo czasu,
+    /// z prawej kropkowana podziałka (11 kresek = 10 działek, długość z szeregu 1–2–5, ok. 1/7 kadru) z opisem pod nią.
+    /// </summary>
+    void DrawDataBar()
+    {
+        var font = Ui.Scope; const int fs = 22;
+        float y = ScreenSize.Y - 20, x = 26;
+        var white = new Color(0.95f, 0.96f, 0.93f, 0.96f);
+        var magCol = white.Lerp(new Color(1f, 0.84f, 0.42f), Math.Min(1, MagFlash));
+        foreach (var (str, col) in new[] { (DataCode, white), (DataMag, magCol), (DataTime, new Color(0.86f, 0.9f, 0.85f, 0.85f)) })
+        {
+            if (string.IsNullOrEmpty(str)) continue;
+            _texts.Add((new Vector2(x, y), str, fs, col));
+            x += font.GetStringSize(str, HorizontalAlignment.Left, -1, fs).X + fs * 1.2f;
+        }
+        float target = ScreenSize.X * 0.14f / S;
+        float p = MathF.Pow(10, MathF.Floor(MathF.Log10(target))), len = p;
+        foreach (float m in new[] { 1f, 2f, 5f, 10f }) if (m * p <= target) len = m * p;
+        float px = len * S, xr = ScreenSize.X - 26, x0 = xr - px, ty = y - fs * 0.8f;
+        string lbl = Scenario.LenStr(len);
+        _texts.Add((new Vector2(xr - font.GetStringSize(lbl, HorizontalAlignment.Left, -1, fs).X, y), lbl, fs, white));
+        var dark = new Color(0, 0, 0, 0.55f);
+        for (int pass = 0; pass < 2; pass++)
+            for (int i = 0; i <= 10; i++)
+            {
+                float tx = x0 + px * i / 10, h = i == 0 || i == 10 ? 9 : 6;
+                if (pass == 0) _p.Rect(tx - 2.2f, ty - h - 1.2f, 4.4f, h + 2.4f, dark); else _p.Rect(tx - 1.1f, ty - h, 2.2f, h, white);
+            }
+    }
+
 }

@@ -1,0 +1,91 @@
+# Zdjęcia atlasu – autorzy i licencje / Photo credits
+
+Źródło: Wikimedia Commons. Pliki w tym folderze są zmniejszone, przycięte, a część wycięta z tła; utwory CC BY-SA
+po obróbce pozostają na tej samej licencji. / Resized, cropped, some cut out; CC BY-SA derivatives keep the same licence.
+
+- `acanth.jpg` – Jacob Lorenzo-Morales, Naveed A. Khan and Julia Walochnik · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Parasite140120-fig5_Acanthamoeba_keratitis.png
+- `adipocyte.jpg` – autor nieznany · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Yellow_adipose_tissue_in_paraffin_section_-_lipids_washed_out.jpg
+- `agar.jpg` – autor nieznany · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Agar_plate_with_colonies.jpg
+- `amoeba.png` – SmallRex · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Amoeba_proteus_locomotive_form.jpg
+- `bacillus.jpg` – So-loll · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Bacillus_subtilis_light_micrograph.jpg
+- `bacteria-cloud.jpg` – Doc. RNDr. Josef Reischig, CSc. · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Bacteria_(259_05).jpg
+- `bdello.jpg` – Eikosi · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Slice_from_electron_cryotomogram_of_Bdellovibrio_bacteriovorus_cell.jpg
+- `biofilm.jpg` – Krzysztof A. Zacharski · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Mixed-culture_biofilm.jpg
+- `blepharisma.jpg` – Frank Fox · CC BY-SA 3.0 de · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Mikrofoto.de-Blepharisma_japonicum_15.jpg
+- `blood-plasma.jpg` – Andykatib · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Plasma_bag,_9_April_2024.jpg
+- `bodo.jpg` – Picturepest · CC BY 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Bodo_saltans_-_400x_(13895749563).jpg
+- `candidahypha.jpg` – Michael R Francisco from Bongabon, Nueva Ecija Philippines · CC BY 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Candida_albicans_(1000X_magnification)_(6500725393).jpg
+- `candidayeast.jpg` – Centers for Disease Control and Prevention · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Candida_albicans_1964.jpg
+- `caulobacter.jpg` – Unknown authorUnknown author · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Caulobacter_crescentus.jpg
+- `cervix.jpg` – User:Acaparadora · CC BY-SA 2.5 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Cervical_mucus1.jpg
+- `chlamy.jpg` – Dartmouth Electron Microscope Facility, Dartmouth College · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Chlamydomonas6-1.jpg
+- `chlorella.jpg` – ja:User:NEON / User:NEON_ja · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Chlorella_vulgaris_NIES2170.jpg
+- `closterium.jpg` – derekkeats · CC BY-SA 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:The_desmid,_Clostarium.jpg
+- `coleps.png` – Treinisch · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Coleps_hirtus_viridis.jpg
+- `collagen.jpg` – Vincesherman · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Collagen_fibrils_in_rabbit_skin.jpg
+- `cosmarium.jpg` – Berezovska · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Algae_Cosmarium.jpg
+- `ctl.jpg` – The National Institutes of Health · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Killer_T_cells_surround_a_cancer_cell.png
+- `cumulus.jpg` – Prue Talbot and Karen Riveles in Reproductive Biology and E… · CC BY 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Hamster_Oviduct.JPG
+- `daphnia.png` – (Photo: Paul Hebert) · CC BY 2.5 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Daphnia_pulex.png
+- `diatom.jpg` – zookanthos · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Navicula_oblonga_115647672.jpg
+- `didinium.jpg` – S. O. Mast · Public domain · Wikimedia Commons · ilustracja z 1909 r. (S.O. Mast) – brak wolnego zdjęcia – https://commons.wikimedia.org/wiki/File:Didinium_nasutum_consuming_a_paramecium.jpg
+- `ecoli.jpg` – Janice Haney Carr · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Escherichia_coli_electron_microscopy.jpg
+- `endothelium.jpg` – BigLew99 · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:HUVECs.jpg
+- `euglena.jpg` – naturalismus · CC BY-SA 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Euglena_gracilis.jpg
+- `euplotes.jpg` – ValeSer23 · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:AZM_Euplotes_vanleeuwenhoeki.tif
+- `exuvia.jpg` – Bob Blaylock · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:TardigradeEggsInShedCuticle.jpg
+- `fibroblast.jpg` – Pinky9697 · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Fibroblast_cells_under_microscope_20x.jpg
+- `flagfrag.jpg` – No machine-readable author provided. Graham Bradley assumed… · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Dvulgaris_micrograph.JPG
+- `fruitbody.jpg` – Bruno in Columbus · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Dictyostelium_Fruiting_Bodies.JPG
+- `grain.jpg` – CBlaeuer · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:0136_02_P4_1_Bb175um_182_xPol.JPG
+- `helio.jpg` – Bob Blaylock (talk) · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Actinophryid.jpg
+- `interstitium.jpg` – Berkshire Community College Bioscience Image Library · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Connective_Tissue_Loose_Aerolar_(41743649782).jpg
+- `klebsiella.jpg` – Trance Gemini · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Myxo_eats_through_bacterial_lawn.jpg
+- `kupffer.jpg` – Nephron · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Kupffer_cells_high_mag_cropped.jpg
+- `lacrymaria.jpg` – Picturepest · CC BY 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Lacrymaria_olor_(8122155639).jpg
+- `lambda.jpg` – ViralZone, SIB Swiss Institute of Bioinformatics: Siphoviri… · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Lambda_EM.jpg
+- `lemna.jpg` – Kostka Martin · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Lemna_minor_plants.jpg
+- `loxodes.png` – Micropix · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Loxodes_sp.jpg
+- `lymphocyte.jpg` – Echinaceapallida · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Blood-lymphocyte2.jpg
+- `lysis.jpg` – Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Histopathology_of_adrenal_cortical_necrosis.jpg
+- `macrophage.jpg` – Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Cytology_of_a_macrophage.png
+- `mastcell.jpg` – Vortioxetine · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Mast_cells_in_bone_marrow.jpg
+- `milnesium.jpg` – Hoddyfool · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Milnesium_tardigradum.jpg
+- `moss-water.jpg` – Roger Jones · CC BY-SA 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Cushion_Moss_-_geograph.org.uk_-_2501012.jpg
+- `mossleaf.jpg` – Des_Callaghan · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Bryum_capillare_leaf_cells.jpg
+- `mound.jpg` – Bruno in Columbus · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Dictyostelium_Late_Aggregation_1.JPG
+- `nematode.jpg` – The original uploader was Kbradnam at English Wikipedia. (O… · CC BY-SA 2.5 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Adult_Caenorhabditis_elegans.jpg
+- `net.jpg` – CHDENK · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Neutrophil_Extracellular_Trap.jpg
+- `neutrophil.jpg` – Tommaso Leonardi · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Neutrophil2.jpg
+- `nk.png` – NIAID · CC BY 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Human_Natural_Killer_Cell_-_51630111330.jpg
+- `omv.jpg` – Rakeshyashroy · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Human_Salmonella_secreting_outer_membrane_vesicles_in_vivo_in_chicken_ileum_(Original_work_of_Dr_R_C_YashRoy).png
+- `oocyte.jpg` – ZEISS Microscopy from Germany · CC BY-SA 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Oocyte_with_Zona_pellucida_(27771482282).jpg
+- `oscillatoria.jpg` – Wiedehopf20 · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Oscillatoria_filaments.jpg
+- `oviduct.jpg` – Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Histology_of_ciliated_columnar_epithelium_of_the_fallopian_tube.jpg
+- `paramecium.png` – Deuterostome · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Paramecium_caudatum_Ehrenberg,_1833.jpg
+- `paramecium-bursaria.jpg` – Cucumberkvp · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Paramecium_Bursaria.jpg
+- `platelet.jpg` – Electron Microscopy Facility at The National Cancer Institu… · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Red_White_Blood_cells.jpg
+- `pond-water.jpg` – Kittycatcrunchie · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Hay_Infusion_from_Cape_Water_Source_(x400).jpg
+- `pseudomonas.jpg` – Photo Credit: Janice Haney Carr Content Providers(s): CDC/ … · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Pseudomonas_aeruginosa_SEM.jpg
+- `rbc.jpg` – Scootdive (talk, contribs) · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Red_blood_cells_(2).jpg
+- `rotifer.jpg` – Juan Carlos Fonseca Mata · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Philodina_sp._(Class%CB%90_Bdelloidea)_-_Rotifera.jpg
+- `slug.jpg` – Tyler J Larsen · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Dictyostelium_discoideum_slug_1.tif
+- `sperm.jpg` – Enver Kerem Dirican · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Human_Spermatozoa,_Scanning_Electron_Micrograph.jpg
+- `spirocell.jpg` – Wiedehopf20 · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:The_freshwater_alga_Spirogyra.jpg
+- `spirostomum.jpg` – Viktoria Hyzhniak · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Spirostomum_ambiguum.jpg
+- `sprout.jpg` – Piotr Cywoniuk, Foundation of Research and Science Developm… · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Formation_of_the_new_blood_vessels.jpg
+- `staphylococcus.jpg` – NIAID_Flickr · CC BY 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Scanning_electron_micrograph_of_Methicillin-resistant_Staphylococcus_aureus_(MRSA)_and_a_dead_Human_neutrophil_-_NIAID.jpg
+- `stentor.jpg` – Flupke59 · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Stentor_coeruleus_extended.jpg
+- `streptococcus.jpg` – NIAID · CC BY 2.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Streptococcus_Pyogenes_(Group_A_Strep)_(52602892639).jpg
+- `t4.jpg` – 7USSR7 · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:T4_phage_EM.jpg
+- `tardigrade.png` – Willow Gabriel, Goldstein Lab · CC BY-SA 2.5 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Hypsibiusdujardini.jpg
+- `tem.jpg` – Gannu03 · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Transmission_electron_microscope_(2).jpg
+- `tetrahymena.jpg` – see source · CC BY 2.5 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Tetrahymena_thermophila.png
+- `trypanosome.jpg` – Photo Credit: Content Providers: CDC/Dr. Myron G. Schultz · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Trypanosoma_sp._PHIL_613_lores_(cropped).jpg
+- `tsetse.png` – Estefanía Alonso Gómez · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Glossina_morsitans_morsitans_(white_paper).jpeg
+- `tumorcell.jpg` – Catfaster · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:HeLa_Cells_Culture_Phase_Contrast_1_v1.jpg
+- `uterus.jpg` – Douglas A. Gibson, Ioannis Simitsidellis, Frances Collins a… · CC BY 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Histology_of_proliferative_endometrium.jpg
+- `vagina.jpg` – Jpogi at English Wikipedia · Public domain · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Vagina_(mucosa).JPG
+- `venule.jpg` – Doc. RNDr. Josef Reischig, CSc. · CC BY-SA 3.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Venule_(238_12A)_With_a_vein_valve;_cross-section;_human.jpg
+- `volvox.png` – Matthew Herron · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Volvox_aureus.jpg
+- `vorticella.jpg` – Bwiltz · CC BY-SA 4.0 · Wikimedia Commons – https://commons.wikimedia.org/wiki/File:Vorticella_1.jpg

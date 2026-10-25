@@ -8,8 +8,21 @@ namespace Mikro;
 public sealed class EColi : Ent
 {
     public float Wd, L, L0, Speed, Round, Pinch, Opacity = 1, Bund = 1, Wob, Cmem, Rb, Timer;
+    /// <summary>
+    /// Kontrola wielkości „adder”: komórka dzieli się, gdy od narodzin dołoży mniej więcej stałą długość Dl (≈ długość
+    /// noworodka, rozrzut ~10%), niezależnie od tego, z jaką długością się urodziła (Taheri-Araghi i in., Curr Biol 2015).
+    /// Dzięki temu zbyt duże i zbyt małe komórki w kilku pokoleniach wracają do średniej.
+    /// </summary>
+    public float Lb, Dl;
+    public float DivL => Lb + Dl;
     public bool Sessile, Dividing, Warned, Resistant, KnownResistant;
     public float Bulge;
+    /// <summary>
+    /// Pływanie przy powierzchni szkiełka: obrót ciała w jedną stronę i rzęsek w drugą przy ścianie daje moment siły,
+    /// więc tor zakrzywia się w okrąg (zgodnie z ruchem wskazówek zegara patrząc od strony cieczy; promień ~10–50 µm;
+    /// Lauga i in., Biophys J 2006). Surf – komórka przy dnie, Orbit – promień okręgu (µm).
+    /// </summary>
+    public bool Surf; public float Orbit = 25;
     float _svx, _svy;
     /// <summary>Infekcja obcym fagiem (T7/λ) – czas do lizy (s biologiczne); 0 = brak.</summary>
     public float Foreign; public bool ForeignLambda, Lysogen;
@@ -26,6 +39,8 @@ public sealed class EColi : Ent
     public sealed class Infection
     {
         public float T, Base, Lat, Ex, Ey; public int Lin; public bool ByPlayer;
+        /// <summary>Pokolenie i chwila narodzin wirionu, który zakaził komórkę (do śledzenia linii).</summary>
+        public int Gen; public float PBornT;
         public readonly List<Capsid> Caps = new(); public readonly List<DnaSpot> Dna = new();
     }
 
@@ -43,11 +58,14 @@ public sealed class EColi : Ent
         Wd = width > 0 ? width : Rand(0.75f, 0.88f);
         L = len > 0 ? len : Rand(2.0f, 2.8f);
         L0 = l0 > 0 ? l0 : Rand(1.9f, 2.2f);
+        Lb = len > 0 && l0 > 0 ? len : L0; Dl = Clamp(2.05f + RandN() * 0.22f, 1.5f, 2.7f);
         Sessile = sessile;
         Mem = new Membrane(34) { MaxDef = 0.25f }; MemK = 14; MemS = 0.5f;
         State = St.Run; Timer = ExpRand(1);
         Speed = Rand(20, 30);
-        D = Sessile ? 0.0005f : 0.05f; Dr = Sessile ? 0 : 0.06f;
+        // Stokes–Einstein dla pałeczki 2,5 × 0,8 µm w wodzie (20 °C): D ≈ 0,35 µm²/s; D_r ≈ 0,06 rad²/s (Berg 1993)
+        D = Sessile ? 0.0005f : 0.35f; Dr = Sessile ? 0 : 0.06f;
+        Surf = !Sessile && Chance(0.6f); Orbit = Rand(12, 45);
         int n = nf > 0 ? nf : RandI(4, 7);
         _flags = new Flag[n];
         for (int i = 0; i < n; i++)
@@ -55,6 +73,8 @@ public sealed class EColi : Ent
         Rest(); UpdatePrim();
     }
 
+    /// <summary>Ściana z peptydoglikanu jest sztywna – wgniecenie (≤ 0,25 µm) widać dopiero przy dużym powiększeniu.</summary>
+    public override float MemPushPx => 220;
     public void Rest()
     {
         var m = Mem; int n = m.N; float r = Wd / 2, hl = Hl;
@@ -87,6 +107,8 @@ public sealed class EColi : Ent
     public bool CanAdsorb() => Alive && Bound < 8 && State != St.Dead && State != St.Bdelloplast && State != St.Cup && State != St.Vac && (Inf == null || Inf.T / Inf.Lat < 0.8f);
     public override bool CanControl() => Alive && Inf == null && Invader == null && State != St.Bdelloplast && State != St.Cup && State != St.Vac;
     public override bool Collides(Ent o) => !(o is Bdello b && b.Prey == this);
+    /// <summary>E. coli to „pchacz”: wiązka rzęsek z tyłu odpycha wodę wzdłuż osi (Drescher i in., PNAS 2011).</summary>
+    public override float Dipole => State == St.Run ? 1 : 0;
 
     public override void Step(float dt, float gdt)
     {
@@ -130,6 +152,7 @@ public sealed class EColi : Ent
                 if (dc > 0.0005f) Timer += dt * 0.7f; // chemotaksja: dłuższe biegi w górę gradientu
             }
             if (Timer <= 0) { State = St.Tumble; Timer = ExpRand(0.14f); }
+            if (Surf) A += Speed / Orbit * dt;
             Vx = MathF.Cos(A) * Speed; Vy = MathF.Sin(A) * Speed;
         }
         else Tumble(dt);
@@ -177,7 +200,7 @@ public sealed class EColi : Ent
             if (IsPlayer) W.AddStat("eaten", got);
         }
         else L += L * MathF.Log(2) / W.Sc.EcoliDouble * bdt;
-        if (L >= L0 * 2) Dividing = true;
+        if (L >= DivL) Dividing = true;
     }
     void Divide()
     {
@@ -185,12 +208,12 @@ public sealed class EColi : Ent
         EColi Mk(float sg)
         {
             var e = new EColi(W, X + c * off * sg, Y + s * off * sg, A + (Sessile ? 0 : Rand(-0.15f, 0.15f)), half, Wd, Clamp(half * Rand(0.95f, 1.05f), 1.8f, 2.3f), Sessile);
-            e.Lineage = Lineage || IsPlayer; e.State = St.Run; e.Timer = ExpRand(0.6f); e.Resistant = Resistant; e.KnownResistant = KnownResistant;
+            W.Born(this, e, sg > 0); e.State = St.Run; e.Timer = ExpRand(0.6f); e.Resistant = Resistant; e.KnownResistant = KnownResistant;
+            e.Surf = Surf; e.Orbit = Orbit;
             return W.Add(e);
         }
         var A1 = Mk(1); Mk(-1);
         Alive = false;
-        if (IsPlayer) W.Sfx("blip", X, Y);
         if (Lineage || IsPlayer) W.AddStat("divisions", 1);
         if (IsPlayer) { W.Player = null; W.SetPlayer(A1); W.Log("Podział komórki! Kontrolujesz komórkę potomną, druga pływa samodzielnie.", "good"); }
     }
@@ -225,7 +248,7 @@ public sealed class EColi : Ent
         }
         ToLocal(ph.TipX, ph.TipY, out float lx, out float ly);
         const float bas = 1500;
-        Inf = new Infection { T = 0, Base = bas, Lat = bas * Rand(0.92f, 1.08f), Ex = lx, Ey = ly, ByPlayer = ph.IsPlayer || ph.Lineage };
+        Inf = new Infection { T = 0, Base = bas, Lat = bas * Rand(0.92f, 1.08f), Ex = lx, Ey = ly, ByPlayer = ph.IsPlayer || ph.Lineage, Gen = ph.Gen, PBornT = ph.BornT };
         float hl = Hl, r = Wd / 2; int nc = W.Em ? 70 : 16;
         for (int k = 0; k < nc; k++) Inf.Caps.Add(new Capsid { X = Rand(-1, 1) * (hl + r * 0.35f) * 0.88f, Y = Rand(-1, 1) * r * 0.55f, A = Rand(0, TAU), T = Rand(0.5f, 0.86f), J = Rand(0, TAU) });
         for (int k = 0; k < 7; k++) Inf.Dna.Add(new DnaSpot { X = Rand(-hl, hl) * 0.8f, Y = Rand(-r, r) * 0.4f, T = Rand(0.2f, 0.45f), S = Rand(0.06f, 0.12f) });
@@ -257,7 +280,7 @@ public sealed class EColi : Ent
             float dx = x - px, dy = y - py, d = Hypot(dx, dy); if (d < 1e-6f) d = 1;
             float sp = W.Em ? Rand(0.4f, 1.6f) : Rand(2, 6);
             ph.Kx = dx / d * sp + RandN() * sp * 0.3f; ph.Ky = dy / d * sp + RandN() * sp * 0.3f;
-            ph.Lineage = I.ByPlayer;
+            W.Born(I.Gen, I.PBornT, I.ByPlayer, ph, k == 0);
             outp.Add(ph);
         }
         float sc = W.Em ? 1 : 3;
@@ -283,6 +306,7 @@ public sealed class EColi : Ent
         if (I.ByPlayer)
         {
             W.AddStat("virions", burst); W.AddStat("lysed", 1);
+            W.BornUnseen(burst - nShow, I.Gen + 1); // reszta wyrzutu rozprasza się poza kadrem
             W.Log($"LIZA! Holiny + endolizyna + spaniny rozerwały osłony. Uwolniono ~{burst} wirionów T4.", "good");
         }
         for (int i = 0; i < W.Ents.Count; i++) if (W.Ents[i] is PhageT4 q && q.Host == this) q.Release();
@@ -325,10 +349,10 @@ public sealed class EColi : Ent
     public int ProgenyCount() => (int)Clamp(MathF.Round(L * 1.6f + Rand(-0.5f, 0.5f)), 3, 6);
 
     // ------------------------------------------------------------------ rysowanie
-    void DrawFlagella(Painter p, View v, Color col, float lwMin)
+    void DrawFlagella(Painter p, View v, Color col, float lwMin, int K = 24)
     {
         float hl = Hl, r = Wd / 2, b = Smooth(Bund);
-        p.Local(X, Y, A);
+        BodyLocal(p);
         float lw = Math.Max(0.022f, v.Px * lwMin);
         var buf = p.Buf2;
         foreach (var f in _flags)
@@ -343,7 +367,6 @@ public sealed class EColi : Ent
             }
             float ux = MathF.Cos(ang), uy = MathF.Sin(ang);
             float lam = Lerp(1.0f, 2.3f, b), Am = Lerp(0.14f, 0.2f, b);
-            const int K = 24;
             for (int k = 0; k <= K; k++)
             {
                 float d = (float)k / K * f.Len, env = Math.Min(1, d / 0.6f);
@@ -354,7 +377,7 @@ public sealed class EColi : Ent
         }
     }
 
-    static readonly Color FlagPh = Rgb(35, 40, 36, 0.28f), HaloPh = Rgb(255, 255, 240, 0.30f), BodyPh = Rgb(44, 50, 46), EdgePh = Rgb(12, 14, 12, 0.9f);
+    static readonly Color FlagPh = Rgb(35, 40, 36, 0.16f), HaloPh = Rgb(255, 255, 240, 0.30f), BodyPh = Rgb(44, 50, 46), EdgePh = Rgb(12, 14, 12, 0.9f);
 
     public override void Draw(Painter p, View v)
     {
@@ -373,20 +396,23 @@ public sealed class EColi : Ent
     void DrawInner(Painter p, View v)
     {
         if (W.Em) { DrawEM(p, v); return; }
-        if (Inf == null && State != St.Bdelloplast && State != St.Cup && State != St.Vac) DrawFlagella(p, v, FlagPh, 0.9f);
+        // rzęski (Ø ~20 nm) są poniżej zdolności rozdzielczej mikroskopu świetlnego – w kontraście fazowym ledwie
+        // widoczne pęczki, i to tylko przy dużym powiększeniu
+        float spx = (L + Wd) / Math.Max(v.Px, 1e-6f);
+        if (spx > 160 && Inf == null && State != St.Bdelloplast && State != St.Cup && State != St.Vac) DrawFlagella(p, v, FlagPh, 0.9f, spx > 320 ? 24 : 12);
         p.Identity();
-        int n = Mem.Smooth(p.Shape);
+        int n = Mem.Smooth(p.Shape, spx > 260 ? 3 : spx > 110 ? 2 : 1);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
         p.SoftStroke(sh, true, 0.75f, HaloPh);
         p.FillFan(sh, X, Y, Mul(BodyPh, Opacity));
         p.Stroke(sh, true, 0.05f, EdgePh);
-        p.Local(X, Y, A);
+        BodyLocal(p);
         float hl = Hl, r = Wd / 2, nuc = Opacity;
         if (Inf != null) nuc *= 1 - Smooth((Inf.T / Inf.Lat - 0.05f) / 0.25f);
         if (nuc > 0.02f && Round < 0.5f)
         {
             var nc = Rgb(150, 160, 148, 0.33f * nuc);
-            if (Pinch > 0.3f || L > L0 * 1.6f)
+            if (Pinch > 0.3f || L > Lb + Dl * 0.6f)
             {
                 p.FillEllipse(-hl * 0.5f, 0, hl * 0.35f + r * 0.1f, r * 0.4f, 0, nc);
                 p.FillEllipse(hl * 0.5f, 0, hl * 0.35f + r * 0.1f, r * 0.4f, 0, nc);
@@ -450,7 +476,7 @@ public sealed class EColi : Ent
         if (_ribo == null) BuildDetail();
         var I = Inf; float q = I != null ? I.T / I.Lat : 0;
         if (I == null || q < 0.6f) DrawFlagella(p, v, FlagEm, 1.2f);
-        p.Local(X, Y, A);
+        BodyLocal(p);
         foreach (var pl in _pili) p.Thin(pl, false, 0.008f, PiliEm);
         p.Identity();
         Mem.Normals();
@@ -465,7 +491,7 @@ public sealed class EColi : Ent
         p.Stroke(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 0.004f, PgEm);
         n2 = Mem.SmoothInset(p.Shape2, 0.035f, p.Tx, p.Ty);
         p.Stroke(new ReadOnlySpan<Vector2>(p.Shape2, 0, n2), true, 0.008f, ImEm);
-        p.Local(X, Y, A);
+        BodyLocal(p);
         var rc = Mul(RiboEm, Opacity);
         foreach (var r in _ribo) p.Dot(r.X, r.Y, 0.012f, rc);
         float nucA = 1 - (I != null ? Smooth((q - 0.06f) / 0.22f) : 0);

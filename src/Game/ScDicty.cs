@@ -5,6 +5,7 @@ namespace Mikro;
 // =====================================================================
 public sealed class ScDicty : Scenario
 {
+    public override string InspectAt(World w, float x, float y) => w.Bact != null && w.Bact.Density(x, y, 8) >= 3 ? "klebsiella" : "agar";
     public enum Ph { Veg, Starve, Agg, Slug, Fruit }
     public Ph Phase;
     public CampField Camp;
@@ -16,9 +17,11 @@ public sealed class ScDicty : Scenario
     public ScDicty()
     {
         Id = "dicty"; Name = "Ameba społeczna"; Latin = "Dictyostelium discoideum"; TypeName = "Śluzowiec komórkowy (Amoebozoa)"; Size = "≈ 10 µm → owocnik ~1 mm"; Color = Hex("#cfc6a0");
+        ReproFact = "Dopóki jest pokarm – podział co kilka godzin. W głodzie ~20% komórek agregatu tworzy martwy trzonek, a reszta – zarodniki. Twoje geny przetrwają w zarodnikach; komórka w trzonku pomaga krewnym (dobór krewniaczy) i ginie.";
         Desc = "Zjadaj bakterie i dziel się. Gdy pokarm się skończy, głodujące komórki zaczną nadawać fale cAMP – idź ku ich źródłu, dołącz do agregatu, poprowadź ślimaka ku światłu i zbuduj owocnik.";
-        Wd = 1600; Ht = 1600; ViewW = 340; TimeScale = 240; Bio = 1; Style = ScopeStyle.Phase; Modes = LightModes; GridCell = 20;
-        Mag = "Obiektyw 10× – time-lapse ×120–240"; ScoreLabel = "komórek w agregacie";
+        Wd = 1600; Ht = 1600; ViewW = 340; TimeScale = 240; Bio = 1; Style = ScopeStyle.Phase; Modes = LightModes; GridCell = 20; Fluid = false; // ameby pełzają po agarze
+        Mag = "Obiektyw 10× – time-lapse ×120–240"; ScoreLabel = "zarodników w owocniku"; LineUnit = "ameb"; BirthWord = "podziałów";
+        Look = BgLook.Agar;
         DebrisN = 300; DebrisS0 = 1; DebrisS1 = 4; DebrisD = 0; DebrisCols = new[] { Rgb(70, 66, 45, 0.3f), Rgb(255, 255, 235, 0.3f) };
         Controls = "WASD / przytrzymaj LPM – pełzanie · w fazie agregacji najszybciej idziesz na czole fali cAMP, w stronę jej źródła · ślimak: prowadź ku światłu (górna krawędź)";
         Goals = new[]
@@ -53,7 +56,9 @@ public sealed class ScDicty : Scenario
         // murawa bakterii na agarze – nierówna, gęstsza w plamach
         for (int i = 0; i < 260; i++) w.Bact.Cloud(Rand(40, Wd - 40), Rand(40, Ht - 40), Rand(40, 110), RandI(40, 120));
         _bact0 = w.Bact.N;
-        for (int i = 0; i < 170; i++) w.Add(new DictyCell(w, Rand(30, Wd - 30), Rand(30, Ht - 30), Rand(0.3f, 0.7f)));
+        // ameby na murawie: ~140/mm² (kilka–kilkanaście w kadrze 100×); na prawdziwej płytce przed agregacją jest ich
+        // znacznie więcej (~10³–10⁴/mm²) – w grze widać część z nich, a sygnał cAMP przekazuje cała populacja
+        for (int i = 0; i < 360; i++) w.Add(new DictyCell(w, Rand(30, Wd - 30), Rand(30, Ht - 30), Rand(0.3f, 0.7f)));
         var me = w.Add(new DictyCell(w, Wd * 0.5f, Ht * 0.62f, 0.5f));
         w.SetPlayer(me);
         w.CamX = me.X; w.CamY = me.Y;
@@ -84,7 +89,8 @@ public sealed class ScDicty : Scenario
                 if (w.Player is DictyCell && PhaseT > 170 && w.Stat("loner") == 0)
                 {
                     w.Stats["loner"] = 1;
-                    w.GameOver("Zostałeś samotnikiem: część komórek nie agreguje – to strategia na wypadek powrotu bakterii (Dubravcic i in. 2014). Agregaty odeszły bez Ciebie.");
+                    w.OverTitle = "Samotnik";
+                    w.GameOver("Zostałeś samotnikiem: część komórek nie agreguje – to strategia na wypadek powrotu bakterii (Dubravcic i in. 2014). Agregaty odeszły bez Ciebie. Samotnik nie tworzy zarodników, ale jeśli wrócą bakterie, jego linia znów zacznie się dzielić.");
                 }
                 break;
             case Ph.Slug:
@@ -107,6 +113,7 @@ public sealed class ScDicty : Scenario
                         ? $"Twoja komórka trafiła do trzonka (~20% komórek; wyższe ATP → częściej trzonek). Obumarła, by unieść {n * 4 / 5} zarodników nad ściółkę – altruizm komórkowy."
                         : "Twoja komórka stała się zarodnikiem w otoczce z celulozy. Przetrwa suszę i głód, a gdy wróci pokarm, wykiełkuje z niej nowa ameba.";
                     w.Banner("Owocnik gotowy!", stalk ? "Twoja komórka zbudowała trzonek" : "Twoja komórka jest zarodnikiem");
+                    w.OverTitle = stalk ? "Owocnik gotowy – Ty w trzonku" : "Owocnik gotowy – Ty w zarodniku";
                     w.After(3, () => w.GameOver(fate, true));
                 }
                 break;
@@ -146,8 +153,16 @@ public sealed class ScDicty : Scenario
         w.Log("Kulminacja: komórki przedtrzonkowe wciskają się w głąb i budują trzonek z celulozy, unosząc masę zarodników.", "info");
     }
     public override bool OnPlayerLost(World w, Ent p) => Phase == Ph.Fruit || w.Focus != null;
+    /// <summary>Murawa bakterii na agarze ma grubość kilku warstw – jej rozmyta część jest tam, gdzie bakterii jest dużo (znika, gdy ameby ją wyjedzą).</summary>
+    public override BgZone Backdrop(World w, float x, float y)
+    {
+        float lawn = w.Bact == null ? 0 : Clamp(w.Bact.Density(x, y, 60) / 70f, 0, 0.85f);
+        bool inPlate = x > 0 && y > 0 && x < Wd && y < Ht;
+        return new BgZone(0.12f, Phase <= Ph.Starve ? 0.15f : 0.3f, 0, inPlate ? 0.03f + lawn : 0, 0.05f + lawn * 0.2f, 0.51f, 0.5f, 0.47f);
+    }
     public override void DrawUnder(World w, Painter p, View v)
     {
+        w.Bact?.DrawLawn(p, v, Rgb(92, 88, 64, 0.2f), 110);
         w.Bact?.Draw(p, v);
         if (Phase >= Ph.Agg) Camp.Draw(p, v);
         if (Phase >= Ph.Slug)
@@ -182,7 +197,6 @@ public sealed class ScDicty : Scenario
         var l = new List<(string, string)> { ("Faza", ph) };
         if (Phase <= Ph.Starve && w.Bact != null) l.Add(("Bakterie", $"{w.Bact.N} ({Pct((float)w.Bact.N / Math.Max(1, _bact0))})"));
         l.Add(("Zjedzone bakterie", N(w.Stat("bact"))));
-        l.Add(("Twoja linia", N(1 + w.Stat("pop"))));
         l.Add(("Ameby", w.Count(e => e is DictyCell).ToString()));
         if (Phase >= Ph.Agg)
         {
@@ -200,6 +214,8 @@ public sealed class ScDicty : Scenario
         return null;
     }
     public override int MapKind(World w, Ent e) => e is Mound ? 1 : e is DictyCell c && c.Lineage && e != w.Player ? 3 : 0;
-    public override float Score(World w) => w.Stat("aggN");
+    /// <summary>~80% komórek owocnika to zarodniki – to one są potomstwem całej grupy.</summary>
+    public override float Score(World w) => MathF.Round(w.Stat("aggN") * 0.8f);
+    public override int LinePop(World w) => Phase <= Ph.Agg ? w.CountAll(e => e is DictyCell c && c.Lineage) : w.LineNow;
     public override (Ent e, float size) Preview(World w) { var e = w.Add(new DictyCell(w, 0, 0)); return (e, 22); }
 }

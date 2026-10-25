@@ -20,10 +20,13 @@ public sealed class Bdello : Ent
     {
         Kind = Kind.Bdello; Layer = 3; Name = "Bdellovibrio"; Latin = "Bdellovibrio bacteriovorus";
         L = Rand(0.85f, 1.1f); State = St.Swim;
-        Speed = Rand(40, 65); Mass = 0.35f; D = 0.06f; Dr = 0.12f; R = L / 2 + 0.15f;
+        // Stokes–Einstein dla pałeczki ~1 × 0,3 µm z rzęską (która zwiększa opór obrotowy): D ≈ 0,4 µm²/s, D_r ≈ 0,2 rad²/s
+        Speed = Rand(40, 65); Mass = 0.35f; D = 0.4f; Dr = 0.2f; R = L / 2 + 0.15f;
         Ph = Rand(0, TAU); Roll = Rand(0, TAU); RevT = ExpRand(3); Len = L;
     }
     public override bool CanControl() => State == St.Swim;
+    /// <summary>Jedna rzęska biegunowa z tyłu – „pchacz”.</summary>
+    public override float Dipole => State == St.Swim ? 1 : 0;
     public override void UpdatePrim() { if (State == St.Swim) SetCapsule(Math.Max(0, L / 2 - Wd / 2), Wd / 2); else SetCircle(0.01f); }
     public override bool Collides(Ent o) => State == St.Swim && !(o is EColi e && e == Prey);
     public override void Integrate(float dt) { if (State == St.Swim) base.Integrate(dt); }
@@ -145,11 +148,10 @@ public sealed class Bdello : Ent
             int idx = (int)((k + 0.5f) / n * (np - 1));
             var q = _fil[idx];
             var b = W.Add(new Bdello(W, q.X, q.Y, _filA[idx] + (Chance(0.5f) ? 0 : PI)));
-            b.Lineage = Lineage || IsPlayer; b.RevT = Rand(0.2f, 1);
+            W.Born(this, b, k == 0); b.RevT = Rand(0.2f, 1);
             outp.Add(b);
         }
         P.LyseBdello();
-        W.Sfx("blip", X, Y, 0.8f);
         if (Lineage || IsPlayer) { W.AddStat("kills", 1); W.AddStat("born", n); }
         if (IsPlayer) { W.Log($"LIZA BDELOPLASTU! Uwolniono {n} potomków. Kontrolujesz jednego z nich.", "good"); Alive = false; W.Player = null; W.SetPlayer(outp[0]); }
         else if (Lineage) W.Log($"Twoja linia: kolejna ofiara zjedzona (+{n} Bdellovibrio).", "info");

@@ -11,15 +11,16 @@ namespace Mikro;
 /// </summary>
 public sealed class Painter
 {
-    const int LIMIT = 60000;
+    /// <summary>Maks. liczba wierzchołków w jednej paczce (jedno wywołanie CanvasItemAddTriangleArray).</summary>
+    readonly int LIMIT;
 
     sealed class Chunk
     {
-        public Vector2[] P = new Vector2[LIMIT + 16];
-        public Color[] C = new Color[LIMIT + 16];
-        public Vector2[] U;
-        public int[] I = new int[LIMIT * 5];
+        public Vector2[] P, U;
+        public Color[] C;
+        public int[] I;
         public int Nv, Ni;
+        public Chunk(int limit) { P = new Vector2[limit + 16]; C = new Color[limit + 16]; I = new int[limit * 5]; }
     }
 
     readonly List<Chunk> _chunks = new();
@@ -33,13 +34,15 @@ public sealed class Painter
     public float Alpha = 1f;
     /// <summary>Punkt odniesienia wierzchołków (odejmowany) – utrzymuje małe liczby w buforze GPU.</summary>
     public float OX, OY;
+    /// <summary>Towarzyszący malarz z teksturą <see cref="SpriteAtlas"/> (null = rysuj wektorowo).</summary>
+    public Painter Tex;
 
     // macierz: x' = a*x + c*y + e ; y' = b*x + d*y + f
     float _a = 1, _b, _c, _d = 1, _e, _f, _sc = 1;
     readonly float[] _stack = new float[7 * 16];
     int _sp;
 
-    public Painter(bool textured = false) { Textured = textured; }
+    public Painter(bool textured = false, int limit = 60000) { Textured = textured; LIMIT = limit; }
 
     // bufory robocze dla prymitywów
     public readonly Vector2[] Buf = new Vector2[8192];
@@ -52,18 +55,77 @@ public sealed class Painter
     readonly float[] _mit = new float[8192];
     readonly Vector2[] _cap = new Vector2[16];
 
-    Chunk NewChunk() { var c = new Chunk(); if (Textured) c.U = new Vector2[LIMIT + 16]; return c; }
+    Chunk NewChunk() { var c = new Chunk(LIMIT); if (Textured) c.U = new Vector2[LIMIT + 16]; return c; }
+
+    // ---------------------------------------------------------------- geometria zapamiętana (nieruchome encje)
+    /// <summary>
+    /// Trójkąty nieruchomej encji (np. włókna kolagenu) w układzie bufora (po odjęciu OX/OY). Ważne, dopóki nie zmienią się:
+    /// powiększenie, punkt odniesienia, globalna alfa ani klucz stanu podany przez encję – wtedy odtwarzane zamiast liczone.
+    /// </summary>
+    public sealed class Cached
+    {
+        public Vector2[] P = Array.Empty<Vector2>(); public Color[] C = Array.Empty<Color>(); public int[] I = Array.Empty<int>();
+        public int Nv, Ni, Used; public float Px, OX, OY, Alpha, Key = float.NaN;
+    }
+    // pamięć wspólna dla wszystkich malarzy (geometria budowana równolegle – encja trafia co klatkę do innego wątku);
+    // każda encja jest rysowana przez jeden wątek naraz, więc blokada chroni tylko sam słownik
+    static readonly Dictionary<int, Cached> _cache = new();
+    static readonly List<int> _evict = new();
+    static int _frame;
+    Chunk _capCh; int _capV, _capI;
+    /// <summary>Pamięć geometrii encji o danym Id (tylko encje rysowane w ostatnich ~2 s – pula nie rośnie bez końca).</summary>
+    public Cached CacheFor(int id)
+    {
+        Cached g;
+        lock (_cache) { if (!_cache.TryGetValue(id, out g)) { g = new Cached(); _cache[id] = g; } }
+        g.Used = _frame; return g;
+    }
+    /// <summary>Nowa klatka pamięci geometrii: co ~1 s usuwa wpisy nieużywane od ~2 s (encje poza kadrem). Wątek główny, przed rysowaniem.</summary>
+    public static void CacheTick()
+    {
+        if ((++_frame & 63) != 0 || _cache.Count == 0) return;
+        _evict.Clear();
+        foreach (var kv in _cache) if (_frame - kv.Value.Used > 120) _evict.Add(kv.Key);
+        foreach (int k in _evict) _cache.Remove(k);
+    }
+    /// <summary>Odtwarza zapamiętane trójkąty, jeśli wciąż pasują do bieżącego widoku i stanu encji.</summary>
+    public bool TryReplay(Cached g, float key)
+    {
+        if (g.Nv == 0 || g.Key != key || g.Px != Px || g.OX != OX || g.OY != OY || g.Alpha != Alpha) return false;
+        Reserve(g.Nv, g.Ni);
+        int b = _ch.Nv, n = _ch.Ni; var I = _ch.I;
+        Array.Copy(g.P, 0, _ch.P, b, g.Nv); Array.Copy(g.C, 0, _ch.C, b, g.Nv);
+        for (int i = 0; i < g.Ni; i++) I[n + i] = g.I[i] + b;
+        _ch.Nv += g.Nv; _ch.Ni += g.Ni;
+        return true;
+    }
+    public void BeginCapture() { _capCh = _ch; _capV = _ch.Nv; _capI = _ch.Ni; }
+    public void EndCapture(Cached g, float key)
+    {
+        g.Nv = 0;
+        // rysunek przeszedł do nowej paczki (albo malarz z teksturą) – bez zapamiętywania, spróbujemy w następnej klatce
+        if (_capCh != _ch || Textured) return;
+        int nv = _ch.Nv - _capV, ni = _ch.Ni - _capI;
+        if (g.P.Length < nv) { g.P = new Vector2[nv]; g.C = new Color[nv]; }
+        if (g.I.Length < ni) g.I = new int[ni];
+        Array.Copy(_ch.P, _capV, g.P, 0, nv); Array.Copy(_ch.C, _capV, g.C, 0, nv);
+        for (int i = 0; i < ni; i++) g.I[i] = _ch.I[_capI + i] - _capV;
+        g.Nv = nv; g.Ni = ni; g.Px = Px; g.OX = OX; g.OY = OY; g.Alpha = Alpha; g.Key = key;
+    }
 
     public void Begin(float px)
     {
         _cur = 0;
         if (_chunks.Count == 0) _chunks.Add(NewChunk());
-        _ch = _chunks[0]; _ch.Nv = _ch.Ni = 0;
+        _ch = _chunks[0]; _ch.Nv = _ch.Ni = 0; _done = 0;
         Px = px; Alpha = 1f; _sp = 0;
         Identity();
     }
 
     public int VertexCount { get { int n = 0; for (int i = 0; i <= _cur; i++) n += _chunks[i].Nv; return n; } }
+    /// <summary>Liczba wierzchołków bieżącej paczki + poprzednich (tanio – do szacowania kosztu rysowania encji).</summary>
+    public int Mark => _done + _ch.Nv;
+    int _done;
 
     public void Flush(Rid item, Rid tex = default)
     {
@@ -83,13 +145,39 @@ public sealed class Painter
     void Reserve(int nv, int ni)
     {
         if (_ch.Nv + nv <= LIMIT && _ch.Ni + ni <= _ch.I.Length) return;
+        _done += _ch.Nv;
         _cur++;
         if (_cur >= _chunks.Count) _chunks.Add(NewChunk());
         _ch = _chunks[_cur]; _ch.Nv = _ch.Ni = 0;
     }
 
     // ---------------------------------------------------------------- transformacje
-    public void Identity() { _a = 1; _b = 0; _c = 0; _d = 1; _e = 0; _f = 0; _sc = 1; }
+    public void Identity() { _a = 1; _b = 0; _c = 0; _d = 1; _e = 0; _f = 0; _sc = 1; _warp = false; }
+
+    // odkształcenie ciała: wnętrze wygina się i obraca razem z obrysem membrany (y += β·x², potem obrót o kąt opóźnienia)
+    bool _warp; float _wx, _wy, _wc, _ws, _wb, _wrc = 1, _wrs;
+    /// <summary>Dalsze rysowanie (do Identity/NoWarp) podąża za wygięciem i opóźnieniem obrotu membrany.</summary>
+    public void Warp(Membrane m)
+    {
+        if (m == null || (MathF.Abs(m.BendEff) < 1e-7f && MathF.Abs(m.LagA) < 1e-4f)) { _warp = false; return; }
+        _warp = true; _wx = m.Cx; _wy = m.Cy; _wc = MathF.Cos(m.Ang); _ws = MathF.Sin(m.Ang); _wb = m.BendEff;
+        _wrc = MathF.Cos(m.LagA); _wrs = MathF.Sin(m.LagA);
+    }
+    public void NoWarp() => _warp = false;
+    /// <summary>Wygięcie osi ciała bez membrany (np. niesporczak): y += bend·x² w układzie ciała (cx, cy, ang), potem obrót o lag.</summary>
+    public void Warp(float cx, float cy, float ang, float bend, float lag = 0)
+    {
+        if (MathF.Abs(bend) < 1e-7f && MathF.Abs(lag) < 1e-4f) { _warp = false; return; }
+        _warp = true; _wx = cx; _wy = cy; _wc = MathF.Cos(ang); _ws = MathF.Sin(ang); _wb = bend; _wrc = MathF.Cos(lag); _wrs = MathF.Sin(lag);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void WarpPt(ref float X, ref float Y)
+    {
+        float dx = X - _wx, dy = Y - _wy, bx = dx * _wc + dy * _ws, by = -dx * _ws + dy * _wc;
+        by += _wb * bx * bx;
+        float rx = bx * _wrc - by * _wrs, ry = bx * _wrs + by * _wrc;
+        X = _wx + rx * _wc - ry * _ws; Y = _wy + rx * _ws + ry * _wc;
+    }
     public void Local(float x, float y, float ang, float sc = 1f)
     {
         float c = MathF.Cos(ang) * sc, s = MathF.Sin(ang) * sc;
@@ -119,9 +207,12 @@ public sealed class Painter
     int Vx(float x, float y, Color col)
     {
         int i = _ch.Nv++;
-        _ch.P[i] = new Vector2(_a * x + _c * y + _e - OX, _b * x + _d * y + _f - OY);
+        float X = _a * x + _c * y + _e, Y = _b * x + _d * y + _f;
+        if (_warp) WarpPt(ref X, ref Y);
+        _ch.P[i] = new Vector2(X - OX, Y - OY);
         col.A *= Alpha;
         _ch.C[i] = col;
+        if (Textured) _ch.U[i] = SpriteAtlas.WhiteUv; // zwykła geometria na białym polu atlasu
         return i;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -177,13 +268,13 @@ public sealed class Painter
     }
     public int CirclePts(float x, float y, float r, Vector2[] outp, int seg = 0)
     {
-        if (seg <= 0) seg = (int)Clamp(MathF.Sqrt(Math.Max(r, 1e-6f) / PxL) * 5f, 10, 96);
+        if (seg <= 0) seg = (int)Clamp(MathF.Sqrt(Math.Max(r, 1e-6f) / PxL) * 4.2f, 8, 96);
         for (int i = 0; i < seg; i++) { float t = i * TAU / seg; outp[i] = new Vector2(x + MathF.Cos(t) * r, y + MathF.Sin(t) * r); }
         return seg;
     }
     public int EllipsePts(float x, float y, float rx, float ry, float rot, Vector2[] outp, float a0 = 0, float a1 = TAU, bool full = true)
     {
-        int seg = (int)Clamp(MathF.Sqrt(Math.Max(Math.Max(rx, ry), 1e-6f) / PxL) * 5f, 10, 96);
+        int seg = (int)Clamp(MathF.Sqrt(Math.Max(Math.Max(rx, ry), 1e-6f) / PxL) * 4.2f, 8, 96);
         float c = MathF.Cos(rot), s = MathF.Sin(rot);
         int n = full ? seg : seg + 1;
         for (int i = 0; i < n; i++)
@@ -245,6 +336,7 @@ public sealed class Painter
     public void FillCircle(float x, float y, float r, Color col)
     {
         if (r <= 0) return;
+        if (r < PxL * 2.2f) { Dot(x, y, r, col); return; } // kilka pikseli: wielokąt z frędzlą niczego nie dodaje
         int n = CirclePts(x, y, r, Buf);
         FillFan(new ReadOnlySpan<Vector2>(Buf, 0, n), x, y, col);
     }
@@ -257,6 +349,7 @@ public sealed class Painter
     }
     public void FillEllipse(float x, float y, float rx, float ry, float rot, Color col)
     {
+        if (Math.Max(rx, ry) < PxL * 1.6f) { Dot(x, y, MathF.Sqrt(Math.Max(rx * ry, 0)), col); return; }
         int n = EllipsePts(x, y, rx, ry, rot, Buf);
         FillFan(new ReadOnlySpan<Vector2>(Buf, 0, n), x, y, col);
     }
@@ -280,7 +373,15 @@ public sealed class Painter
         float pl = PxL;
         if (r < pl * 0.5f) { col.A *= r / (pl * 0.5f); r = pl * 0.5f; }
         // liczba boków zależna od wielkości na ekranie – duże kropki nie wyglądają jak sześciokąty
-        float rp = r / pl; int n = rp < 4 ? 6 : rp < 9 ? 8 : 12;
+        float rp = r / pl;
+        if (rp < 1.6f)
+        {
+            // ~1–3 px: romb (4 wierzchołki) wygląda tak samo jak sześciokąt
+            Reserve(4, 6);
+            int a = Vx(x + r, y, col), b = Vx(x, y + r, col), c = Vx(x - r, y, col), d = Vx(x, y - r, col);
+            Quad(a, b, c, d); return;
+        }
+        int n = rp < 4 ? 6 : rp < 9 ? 8 : 12;
         Reserve(n + 1, n * 3);
         int c0 = Vx(x, y, col);
         float step = TAU / n;
@@ -404,8 +505,37 @@ public sealed class Painter
         int segs = closed ? n : n - 1;
         for (int i = 0; i < segs; i++) { int r0 = b + i * 2, r1 = b + ((i + 1) % n) * 2; Quad(r0, r1, r1 + 1, r0 + 1); }
     }
+    /// <summary>Zwężająca się polilinia z antyaliasingiem – grubość w[i] w każdym punkcie (wypustki komórek, filopodia).</summary>
+    public void Taper(ReadOnlySpan<Vector2> pts, ReadOnlySpan<float> w, Color col)
+    {
+        int n = pts.Length; if (n < 2) return;
+        float pl = PxL;
+        ComputeMiters(pts, false);
+        Reserve(n * 4 + 4, n * 18 + 18);
+        int b = _ch.Nv;
+        for (int i = 0; i < n; i++)
+        {
+            float wi = w[i]; var c = col;
+            if (wi < pl) { c.A *= wi / pl; wi = pl; }
+            float hw = wi * 0.5f, mx = _nrm[i].X * _mit[i], my = _nrm[i].Y * _mit[i], x = pts[i].X, y = pts[i].Y;
+            var cl = Clear(c);
+            Vx(x + mx * (hw + pl), y + my * (hw + pl), cl);
+            Vx(x + mx * hw, y + my * hw, c);
+            Vx(x - mx * hw, y - my * hw, c);
+            Vx(x - mx * (hw + pl), y - my * (hw + pl), cl);
+        }
+        for (int i = 0; i < n - 1; i++)
+        {
+            int r0 = b + i * 4, r1 = b + (i + 1) * 4;
+            Quad(r0, r1, r1 + 1, r0 + 1);
+            Quad(r0 + 1, r1 + 1, r1 + 2, r0 + 2);
+            Quad(r0 + 2, r1 + 2, r1 + 3, r0 + 3);
+        }
+    }
     public void Line(float x1, float y1, float x2, float y2, float w, Color col, bool round = false)
     {
+        if (w < PxL * 1.2f) { Seg(x1, y1, x2, y2, w, col); return; } // kreska ~1 px: frędzla i zaokrąglenia są niewidoczne
+        if (w < PxL * 2.5f) round = false;
         Span<Vector2> s = stackalloc Vector2[2]; s[0] = new Vector2(x1, y1); s[1] = new Vector2(x2, y2);
         Stroke(s, false, w, col, round);
     }
@@ -423,16 +553,20 @@ public sealed class Painter
     }
     public void Circle(float x, float y, float r, float w, Color col)
     {
+        if (r < PxL * 1.2f) { col.A *= 0.5f; Dot(x, y, Math.Max(r, w * 0.5f), col); return; }
         int n = CirclePts(x, y, r, Buf);
         Stroke(new ReadOnlySpan<Vector2>(Buf, 0, n), true, w, col);
     }
     public void Ellipse(float x, float y, float rx, float ry, float rot, float w, Color col)
     {
+        if (Math.Max(rx, ry) < PxL * 1.2f) return;
         int n = EllipsePts(x, y, rx, ry, rot, Buf);
         Stroke(new ReadOnlySpan<Vector2>(Buf, 0, n), true, w, col);
     }
     public void Arc(float x, float y, float r, float a0, float a1, float w, Color col, bool round = false)
     {
+        if (r < PxL * 1.2f) return;
+        if (w < PxL * 2.5f) round = false;
         int n = EllipsePts(x, y, r, r, 0, Buf, a0, a1, false);
         Stroke(new ReadOnlySpan<Vector2>(Buf, 0, n), false, w, col, round);
     }
@@ -471,17 +605,201 @@ public sealed class Painter
         Quad(i0, i1, i2, i3);
     }
 
+    /// <summary>
+    /// Tekstura komórki rozpięta na membranie radialnej (malarz z teksturą): wachlarz ze środka przez węzły obrysu.
+    /// Węzeł i leży w teksturze pod kątem i·2π/N (kąt lokalny membrany), więc wnętrze ugina się razem z obrysem;
+    /// wierzchołki są odsunięte o zapas pad, w którym tekstura ma miękki brzeg i halo.
+    /// </summary>
+    public void TexFan(Membrane m, float pad, Rect2 uv, Color tint)
+    {
+        int n = m.N;
+        Reserve(n + 1, n * 3);
+        float cx = m.Cx, cy = m.Cy, uc = uv.Position.X + uv.Size.X * 0.5f, vc = uv.Position.Y + uv.Size.Y * 0.5f, hu = uv.Size.X * 0.5f, hv = uv.Size.Y * 0.5f, k = 1 + pad;
+        int c0 = VxUV(cx, cy, tint, uc, vc);
+        for (int i = 0; i < n; i++)
+        {
+            float t = i * TAU / n;
+            VxUV(cx + (m.Px[i] - cx) * k, cy + (m.Py[i] - cy) * k, tint, uc + MathF.Cos(t) * hu, vc + MathF.Sin(t) * hv);
+        }
+        for (int i = 0; i < n; i++) Tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % n);
+    }
+
+    /// <summary>
+    /// Ciało z teksturą cytoplazmy: wachlarz ze środka membrany przez jej węzły; współrzędne tekstury z kształtu spoczynkowego
+    /// (Rx, Ry) przeskalowane do pola atlasu, więc tekstura wygina się i odkształca razem z obrysem. Gradient środek → brzeg
+    /// (jaśniejszy środek, ciemniejszy, gęstszy brzeg – jak FillRadial) daje kolor wierzchołków.
+    /// </summary>
+    public void TexBody(Membrane m, Color cin, Color cout, int sub = 1)
+    {
+        // ten sam wygładzony obrys co wektorowy kontur (inaczej wierzchołki łamanej wystawałyby poza linię błony)
+        int n = SmoothClosed(m.Px, m.Py, m.N, Shape, sub);
+        SmoothClosed(m.Rx, m.Ry, m.N, Shape2, sub);
+        float ex = 1e-4f, ey = 1e-4f;
+        for (int i = 0; i < n; i++) { ex = Math.Max(ex, MathF.Abs(Shape2[i].X)); ey = Math.Max(ey, MathF.Abs(Shape2[i].Y)); }
+        var uv = SpriteAtlas.Uv[SpriteAtlas.CytoFor(ex / ey)];
+        float uc = uv.Position.X + uv.Size.X * 0.5f, vc = uv.Position.Y + uv.Size.Y * 0.5f, hu = uv.Size.X * 0.5f / ex, hv = uv.Size.Y * 0.5f / ey;
+        // drabinka zamiast wachlarza: szczeble łączą punkt obrysu po jednej stronie osi z punktem po drugiej (węzeł i leży pod
+        // kątem i·2π/N, więc i ↔ n − i), a środek szczebla (oś ciała) ma jaśniejszy kolor – działa też dla ciał wygiętych
+        // w półksiężyc (Spirostomum, Loxodes), gdzie wachlarz ze środka wychodziłby poza ciało
+        int h = n / 2;
+        Reserve(n + h + 2, n * 6 + 12);
+        int b = _ch.Nv;
+        for (int i = 0; i < n; i++) VxUV(Shape[i].X, Shape[i].Y, cout, uc + Shape2[i].X * hu, vc + Shape2[i].Y * hv);
+        int mid = _ch.Nv;
+        for (int k = 1; k < h; k++)
+        {
+            int l = n - k;
+            VxUV((Shape[k].X + Shape[l].X) * 0.5f, (Shape[k].Y + Shape[l].Y) * 0.5f, cin,
+                uc + (Shape2[k].X + Shape2[l].X) * 0.5f * hu, vc + (Shape2[k].Y + Shape2[l].Y) * 0.5f * hv);
+        }
+        // czubek przedni (węzeł 0) i tylny (h): trójkąty; pomiędzy – po dwa czworokąty na szczebel (górny–oś, oś–dolny)
+        for (int k = 0; k < h; k++)
+        {
+            int u0 = b + k, u1 = b + k + 1, l0 = b + (n - k) % n, l1 = b + (n - k - 1);
+            int m0 = k == 0 ? -1 : mid + k - 1, m1 = k + 1 >= h ? -1 : mid + k;
+            if (m0 < 0 && m1 < 0) { Tri(u0, u1, l1); continue; }
+            if (m0 < 0) { Tri(u0, u1, m1); Tri(u0, m1, l1); continue; }
+            if (m1 < 0) { Tri(u0, u1, m0); Tri(m0, u1, l0); continue; }
+            Quad(u0, u1, m1, m0); Quad(m0, m1, l1, l0);
+        }
+    }
+    /// <summary>
+    /// Ciało z teksturą cytoplazmy dla dowolnego wielokąta gwiaździstego (np. dzwonek wirczyka, tułów wrotka) w bieżącym
+    /// układzie lokalnym malarza src (macierz jest kopiowana); współrzędne tekstury – z obwiedni punktów.
+    /// </summary>
+    public void TexPoly(Painter src, ReadOnlySpan<Vector2> pts, float cx, float cy, Color cin, Color cout)
+    {
+        int n = pts.Length; if (n < 3) return;
+        CopyXform(src);
+        float x0 = float.MaxValue, x1 = float.MinValue, y0 = float.MaxValue, y1 = float.MinValue;
+        for (int i = 0; i < n; i++) { x0 = Math.Min(x0, pts[i].X); x1 = Math.Max(x1, pts[i].X); y0 = Math.Min(y0, pts[i].Y); y1 = Math.Max(y1, pts[i].Y); }
+        float ex = Math.Max((x1 - x0) * 0.5f, 1e-4f), ey = Math.Max((y1 - y0) * 0.5f, 1e-4f), mx = (x0 + x1) * 0.5f, my = (y0 + y1) * 0.5f;
+        var uv = SpriteAtlas.Uv[SpriteAtlas.CytoFor(ex / ey)];
+        float uc = uv.Position.X + uv.Size.X * 0.5f, vc = uv.Position.Y + uv.Size.Y * 0.5f, hu = uv.Size.X * 0.5f / ex, hv = uv.Size.Y * 0.5f / ey;
+        Reserve(n + 1, n * 3);
+        int c0 = VxUV(cx, cy, cin, uc + (cx - mx) * hu, vc + (cy - my) * hv);
+        for (int i = 0; i < n; i++) VxUV(pts[i].X, pts[i].Y, cout, uc + (pts[i].X - mx) * hu, vc + (pts[i].Y - my) * hv);
+        for (int i = 0; i < n; i++) Tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % n);
+        Identity();
+    }
+    void CopyXform(Painter src)
+    {
+        _a = src._a; _b = src._b; _c = src._c; _d = src._d; _e = src._e; _f = src._f; _sc = src._sc; _warp = src._warp;
+        _wx = src._wx; _wy = src._wy; _wc = src._wc; _ws = src._ws; _wb = src._wb; _wrc = src._wrc; _wrs = src._wrs;
+    }
+    /// <summary>
+    /// Ciało radialne z tekstury pola atlasu, w którym komórka jest kołem wpisanym w pole (np. mastocyt z ziarnistościami):
+    /// współrzędne tekstury z kąta węzła (i·2π/N) i jego promienia spoczynkowego względem rMax.
+    /// </summary>
+    public void TexDisc(Membrane m, int slot, float rMax, Color tint)
+    {
+        int n = m.N;
+        var uv = SpriteAtlas.Uv[slot];
+        float uc = uv.Position.X + uv.Size.X * 0.5f, vc = uv.Position.Y + uv.Size.Y * 0.5f, hu = uv.Size.X * 0.5f / rMax, hv = uv.Size.Y * 0.5f / rMax;
+        Reserve(n + 1, n * 3);
+        m.Centroid(out float cx, out float cy);
+        int c0 = VxUV(cx, cy, tint, uc, vc);
+        for (int i = 0; i < n; i++) VxUV(m.Px[i], m.Py[i], tint, uc + m.Rx[i] * hu, vc + m.Ry[i] * hv);
+        for (int i = 0; i < n; i++) Tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % n);
+    }
+    /// <summary>
+    /// Ciało miękkie z tekstury komórki kory (elipsa wpisana w pole atlasu, oś długa wzdłuż x): obwiednia kształtu spoczynkowego
+    /// membrany (±maxRx, ±maxRy) trafia na elipsę tekstury o półosiach ex i ey (ułamki połowy pola), więc jądro i cytoplazma
+    /// odkształcają się razem z obrysem (wgniecenia, drżenie, wydłużenie przy skoku jądra).
+    /// </summary>
+    public void TexSoft(Membrane m, Rect2 uv, float ex, float ey, Color tint)
+    {
+        int n = m.N;
+        float mx = 1e-4f, my = 1e-4f;
+        for (int i = 0; i < n; i++) { mx = Math.Max(mx, MathF.Abs(m.Rx[i])); my = Math.Max(my, MathF.Abs(m.Ry[i])); }
+        float uc = uv.Position.X + uv.Size.X * 0.5f, vc = uv.Position.Y + uv.Size.Y * 0.5f, hu = uv.Size.X * 0.5f * ex / mx, hv = uv.Size.Y * 0.5f * ey / my;
+        Reserve(n + 1, n * 3);
+        m.Centroid(out float cx, out float cy);
+        int c0 = VxUV(cx, cy, tint, uc, vc);
+        for (int i = 0; i < n; i++) VxUV(m.Px[i], m.Py[i], tint, uc + m.Rx[i] * hu, vc + m.Ry[i] * hv);
+        for (int i = 0; i < n; i++) Tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % n);
+    }
+    /// <summary>Halo kontrastu fazowego pod ciałem z teksturą: rysowane malarzem z teksturą (białe pole), więc leży pod cytoplazmą.</summary>
+    public void TexHalo(Painter src, ReadOnlySpan<Vector2> pts, float w, Color col)
+    {
+        CopyXform(src);
+        float a0 = Alpha; Alpha = src.Alpha;
+        SoftStroke(pts, true, w, col);
+        Alpha = a0; Identity();
+    }
+    static Color Lift(Color c, float alpha)
+    {
+        float k = 1 / SpriteAtlas.CytoBase;
+        return new Color(Math.Min(1, c.R * k), Math.Min(1, c.G * k), Math.Min(1, c.B * k), c.A * alpha);
+    }
+    /// <summary>
+    /// Ciało komórki: halo kontrastu fazowego i wypełnienie z gradientem (pierwszy przystanek – środek, ostatni – brzeg).
+    /// Z malarzem z teksturą: ziarnista cytoplazma rozpięta na membranie, a halo pod nią; bez niego – jak dotąd, wektorowo.
+    /// </summary>
+    public void Body(Membrane m, ReadOnlySpan<Vector2> sh, int sub, float haloW, Color halo, float cx, float cy, ReadOnlySpan<float> ts, ReadOnlySpan<Color> cs, bool aa = true)
+    {
+        if (Tex != null)
+        {
+            if (haloW > 0) Tex.TexHalo(this, sh, haloW, halo);
+            Tex.TexBody(m, Lift(cs[0], Alpha), Lift(cs[cs.Length - 1], Alpha), sub);
+            return;
+        }
+        if (haloW > 0) SoftStroke(sh, true, haloW, halo);
+        FillRadial(sh, cx, cy, ts, cs, aa);
+    }
+    /// <summary>Jak <see cref="Body"/>, dla wielokąta w bieżącym układzie lokalnym (bez membrany).</summary>
+    public void BodyPoly(ReadOnlySpan<Vector2> sh, float haloW, Color halo, float cx, float cy, ReadOnlySpan<float> ts, ReadOnlySpan<Color> cs)
+    {
+        if (Tex != null)
+        {
+            if (haloW > 0) Tex.TexHalo(this, sh, haloW, halo);
+            Tex.TexPoly(this, sh, cx, cy, Lift(cs[0], Alpha), Lift(cs[cs.Length - 1], Alpha));
+            return;
+        }
+        if (haloW > 0) SoftStroke(sh, true, haloW, halo);
+        FillRadial(sh, cx, cy, ts, cs);
+    }
+
+    /// <summary>Kolory wierzchołków ciała z teksturą cytoplazmy odpowiadające gradientowi FillRadial (środek ×1,12, brzeg ×0,8).</summary>
+    public static (Color cin, Color cout) CytoTint(Color body, float alpha)
+    {
+        float k = 1 / SpriteAtlas.CytoBase;
+        return (new Color(Math.Min(1, body.R * 1.12f * k), Math.Min(1, body.G * 1.12f * k), Math.Min(1, body.B * 1.12f * k), Math.Min(1, body.A * 0.85f) * alpha),
+                new Color(Math.Min(1, body.R * 0.8f * k), Math.Min(1, body.G * 0.8f * k), Math.Min(1, body.B * 0.8f * k), Math.Min(1, body.A * 1.2f) * alpha));
+    }
+
+    /// <summary>
+    /// Tekstura komórki na elipsie (16 punktów) z przesuniętym środkiem wachlarza (fx, fy) – np. erytrocyt w naczyniu
+    /// włosowatym wygięty w „spadochron”: jaśniejszy środek krążka przesuwa się ku tyłowi.
+    /// </summary>
+    public void TexEllipse(float x, float y, float rx, float ry, float rot, float fx, float fy, float pad, Rect2 uv, Color tint)
+    {
+        const int n = 16;
+        Reserve(n + 1, n * 3);
+        float c = MathF.Cos(rot), s = MathF.Sin(rot), k = 1 + pad;
+        float uc = uv.Position.X + uv.Size.X * 0.5f, vc = uv.Position.Y + uv.Size.Y * 0.5f, hu = uv.Size.X * 0.5f, hv = uv.Size.Y * 0.5f;
+        int c0 = VxUV(fx, fy, tint, uc, vc);
+        for (int i = 0; i < n; i++)
+        {
+            float t = i * TAU / n, ex = MathF.Cos(t) * rx * k, ey = MathF.Sin(t) * ry * k;
+            VxUV(x + ex * c - ey * s, y + ex * s + ey * c, tint, uc + MathF.Cos(t) * hu, vc + MathF.Sin(t) * hv);
+        }
+        for (int i = 0; i < n; i++) Tri(c0, c0 + 1 + i, c0 + 1 + (i + 1) % n);
+    }
+
     /// <summary>Siatka wartości (pole stężeń) z interpolacją kolorów wierzchołków.</summary>
     public void Grid(float x0, float y0, float cw, float ch, int nx, int ny, Func<int, int, Color> colAt)
     {
-        for (int j = 0; j < ny - 1; j++)
+        // wiersz wierzchołków jest wspólny dla dwóch sąsiednich pasów; po przejściu do nowej paczki poprzedni wiersz jest powtarzany
+        int prev = -1; Chunk pc = null;
+        for (int j = 0; j < ny; j++)
         {
             Reserve(nx * 2, nx * 6);
-            int r0 = _ch.Nv;
+            if (j > 0 && _ch != pc) { prev = _ch.Nv; for (int i = 0; i < nx; i++) Vx(x0 + i * cw, y0 + (j - 1) * ch, colAt(i, j - 1)); }
+            int row = _ch.Nv;
             for (int i = 0; i < nx; i++) Vx(x0 + i * cw, y0 + j * ch, colAt(i, j));
-            int r1 = _ch.Nv;
-            for (int i = 0; i < nx; i++) Vx(x0 + i * cw, y0 + (j + 1) * ch, colAt(i, j + 1));
-            for (int i = 0; i < nx - 1; i++) Quad(r0 + i, r0 + i + 1, r1 + i + 1, r1 + i);
+            if (j > 0) for (int i = 0; i < nx - 1; i++) Quad(prev + i, prev + i + 1, row + i + 1, row + i);
+            prev = row; pc = _ch;
         }
     }
 }

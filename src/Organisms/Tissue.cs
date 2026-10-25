@@ -7,6 +7,8 @@ namespace Mikro;
 /// </summary>
 public sealed class Macrophage : Ent
 {
+    /// <summary>Pełza/chodzi po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     const int NN = 72;
     readonly float _r0; readonly float[] _rr = new float[NN]; readonly float _seed; float _dir, _turnT, _v;
     readonly Vector3[] _lys;
@@ -16,6 +18,12 @@ public sealed class Macrophage : Ent
     /// <summary>Wypełnienie fagosomami (umowne jednostki objętości), fenotyp naprawczy 0..1, odnowienie sygnału cytokinowego (s gry).</summary>
     public float Load, M2, CytoCD;
     public const float MaxLoad = 100;
+    /// <summary>
+    /// Mitoza 0..1 i materiał strawiony od ostatniego podziału. Makrofagi tkankowe odnawiają się lokalnie przez podziały
+    /// (Hashimoto i in., Immunity 2013), a eferocytoza – przez nukleotydy z pochłoniętych komórek i szlak Myc –
+    /// pobudza je do proliferacji, która pomaga wygasić zapalenie (Gerlach i in., Cell Metab 2021).
+    /// </summary>
+    public float Mit, Nutr; float _mitAx;
     float _cyto;
     readonly List<Vector3> _hemo = new();
     public int Hemo => _hemo.Count;
@@ -41,10 +49,18 @@ public sealed class Macrophage : Ent
     void Shape()
     {
         float t = W.T;
+        // w mitozie komórka wciąga wypustki i zaokrągla się, potem bruzda podziałowa przewęża ją na dwie
+        float rnd = Smooth(Math.Min(1, Mit * 4)), fur = Smooth(Clamp((Mit - 0.55f) / 0.45f, 0, 1));
         for (int i = 0; i < NN; i++)
         {
             float th = i * TAU / NN, c = MathF.Cos(th - _dir);
             float r = _r0 * (1 + 0.1f * Noise1(th * 3 + t * 0.4f + _seed) + 0.05f * Noise1(th * 11 + t * 1.3f) * Math.Max(0, c) + 0.18f * Gauss(WrapA(th - _dir), 0.7f));
+            if (rnd > 0)
+            {
+                float cc = MathF.Cos(th - _mitAx), round = _r0 * 0.82f * (1 + 0.02f * Noise1(th * 5 + t * 2));
+                round *= 1 + 0.42f * fur * (cc * cc - 0.5f) * 2;
+                r = Lerp(r, round, rnd);
+            }
             _rr[i] = r;
         }
         // miseczka fagocytarna: wypustki obejmują cel
@@ -66,6 +82,7 @@ public sealed class Macrophage : Ent
         if (o is Staph s) return s.State == St.Free;
         if (o is CandidaYeast y) { t = PT.Yeast; return y.State == St.Free; }
         if (o is Neutrophil n) { t = PT.Apo; return n.Apoptotic && !n.IsPlayer; }
+        if (o is TumorDebris td) { t = PT.Apo; return !td.Necrotic; } // ciałka apoptotyczne komórek raka (eferocytoza)
         if (o is RBC) { t = PT.Rbc; return true; }
         return false;
     }
@@ -104,9 +121,17 @@ public sealed class Macrophage : Ent
         }
         // repolaryzacja makrofaga trwa – skręca powoli, prędkość narasta stopniowo
         _dir = Turn(_dir, tgt, (IsPlayer ? 1.1f : 0.8f) * gdt);
+        if (Mit > 0) { Mitosis(bdt); if (!Alive) return; mag = 0; }
+        else if ((IsPlayer || Lineage) && !W.Preview && M2 > 0.5f && Nutr >= 26 && Hp > 0.6f && Load < 40
+                 && (Gen == 0 || (W.SimT - BornT) * W.Bio > 4 * 3600) && W.Count(e => e is Macrophage) < 9)
+        {
+            Mit = 0.001f; _mitAx = _dir + PI / 2;
+            if (IsPlayer) W.Log("Mitoza: po eferocytozie makrofag wchodzi w cykl komórkowy – wciąga wypustki, zaokrągla się i dzieli (lokalna proliferacja makrofagów).", "good");
+        }
         float want = vmax * mag * (1 - 0.5f * Load / MaxLoad) * (0.45f + 0.55f * Hp);
         _v += (want - _v) * Damp(IsPlayer ? 1.5f : 0.8f, gdt);
-        Vx = MathF.Cos(_dir) * _v; Vy = MathF.Sin(_dir) * _v;
+        float mesh = 1 + Math.Min(Mesh, 1.5f); Mesh = 0;
+        Vx = MathF.Cos(_dir) * _v / mesh; Vy = MathF.Sin(_dir) * _v / mesh;
 
         if (!W.Preview)
         {
@@ -154,6 +179,18 @@ public sealed class Macrophage : Ent
         }
         Shape();
     }
+    void Mitosis(float bdt)
+    {
+        Mit += bdt / 2700; // faza M z cytokinezą ≈ 45 min
+        if (Mit < 1) return;
+        Mit = 0; Nutr = 0;
+        float c = MathF.Cos(_mitAx), s = MathF.Sin(_mitAx), off = _r0 * 0.5f;
+        var d = new Macrophage(W, X - c * off, Y - s * off, _r0) { M2 = M2 * 0.8f };
+        X += c * off; Y += s * off;
+        W.Born(this, d, true); W.Born(this, this, false);
+        W.Add(d);
+        if (IsPlayer) W.Log("Podział makrofaga – dwie komórki potomne. Druga pełza samodzielnie i też sprząta tkankę.", "good");
+    }
     void Engulf(Ent o, PT t, float lx, float ly)
     {
         o.State = St.Cup; o.Solid = false; o.Holder = this;
@@ -192,6 +229,7 @@ public sealed class Macrophage : Ent
     void Done(Ph p)
     {
         bool mine = IsPlayer || Lineage;
+        Nutr += LoadOf(p.T);
         switch (p.T)
         {
             case PT.Bact: if (mine) { W.AddStat("m_killed", 1); W.AddStat("killed", 1); } break;
@@ -223,19 +261,22 @@ public sealed class Macrophage : Ent
     static readonly Color HemoC = Rgb(165, 112, 38, 0.8f), HemoH = Rgb(240, 200, 120, 0.5f);
     public override void Draw(Painter p, View v)
     {
-        int n = Mem.Smooth(p.Shape);
+        // 72 węzły błony: gracz – pełne wygładzanie; pozostałe makrofagi – mniej punktów (różnica obrysu < 1 px na ekranie)
+        float rpx = _r0 / Math.Max(v.Px, 1e-6f);
+        int n = Mem.Smooth(p.Shape, IsPlayer ? 3 : rpx > 150 ? 2 : 1);
         var sh = new ReadOnlySpan<Vector2>(p.Shape, 0, n);
-        p.SoftStroke(sh, true, 2.6f, Rgb(255, 255, 240, 0.28f));
         Span<float> ts = stackalloc float[] { 0f, 0.6f, 1f };
         Span<Color> cs = stackalloc Color[] { Rgb(120, 118, 108, 0.55f), Rgb(135, 132, 120, 0.45f), Rgb(185, 182, 170, 0.22f) };
-        p.FillRadial(sh, X, Y, ts, cs);
+        p.Body(Mem, sh, IsPlayer ? 3 : rpx > 150 ? 2 : 1, 2.6f, Rgb(255, 255, 240, 0.28f), X, Y, ts, cs);
         p.Stroke(sh, true, 0.14f, Rgb(40, 40, 34, 0.7f));
-        p.Local(X, Y, 0);
+        p.Local(X, Y, 0); p.Warp(Mem);
         if (_cyto > 0.01f) { float rr = _r0 + (1 - _cyto) * 70; p.Circle(0, 0, rr, 0.6f + 1.5f * _cyto, Rgb(230, 235, 200, 0.22f * _cyto)); p.Glow(0, 0, rr, Rgb(220, 225, 180, 0.08f * _cyto)); }
         float nx = -MathF.Cos(_dir) * _r0 * 0.25f, ny = -MathF.Sin(_dir) * _r0 * 0.25f;
         p.FillEllipse(nx, ny, _r0 * 0.38f, _r0 * 0.28f, _dir, Rgb(85, 85, 105, 0.45f));
         p.Arc(nx + MathF.Cos(_dir) * _r0 * 0.3f, ny + MathF.Sin(_dir) * _r0 * 0.3f, _r0 * 0.15f, _dir + 2, _dir + 4.3f, 0.5f, Rgb(160, 158, 146, 0.6f));
-        foreach (var l in _lys) { float r = RadialUtil.Interp(_rr, NN, l.X) * l.Y; p.Dot(MathF.Cos(l.X) * r, MathF.Sin(l.X) * r, l.Z, l.Z > 0.28f ? Rgb(215, 220, 200, 0.55f) : Rgb(50, 50, 42, 0.5f)); }
+        // lizosomy i ziarnistości: z bliska pojedynczo, z daleka (~2 px) co trzecia – resztę daje ziarnista tekstura cytoplazmy
+        int ls = p.Tex != null && 0.3f / v.Px < 2.2f ? 3 : 1;
+        for (int li = 0; li < _lys.Length; li += ls) { var l = _lys[li]; float r = RadialUtil.Interp(_rr, NN, l.X) * l.Y; p.Dot(MathF.Cos(l.X) * r, MathF.Sin(l.X) * r, l.Z, l.Z > 0.28f ? Rgb(215, 220, 200, 0.55f) : Rgb(50, 50, 42, 0.5f)); }
         foreach (var h in _hemo) { float r = RadialUtil.Interp(_rr, NN, h.X) * h.Y, x = MathF.Cos(h.X) * r, y = MathF.Sin(h.X) * r; p.Dot(x, y, h.Z, HemoC); p.Dot(x - h.Z * 0.3f, y - h.Z * 0.3f, h.Z * 0.35f, HemoH); }
         foreach (var ph in Phagos)
         {
@@ -263,26 +304,34 @@ public sealed class Macrophage : Ent
 /// <summary>Fibroblast – wrzecionowata komórka tkanki łącznej (~50–100 µm z wypustkami), produkuje kolagen; pełza bardzo wolno.</summary>
 public sealed class Fibroblast : Ent
 {
+    /// <summary>Pełza/chodzi po podłożu – nie wytwarza pola przepływu pływaka.</summary>
+    public override bool Swims => false;
     readonly float _l, _w; readonly float _seed;
     sealed class Proc { public float Ang, Len, W, Ph; }
     readonly Proc[] _proc;
     readonly Vector3[] _gran; readonly Vector2[] _chrom;
-    const int NS = 150;
+    const int NS = 84;
     readonly float[] _r = new float[NS];
     float _t;
     public override float Length => _l;
     public override float Radius => _w / 2;
-    public Fibroblast(World w, float x, float y, float a) : base(w, x, y, a)
+    /// <summary>
+    /// Fibroblast związany z nowotworem (CAF): aktywowany miofibroblast (α-SMA, silne włókienka naprężeniowe), większy,
+    /// wytwarza gęsty, sztywny kolagen wokół guza (desmoplazja) i porządkuje jego włókna (Kalluri 2016).
+    /// </summary>
+    public readonly bool Caf;
+    public Fibroblast(World w, float x, float y, float a, bool caf = false) : base(w, x, y, a)
     {
-        Kind = Kind.TissueCell; Layer = 1; Name = "fibroblast"; Latin = "fibroblast"; Soft = 0.6f; FlowK = 0;
-        _l = Rand(55, 100); _w = Rand(7, 10); R = _l / 2 + 6; Mass = 80; _seed = Rand(0, 99);
+        Caf = caf;
+        Kind = Kind.TissueCell; Layer = 1; Name = caf ? "fibroblast związany z nowotworem (CAF)" : "fibroblast"; Latin = caf ? "miofibroblast (α-SMA⁺)" : "fibroblast"; Soft = 0.3f; // wrzecionowata komórka bez odkształcalnego obrysu – mniejsze nachodzenie ciał FlowK = 0;
+        _l = caf ? Rand(75, 125) : Rand(55, 100); _w = caf ? Rand(9, 12) : Rand(7, 10); R = _l / 2 + 6; Mass = 80; _seed = Rand(0, 99);
         // dwie główne wypustki wzdłuż osi + 0–3 boczne; w tkance fibroblast jest płaski, gwiaździsto-wrzecionowaty
         int side = RandI(0, 3);
         _proc = new Proc[2 + side];
         _proc[0] = new Proc { Ang = 0, Len = _l * Rand(0.36f, 0.46f), W = Rand(0.1f, 0.14f), Ph = Rand(0, TAU) };
         _proc[1] = new Proc { Ang = PI + RandN() * 0.15f, Len = _l * Rand(0.34f, 0.46f), W = Rand(0.1f, 0.14f), Ph = Rand(0, TAU) };
         for (int i = 0; i < side; i++) _proc[2 + i] = new Proc { Ang = Sign() * Rand(0.7f, 2.4f), Len = _l * Rand(0.12f, 0.3f), W = Rand(0.08f, 0.12f), Ph = Rand(0, TAU) };
-        _gran = new Vector3[70];
+        _gran = new Vector3[32];
         for (int i = 0; i < _gran.Length; i++) { float t = Rand(0, TAU), q = MathF.Sqrt(R01()); _gran[i] = new Vector3(MathF.Cos(t) * q, MathF.Sin(t) * q, Rand(0.15f, 0.3f)); }
         _chrom = new Vector2[18];
         for (int i = 0; i < _chrom.Length; i++) { float t = Rand(0, TAU), q = MathF.Sqrt(R01()) * 0.8f; _chrom[i] = new Vector2(MathF.Cos(t) * q, MathF.Sin(t) * q); }
@@ -305,28 +354,65 @@ public sealed class Fibroblast : Ent
         }
     }
     public override void UpdatePrim() => AxisParts(3, _l / 2, _w / 2, t => MathF.Pow(Math.Max(0, 1 - t * t), 1.6f) + 0.05f, 0);
-    public override bool Permeable(Ent o) => o is Neutrophil or Macrophage or Lymphocyte;
+    /// <summary>
+    /// Fibroblast to płaska komórka (grubość ~1–3 µm poza jądrem) zawieszona w trójwymiarowej sieci kolagenu – w rzucie 2D
+    /// nie jest ścianą: leukocyty, limfocyty i komórki raka pełzną nad nim, pod nim albo wzdłuż niego (komórki nowotworu
+    /// wręcz idą torami wyciętymi przez CAF – Gaggioli i in. 2007). Blokuje tylko inne fibroblasty (hamowanie kontaktowe).
+    /// </summary>
+    public override bool Permeable(Ent o) => !o.Fixed && o is not Fibroblast;
+    /// <summary>
+    /// Kontakt z przechodzącą komórką: bez odpychania (inaczej wolno pełzający leukocyt nigdy by go nie minął – sprężyna
+    /// cofała go szybciej, niż szedł), tylko opór jak w sieci włókien – przeciskanie się obok jądra i wypustek; w poprzek
+    /// komórki drożej niż wzdłuż jej osi (prowadzenie kontaktowe).
+    /// </summary>
+    public override void Seep(Ent o, float pen, float nx, float ny)
+    {
+        float sp = Hypot(o.Vx, o.Vy);
+        float cross = sp > 1e-9f ? MathF.Abs(o.Vx * MathF.Sin(A) - o.Vy * MathF.Cos(A)) / sp : 1;
+        o.Mesh += 0.15f + 0.35f * cross;
+    }
+    float _cil, _guideA; bool _guided;
+    /// <summary>Prowadzenie kontaktowe: fibroblast układa się i pełznie wzdłuż włókien kolagenu (Dunn i Heath 1976).</summary>
+    public void Guide(float fibreA) { _guideA = fibreA; _guided = true; }
     public override void Step(float dt, float gdt)
     {
-        _t += dt; float v = 1f / 60f; Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v; A += RandN() * 0.002f * MathF.Sqrt(dt);
+        _t += dt;
+        if (_guided) { float g = _guideA; if (MathF.Cos(g - A) < 0) g += PI; A = Turn(A, g, dt / 3600f); _guided = false; }
+        _cil -= dt;
+        // ≈ 1 µm/min; po zetknięciu z innym fibroblastem – zatrzymanie i odwrót (hamowanie kontaktowe)
+        float v = (_cil > 0 ? 0.15f : 1f) / 60f;
+        Vx = MathF.Cos(A) * v; Vy = MathF.Sin(A) * v; A += RandN() * 0.002f * MathF.Sqrt(dt);
         if ((W.Frame + Id) % 10 == 0) Shape();
+    }
+    /// <summary>
+    /// Hamowanie kontaktowe ruchu (Abercrombie i Heaysman 1954): gdy wypustka dotknie innego fibroblastu, jej krawędź wiodąca
+    /// zapada się, a komórka repolaryzuje i odchodzi w przeciwną stronę – fibroblasty nie wchodzą na siebie.
+    /// </summary>
+    float g0Px(View v) => 0.3f / Math.Max(v.Px, 1e-6f);
+    public override void OnTouch(Ent o, float nx, float ny)
+    {
+        if (o is not Fibroblast || _cil > 0) return;
+        A = MathF.Atan2(-ny, -nx) + RandN() * 0.3f; _cil = 1800;
     }
     public override void Draw(Painter p, View v)
     {
         p.Local(X, Y, A);
         var sh = p.Buf2;
-        for (int i = 0; i < NS; i++) { float th = i * TAU / NS; sh[i] = new Vector2(MathF.Cos(th) * _r[i], MathF.Sin(th) * _r[i]); }
-        var s = new ReadOnlySpan<Vector2>(sh, 0, NS);
+        // zarys z 84 punktów potrzebny tylko z bliska; oddalona komórka – co drugi punkt (błąd < 1 px)
+        int st = _l / Math.Max(v.Px, 1e-6f) > 700 ? 1 : 2, ns = 0;
+        for (int i = 0; i < NS; i += st) { float th = i * TAU / NS; sh[ns++] = new Vector2(MathF.Cos(th) * _r[i], MathF.Sin(th) * _r[i]); }
+        var s = new ReadOnlySpan<Vector2>(sh, 0, ns);
         float lw = Math.Max(v.Px, 0.1f);
-        p.SoftStroke(s, true, 1.6f, Rgb(255, 255, 240, 0.22f));
-        Span<float> ts = stackalloc float[] { 0f, 0.35f, 1f };
-        Span<Color> cs = stackalloc Color[] { Rgb(150, 146, 132, 0.52f), Rgb(160, 156, 142, 0.42f), Rgb(175, 172, 160, 0.2f) };
-        p.FillRadial(s, 0, 0, ts, cs);
+        Span<float> ts = stackalloc float[] { 0f, 1f };
+        Span<Color> cs = stackalloc Color[] { Rgb(152, 148, 134, 0.5f), Rgb(175, 172, 160, 0.2f) };
+        p.BodyPoly(s, 1.6f, Rgb(255, 255, 240, 0.22f), 0, 0, ts, cs);
+        bool texd = p.Tex != null;
         p.Stroke(s, true, lw, Rgb(60, 58, 48, 0.4f));
-        // włókienka naprężeniowe (aktyna) wzdłuż osi komórki
-        for (int k = -2; k <= 2; k++) p.Line(-_l * 0.3f, k * _w * 0.08f, _l * 0.3f, k * _w * 0.06f, lw * 0.7f, Rgb(90, 88, 75, 0.18f));
+        // włókienka naprężeniowe (aktyna) wzdłuż osi komórki – u CAF (miofibroblast, α-SMA) grube i liczne
+        int sf = Caf ? 4 : 2;
+        for (int k = -sf; k <= sf; k++) p.Line(-_l * 0.34f, k * _w * 0.045f * (Caf ? 1.1f : 1.8f), _l * 0.34f, k * _w * 0.035f * (Caf ? 1.1f : 1.7f), lw * (Caf ? 1.1f : 0.7f), Rgb(90, 88, 75, Caf ? 0.3f : 0.18f));
         // drobnoziarnista cytoplazma (szorstka siateczka śródplazmatyczna, mitochondria)
-        foreach (var g in _gran) p.Dot(g.X * _w * 1.1f, g.Y * _w * 0.45f, g.Z, Rgb(80, 78, 64, 0.45f));
+        if (!texd || g0Px(v) > 2.2f) foreach (var g in _gran) p.Dot(g.X * _w * 1.1f, g.Y * _w * 0.45f, g.Z, Rgb(80, 78, 64, 0.45f));
         // jądro owalne z chromatyną i 1–2 jąderkami
         float nx = _w * 0.1f;
         p.FillEllipse(nx, 0, _w * 0.8f, _w * 0.3f, 0, Rgb(115, 112, 128, 0.5f));
@@ -385,6 +471,9 @@ public sealed class MastCell : Ent
         // żywy, niebarwiony mastocyt: szary, gęsto wypełniony drobnymi, silnie załamującymi światło ziarnistościami
         _g = new Gr[420];
         for (int i = 0; i < _g.Length; i++) { float t = Rand(0, TAU), q = MathF.Sqrt(R01()) * 0.9f; _g[i] = new Gr { X = MathF.Cos(t) * q, Y = MathF.Sin(t) * q, S = Rand(0.11f, 0.2f), Life = 1 }; }
+        // miękka błona: przepychające się leukocyty wgniatają ją, a nieściśliwa cytoplazma wybrzusza bok
+        Mem = new Membrane(48) { MaxDef = _r * 0.35f, Stiff = 9, Damping = 0.7f, Fluid = 0.8f }; MemK = 4; MemS = 0.5f;
+        Mem.Radial(_rr); Mem.Follow(x, y, A, 1, 1);
     }
     public override void Step(float dt, float gdt)
     {
@@ -411,24 +500,34 @@ public sealed class MastCell : Ent
     }
     public override void Draw(Painter p, View v)
     {
-        p.Local(X, Y, A);
-        var sh = p.Buf2;
-        for (int i = 0; i < 48; i++) { float t = i * TAU / 48; sh[i] = new Vector2(MathF.Cos(t) * _rr[i], MathF.Sin(t) * _rr[i]); }
-        var s = new ReadOnlySpan<Vector2>(sh, 0, 48);
+        int ns = Mem.Smooth(p.Shape, 2);
+        var s = new ReadOnlySpan<Vector2>(p.Shape, 0, ns);
         float lw = Math.Max(v.Px, 0.1f);
+        // z daleka (ziarno < ~2,5 px) cała komórka z tekstury pełnej ziarnistości – te same ziarna, kilkadziesiąt wierzchołków
+        bool far = p.Tex != null && 0.3f / v.Px < 2.5f && _degr < 0.02f;
+        if (far)
+        {
+            p.Tex.TexHalo(p, s, 1.8f, Rgb(255, 255, 240, 0.25f));
+            p.Tex.TexDisc(Mem, SpriteAtlas.Gran, _r * 1.12f, new Color(0.72f, 0.7f, 0.68f, 0.9f * p.Alpha));
+            p.Stroke(s, true, lw, Rgb(50, 48, 42, 0.6f));
+            return;
+        }
         p.SoftStroke(s, true, 1.8f, Rgb(255, 255, 240, 0.25f));
         Span<float> ts = stackalloc float[] { 0f, 1f };
         Span<Color> cs = stackalloc Color[] { Rgb(150, 148, 140, 0.5f), Rgb(125, 122, 115, 0.55f) };
-        p.FillRadial(s, 0, 0, ts, cs);
+        p.FillRadial(s, X, Y, ts, cs);
+        p.Stroke(s, true, lw, Rgb(50, 48, 42, 0.6f));
+        BodyLocal(p);
         // jądro prawie zasłonięte przez ziarnistości – widać tylko jaśniejszą plamę
         p.FillEllipse(_r * 0.08f, -_r * 0.05f, _r * 0.38f, _r * 0.32f, 0.4f, Rgb(170, 168, 165, 0.3f));
-        p.Stroke(s, true, lw, Rgb(50, 48, 42, 0.6f));
         bool hi = 0.2f / v.Px > 1.2f;
-        for (int i = 0; i < _g.Length; i++)
+        // ziarnistości ~2 px na ekranie: co druga, odpowiednio większa (ta sama ziarnista faktura, połowa wierzchołków)
+        int gs = 0.35f / v.Px < 2.5f ? 2 : 1; float gk = gs > 1 ? 1.35f : 1;
+        for (int i = 0; i < _g.Length; i += gs)
         {
             var g = _g[i]; if (g.Life <= 0.02f) continue;
             float x = g.X * _r, y = g.Y * _r;
-            p.Dot(x, y, g.S, Rgb(50, 47, 52, 0.55f * g.Life));
+            p.Dot(x, y, g.S * gk, Rgb(50, 47, 52, 0.55f * g.Life));
             if (hi && (i & 3) == 0) p.Dot(x - g.S * 0.3f, y - g.S * 0.3f, g.S * 0.35f, Rgb(240, 240, 232, 0.55f * g.Life));
         }
     }

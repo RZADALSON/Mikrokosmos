@@ -1,0 +1,5250 @@
+{
+ "ecoli": {
+  "pl": {
+   "name": "Pałeczka okrężnicy",
+   "sub": "Escherichia coli · bakteria Gram-ujemna",
+   "desc": "Najlepiej poznany organizm na Ziemi. Pływa dzięki kilku rzęskom obracanym silnikami białkowymi: płynie prosto (bieg), a co ok. sekundę na chwilę koziołkuje i losuje nowy kierunek.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 2 × 0,8 µm"
+    ],
+    [
+     "Prędkość",
+     "20–30 µm/s"
+    ],
+    [
+     "Podział",
+     "co ~20 min w bogatej pożywce"
+    ],
+    [
+     "Żyje",
+     "jelito ssaków i ptaków, woda, gleba"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Escherichia coli",
+   "sub": "Escherichia coli · Gram-negative bacterium",
+   "desc": "The best-studied organism on Earth. It swims with several flagella turned by protein motors: it runs straight, and about once a second it briefly tumbles and picks a new direction.",
+   "facts": [
+    [
+     "Size",
+     "≈ 2 × 0.8 µm"
+    ],
+    [
+     "Speed",
+     "20–30 µm/s"
+    ],
+    [
+     "Division",
+     "every ~20 min in rich medium"
+    ],
+    [
+     "Lives in",
+     "gut of mammals and birds, water, soil"
+    ]
+   ]
+  },
+  "photo": "ecoli.jpg",
+  "credit": "Janice Haney Carr · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Escherichia_coli_electron_microscopy.jpg"
+ },
+ "t4": {
+  "pl": {
+   "name": "Bakteriofag T4",
+   "sub": "Tequatrovirus · wirus bakterii",
+   "desc": "Wirus atakujący E. coli. Włóknami ogonka „macha” po powierzchni bakterii, a po związaniu kurczy pochewkę jak strzykawkę i wstrzykuje DNA przez ścianę komórki.",
+   "facts": [
+    [
+     "Główka",
+     "≈ 85 × 115 nm"
+    ],
+    [
+     "Genom",
+     "≈ 169 tys. par zasad DNA"
+    ],
+    [
+     "Cykl",
+     "potomstwo po ~25 min (37 °C)"
+    ],
+    [
+     "Potomków",
+     "ok. 100–200 z jednej bakterii"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bacteriophage T4",
+   "sub": "Tequatrovirus · bacterial virus",
+   "desc": "A virus that attacks E. coli. It scans the bacterial surface with its tail fibres, and once bound it contracts its sheath like a syringe and injects its DNA through the cell wall.",
+   "facts": [
+    [
+     "Head",
+     "≈ 85 × 115 nm"
+    ],
+    [
+     "Genome",
+     "≈ 169 thousand DNA base pairs"
+    ],
+    [
+     "Cycle",
+     "progeny after ~25 min (37 °C)"
+    ],
+    [
+     "Offspring",
+     "about 100–200 per bacterium"
+    ]
+   ]
+  },
+  "photo": "t4.jpg",
+  "credit": "7USSR7 · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:T4_phage_EM.jpg"
+ },
+ "lambda": {
+  "pl": {
+   "name": "Bakteriofag λ",
+   "sub": "Lambdavirus lambda · fag łagodny",
+   "desc": "Fag, który może wybrać: albo od razu namnożyć się i rozerwać bakterię (cykl lityczny), albo wbudować swoje DNA w chromosom gospodarza i czekać (lizogenia).",
+   "facts": [
+    [
+     "Główka",
+     "≈ 60 nm"
+    ],
+    [
+     "Ogonek",
+     "długi, giętki, ~150 nm"
+    ],
+    [
+     "Genom",
+     "≈ 48,5 tys. par zasad"
+    ],
+    [
+     "Znaczenie",
+     "klasyczny model przełącznika genetycznego"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bacteriophage λ",
+   "sub": "Lambdavirus lambda · temperate phage",
+   "desc": "A phage that can choose: either multiply at once and burst the bacterium (lytic cycle), or insert its DNA into the host chromosome and wait (lysogeny).",
+   "facts": [
+    [
+     "Head",
+     "≈ 60 nm"
+    ],
+    [
+     "Tail",
+     "long and flexible, ~150 nm"
+    ],
+    [
+     "Genome",
+     "≈ 48.5 thousand base pairs"
+    ],
+    [
+     "Importance",
+     "classic model of a genetic switch"
+    ]
+   ]
+  },
+  "photo": "lambda.jpg",
+  "credit": "ViralZone, SIB Swiss Institute of Bioinformatics: Siphoviri… · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Lambda_EM.jpg"
+ },
+ "t7": {
+  "pl": {
+   "name": "Bakteriofag T7",
+   "sub": "Teseptimavirus · fag z krótkim ogonkiem",
+   "desc": "Mały, ściśle lityczny wirus E. coli z bardzo krótkim ogonkiem. Konkuruje z T4 o te same bakterie.",
+   "facts": [
+    [
+     "Główka",
+     "≈ 60 nm, dwudziestościan"
+    ],
+    [
+     "Genom",
+     "≈ 40 tys. par zasad"
+    ],
+    [
+     "Cykl",
+     "wyłącznie lityczny"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bacteriophage T7",
+   "sub": "Teseptimavirus · short-tailed phage",
+   "desc": "A small, strictly lytic E. coli virus with a very short tail. It competes with T4 for the same bacteria.",
+   "facts": [
+    [
+     "Head",
+     "≈ 60 nm, icosahedral"
+    ],
+    [
+     "Genome",
+     "≈ 40 thousand base pairs"
+    ],
+    [
+     "Cycle",
+     "lytic only"
+    ]
+   ]
+  }
+ },
+ "omv": {
+  "pl": {
+   "name": "Pęcherzyk błony zewnętrznej",
+   "sub": "OMV · outer membrane vesicle",
+   "desc": "Bakterie Gram-ujemne odrywają małe kulki własnej błony zewnętrznej. Fagi i przeciwciała wiążą się z nimi zamiast z bakterią – działają jak wabik.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 20–250 nm"
+    ],
+    [
+     "Rola",
+     "wabik, sygnały, transport białek"
+    ],
+    [
+     "Źródło",
+     "Manning i Kuehn 2011"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Outer membrane vesicle",
+   "sub": "OMV",
+   "desc": "Gram-negative bacteria pinch off small spheres of their outer membrane. Phages and antibodies bind to them instead of the bacterium – they work as decoys.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 20–250 nm"
+    ],
+    [
+     "Role",
+     "decoy, signalling, protein transport"
+    ],
+    [
+     "Source",
+     "Manning and Kuehn 2011"
+    ]
+   ]
+  },
+  "photo": "omv.jpg",
+  "credit": "Rakeshyashroy · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Human_Salmonella_secreting_outer_membrane_vesicles_in_vivo_in_chicken_ileum_(Original_work_of_Dr_R_C_YashRoy).png"
+ },
+ "flagfrag": {
+  "pl": {
+   "name": "Zerwana rzęska",
+   "sub": "filament rzęski bakteryjnej (flagelina)",
+   "desc": "Fragment długiego, sztywnego helikalnego włókna z białka flageliny. Rzęska bakterii jest obracana u nasady jak śruba okrętowa.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 20 nm"
+    ],
+    [
+     "Długość rzęski",
+     "do ~10 µm"
+    ],
+    [
+     "Silnik",
+     "do ~100 000 obr./min u niektórych bakterii"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Broken flagellum",
+   "sub": "bacterial flagellar filament (flagellin)",
+   "desc": "A piece of the long, stiff helical filament made of the protein flagellin. A bacterial flagellum is rotated at its base like a ship's propeller.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 20 nm"
+    ],
+    [
+     "Flagellum length",
+     "up to ~10 µm"
+    ],
+    [
+     "Motor",
+     "up to ~100,000 rpm in some bacteria"
+    ]
+   ]
+  },
+  "photo": "flagfrag.jpg",
+  "credit": "No machine-readable author provided. Graham Bradley assumed… · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dvulgaris_micrograph.JPG"
+ },
+ "bdello": {
+  "pl": {
+   "name": "Bdellovibrio",
+   "sub": "Bdellovibrio bacteriovorus · drapieżna bakteria",
+   "desc": "Bakteria, która poluje na inne bakterie. Wwierca się do przestrzeni między błonami ofiary, zjada ją od środka, rośnie jako nić i dzieli się na nieparzystą lub parzystą liczbę potomków.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 0,3–0,5 × 0,5–2,5 µm"
+    ],
+    [
+     "Prędkość",
+     "do ~160 µm/s – ok. 100 długości ciała na sekundę"
+    ],
+    [
+     "Ofiary",
+     "bakterie Gram-ujemne, np. E. coli"
+    ],
+    [
+     "Cykl",
+     "kilka godzin w ofierze"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bdellovibrio",
+   "sub": "Bdellovibrio bacteriovorus · predatory bacterium",
+   "desc": "A bacterium that hunts other bacteria. It bores into the space between the prey's membranes, eats it from the inside, grows as a filament and splits into an odd or even number of progeny.",
+   "facts": [
+    [
+     "Size",
+     "≈ 0.3–0.5 × 0.5–2.5 µm"
+    ],
+    [
+     "Speed",
+     "up to ~160 µm/s – about 100 body lengths per second"
+    ],
+    [
+     "Prey",
+     "Gram-negative bacteria, e.g. E. coli"
+    ],
+    [
+     "Cycle",
+     "a few hours inside the prey"
+    ]
+   ]
+  },
+  "photo": "bdello.jpg",
+  "credit": "Eikosi · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Slice_from_electron_cryotomogram_of_Bdellovibrio_bacteriovorus_cell.jpg"
+ },
+ "acanth": {
+  "pl": {
+   "name": "Acanthamoeba",
+   "sub": "Acanthamoeba castellanii · ameba swobodnie żyjąca",
+   "desc": "Ameba z cienkimi, kolczastymi wypustkami (akantopodiami), pospolita w wodzie i glebie. Zjada bakterie; w złych warunkach tworzy odporną cystę. Może wywołać zapalenie rogówki u osób noszących soczewki.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 15–35 µm"
+    ],
+    [
+     "Pokarm",
+     "bakterie, drożdże"
+    ],
+    [
+     "Przetrwalnik",
+     "dwuścienna cysta"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Acanthamoeba",
+   "sub": "Acanthamoeba castellanii · free-living amoeba",
+   "desc": "An amoeba with thin, spiky projections (acanthopodia), common in water and soil. It eats bacteria and forms a tough cyst in bad conditions. It can infect the cornea of contact-lens wearers.",
+   "facts": [
+    [
+     "Size",
+     "≈ 15–35 µm"
+    ],
+    [
+     "Food",
+     "bacteria, yeasts"
+    ],
+    [
+     "Resting form",
+     "double-walled cyst"
+    ]
+   ]
+  },
+  "photo": "acanth.jpg",
+  "credit": "Jacob Lorenzo-Morales, Naveed A. Khan and Julia Walochnik · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Parasite140120-fig5_Acanthamoeba_keratitis.png"
+ },
+ "grain": {
+  "pl": {
+   "name": "Ziarno mineralne",
+   "sub": "kwarc SiO₂ · osad",
+   "desc": "Drobne ziarno piasku lub mułu. Dla bakterii to głaz, na którym osiada biofilm.",
+   "facts": [
+    [
+     "Muł",
+     "2–63 µm"
+    ],
+    [
+     "Piasek",
+     "63 µm – 2 mm"
+    ],
+    [
+     "Skład",
+     "głównie kwarc (SiO₂)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Mineral grain",
+   "sub": "quartz SiO₂ · sediment",
+   "desc": "A tiny grain of sand or silt. For bacteria it is a boulder on which a biofilm settles.",
+   "facts": [
+    [
+     "Silt",
+     "2–63 µm"
+    ],
+    [
+     "Sand",
+     "63 µm – 2 mm"
+    ],
+    [
+     "Composition",
+     "mostly quartz (SiO₂)"
+    ]
+   ]
+  },
+  "photo": "grain.jpg",
+  "credit": "CBlaeuer · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:0136_02_P4_1_Bb175um_182_xPol.JPG"
+ },
+ "bacillus": {
+  "pl": {
+   "name": "Laseczka sienna",
+   "sub": "Bacillus subtilis · bakteria Gram-dodatnia",
+   "desc": "Glebowa bakteria tworząca łańcuszki. W trudnych warunkach zamyka kopię DNA w przetrwalniku – endosporze, która przetrwa wrzenie i wysuszenie przez lata.",
+   "facts": [
+    [
+     "Komórka",
+     "≈ 2–3 × 0,8 µm"
+    ],
+    [
+     "Przetrwalnik",
+     "odporny na gorąco, UV, suszę"
+    ],
+    [
+     "Żyje",
+     "gleba, korzenie roślin"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Hay bacillus",
+   "sub": "Bacillus subtilis · Gram-positive bacterium",
+   "desc": "A soil bacterium that forms chains. In hard times it seals a copy of its DNA into an endospore that can survive boiling and years of drought.",
+   "facts": [
+    [
+     "Cell",
+     "≈ 2–3 × 0.8 µm"
+    ],
+    [
+     "Spore",
+     "resists heat, UV and drying"
+    ],
+    [
+     "Lives in",
+     "soil, plant roots"
+    ]
+   ]
+  },
+  "photo": "bacillus.jpg",
+  "credit": "So-loll · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bacillus_subtilis_light_micrograph.jpg"
+ },
+ "pseudomonas": {
+  "pl": {
+   "name": "Pałeczka ropy błękitnej",
+   "sub": "Pseudomonas aeruginosa · bakteria Gram-ujemna",
+   "desc": "Szybki pływak z jedną rzęską na biegunie, mistrz tworzenia biofilmów. Barwnik piocyjanina nadaje ropie niebiesko-zielony kolor; groźny patogen szpitalny.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 1,5–3 × 0,5–0,8 µm"
+    ],
+    [
+     "Prędkość",
+     "≈ 40–60 µm/s"
+    ],
+    [
+     "Żyje",
+     "woda, gleba, szpitalne rury i rany"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Pseudomonas",
+   "sub": "Pseudomonas aeruginosa · Gram-negative bacterium",
+   "desc": "A fast swimmer with a single polar flagellum and a master of biofilms. The pigment pyocyanin turns pus blue-green; a serious hospital pathogen.",
+   "facts": [
+    [
+     "Size",
+     "≈ 1.5–3 × 0.5–0.8 µm"
+    ],
+    [
+     "Speed",
+     "≈ 40–60 µm/s"
+    ],
+    [
+     "Lives in",
+     "water, soil, hospital pipes and wounds"
+    ]
+   ]
+  },
+  "photo": "pseudomonas.jpg",
+  "credit": "Photo Credit: Janice Haney Carr Content Providers(s): CDC/ … · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Pseudomonas_aeruginosa_SEM.jpg"
+ },
+ "caulobacter": {
+  "pl": {
+   "name": "Caulobacter",
+   "sub": "Caulobacter crescentus · bakteria wód ubogich",
+   "desc": "Bakteria w kształcie przecinka, która dzieli się asymetrycznie: komórka z trzonkiem zostaje przyklejona, a pływająca córka odpływa. Klej na końcu trzonka to jeden z najmocniejszych klejów w przyrodzie.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 1,5–2 × 0,5 µm"
+    ],
+    [
+     "Podział",
+     "na komórkę osiadłą i pływającą"
+    ],
+    [
+     "Żyje",
+     "wody słodkie, ubogie w pokarm"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Caulobacter",
+   "sub": "Caulobacter crescentus · oligotrophic bacterium",
+   "desc": "A comma-shaped bacterium that divides asymmetrically: the stalked cell stays attached while the swimming daughter swims away. The glue at the tip of the stalk is one of the strongest adhesives in nature.",
+   "facts": [
+    [
+     "Size",
+     "≈ 1.5–2 × 0.5 µm"
+    ],
+    [
+     "Division",
+     "into a stalked and a swimming cell"
+    ],
+    [
+     "Lives in",
+     "nutrient-poor fresh water"
+    ]
+   ]
+  },
+  "photo": "caulobacter.jpg",
+  "credit": "Unknown authorUnknown author · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Caulobacter_crescentus.jpg"
+ },
+ "spirillum": {
+  "pl": {
+   "name": "Krętek olbrzymi",
+   "sub": "Spirillum volutans · bakteria spiralna",
+   "desc": "Jedna z największych bakterii: sztywna spirala z pękami rzęsek na obu końcach. Woli wodę z małą ilością tlenu (mikroaerofil).",
+   "facts": [
+    [
+     "Grubość",
+     "≈ 1,4–1,7 µm"
+    ],
+    [
+     "Długość",
+     "kilkadziesiąt µm"
+    ],
+    [
+     "Żyje",
+     "wody stojące, muł"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Giant spirillum",
+   "sub": "Spirillum volutans · spiral bacterium",
+   "desc": "One of the largest bacteria: a rigid spiral with tufts of flagella at both ends. It prefers water with little oxygen (microaerophile).",
+   "facts": [
+    [
+     "Width",
+     "≈ 1.4–1.7 µm"
+    ],
+    [
+     "Length",
+     "tens of µm"
+    ],
+    [
+     "Lives in",
+     "stagnant water, mud"
+    ]
+   ]
+  }
+ },
+ "yeast": {
+  "pl": {
+   "name": "Drożdże",
+   "sub": "grzyby jednokomórkowe · pączkowanie",
+   "desc": "Jednokomórkowe grzyby, które rozmnażają się przez pączkowanie – na komórce wyrasta mała córka. Żyją w wodzie, na roślinach i w biofilmach.",
+   "facts": [
+    [
+     "Komórka",
+     "≈ 3–6 µm"
+    ],
+    [
+     "Rozmnażanie",
+     "pączkowanie"
+    ],
+    [
+     "Przykład",
+     "Saccharomyces cerevisiae – drożdże piekarskie"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Yeast",
+   "sub": "unicellular fungi · budding",
+   "desc": "Single-celled fungi that reproduce by budding – a small daughter grows out of the cell. They live in water, on plants and in biofilms.",
+   "facts": [
+    [
+     "Cell",
+     "≈ 3–6 µm"
+    ],
+    [
+     "Reproduction",
+     "budding"
+    ],
+    [
+     "Example",
+     "Saccharomyces cerevisiae – baker's yeast"
+    ]
+   ]
+  }
+ },
+ "staphylococcus": {
+  "pl": {
+   "name": "Gronkowiec złocisty",
+   "sub": "Staphylococcus aureus · ziarniak Gram-dodatni",
+   "desc": "Kuliste bakterie dzielące się w trzech płaszczyznach – stąd skupiska jak winogrona. Wydzielają leukocydyny (np. PVL), które przebijają błony leukocytów.",
+   "facts": [
+    [
+     "Komórka",
+     "≈ 1 µm"
+    ],
+    [
+     "Układ",
+     "grona"
+    ],
+    [
+     "Nosicielstwo",
+     "ok. 30% ludzi w nosie"
+    ],
+    [
+     "Uwaga",
+     "szczepy MRSA oporne na metycylinę"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Staphylococcus aureus",
+   "sub": "Gram-positive coccus",
+   "desc": "Round bacteria that divide in three planes – hence grape-like clusters. They release leukocidins (e.g. PVL) that punch holes in white blood cells.",
+   "facts": [
+    [
+     "Cell",
+     "≈ 1 µm"
+    ],
+    [
+     "Arrangement",
+     "clusters"
+    ],
+    [
+     "Carriage",
+     "about 30% of people, in the nose"
+    ],
+    [
+     "Note",
+     "MRSA strains resist methicillin"
+    ]
+   ]
+  },
+  "photo": "staphylococcus.jpg",
+  "credit": "NIAID_Flickr · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Scanning_electron_micrograph_of_Methicillin-resistant_Staphylococcus_aureus_(MRSA)_and_a_dead_Human_neutrophil_-_NIAID.jpg"
+ },
+ "streptococcus": {
+  "pl": {
+   "name": "Paciorkowiec",
+   "sub": "Streptococcus · ziarniak Gram-dodatni",
+   "desc": "Ziarniaki dzielące się w jednej płaszczyźnie, dlatego tworzą łańcuszki. S. pyogenes wywołuje anginę i różę.",
+   "facts": [
+    [
+     "Komórka",
+     "≈ 0,6–1 µm"
+    ],
+    [
+     "Układ",
+     "łańcuszki"
+    ],
+    [
+     "Przykład",
+     "S. pyogenes, S. pneumoniae"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Streptococcus",
+   "sub": "Gram-positive coccus",
+   "desc": "Cocci that divide in a single plane, so they form chains. S. pyogenes causes strep throat and erysipelas.",
+   "facts": [
+    [
+     "Cell",
+     "≈ 0.6–1 µm"
+    ],
+    [
+     "Arrangement",
+     "chains"
+    ],
+    [
+     "Examples",
+     "S. pyogenes, S. pneumoniae"
+    ]
+   ]
+  },
+  "photo": "streptococcus.jpg",
+  "credit": "NIAID · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Streptococcus_Pyogenes_(Group_A_Strep)_(52602892639).jpg"
+ },
+ "neutrophil": {
+  "pl": {
+   "name": "Neutrofil",
+   "sub": "granulocyt obojętnochłonny · krwinka biała",
+   "desc": "Najliczniejsza krwinka biała i pierwsza linia obrony. Pełza przez tkankę do ogniska zakażenia, pożera bakterie, a w ostateczności wyrzuca sieć DNA (NET), która je więzi.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 12 µm"
+    ],
+    [
+     "Jądro",
+     "3–5 płatów"
+    ],
+    [
+     "Pełzanie",
+     "≈ 10–20 µm/min"
+    ],
+    [
+     "Udział we krwi",
+     "ok. 50–70% krwinek białych"
+    ],
+    [
+     "Życie",
+     "godziny – 1–2 doby"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Neutrophil",
+   "sub": "neutrophilic granulocyte · white blood cell",
+   "desc": "The most numerous white blood cell and the first line of defence. It crawls through tissue to the infection, eats bacteria and, as a last resort, casts a DNA net (NET) that traps them.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 12 µm"
+    ],
+    [
+     "Nucleus",
+     "3–5 lobes"
+    ],
+    [
+     "Crawling",
+     "≈ 10–20 µm/min"
+    ],
+    [
+     "Share in blood",
+     "about 50–70% of white cells"
+    ],
+    [
+     "Lifespan",
+     "hours to 1–2 days"
+    ]
+   ]
+  },
+  "photo": "neutrophil.jpg",
+  "credit": "Tommaso Leonardi · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Neutrophil2.jpg"
+ },
+ "rbc": {
+  "pl": {
+   "name": "Erytrocyt",
+   "sub": "krwinka czerwona",
+   "desc": "Dwuwklęsły krążek bez jądra wypełniony hemoglobiną. Jest tak elastyczny, że przeciska się przez naczynia węższe od siebie.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 7,5–8 µm"
+    ],
+    [
+     "Grubość",
+     "≈ 2 µm"
+    ],
+    [
+     "Życie",
+     "≈ 120 dni"
+    ],
+    [
+     "Liczba",
+     "≈ 5 mln w 1 µl krwi"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Red blood cell",
+   "sub": "erythrocyte",
+   "desc": "A biconcave disc without a nucleus, packed with haemoglobin. It is so flexible that it squeezes through vessels narrower than itself.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 7.5–8 µm"
+    ],
+    [
+     "Thickness",
+     "≈ 2 µm"
+    ],
+    [
+     "Lifespan",
+     "≈ 120 days"
+    ],
+    [
+     "Count",
+     "≈ 5 million per µl of blood"
+    ]
+   ]
+  },
+  "photo": "rbc.jpg",
+  "credit": "Scootdive (talk, contribs) · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Red_blood_cells_(2).jpg"
+ },
+ "platelet": {
+  "pl": {
+   "name": "Płytka krwi",
+   "sub": "trombocyt",
+   "desc": "Fragment olbrzymiej komórki szpiku (megakariocytu). Przy uszkodzeniu naczynia przylega do rany i uruchamia krzepnięcie.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 2–3 µm"
+    ],
+    [
+     "Liczba",
+     "≈ 150–400 tys. w 1 µl"
+    ],
+    [
+     "Życie",
+     "≈ 7–10 dni"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Platelet",
+   "sub": "thrombocyte",
+   "desc": "A fragment of a giant bone-marrow cell (megakaryocyte). When a vessel is damaged it sticks to the wound and starts clotting.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 2–3 µm"
+    ],
+    [
+     "Count",
+     "≈ 150–400 thousand per µl"
+    ],
+    [
+     "Lifespan",
+     "≈ 7–10 days"
+    ]
+   ]
+  },
+  "photo": "platelet.jpg",
+  "credit": "Electron Microscopy Facility at The National Cancer Institu… · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Red_White_Blood_cells.jpg"
+ },
+ "lymphocyte": {
+  "pl": {
+   "name": "Limfocyt",
+   "sub": "krwinka biała · odporność swoista",
+   "desc": "Mała komórka z dużym, okrągłym jądrem. Limfocyty B wytwarzają przeciwciała, T zabijają zakażone komórki i kierują odpowiedzią odpornościową.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 7–8 µm (małe)"
+    ],
+    [
+     "Typy",
+     "B, T, NK"
+    ],
+    [
+     "Pamięć",
+     "latami „pamiętają” patogeny"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Lymphocyte",
+   "sub": "white blood cell · adaptive immunity",
+   "desc": "A small cell with a large round nucleus. B cells make antibodies; T cells kill infected cells and direct the immune response.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 7–8 µm (small)"
+    ],
+    [
+     "Types",
+     "B, T, NK"
+    ],
+    [
+     "Memory",
+     "they 'remember' pathogens for years"
+    ]
+   ]
+  },
+  "photo": "lymphocyte.jpg",
+  "credit": "Echinaceapallida · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Blood-lymphocyte2.jpg"
+ },
+ "macrophage": {
+  "pl": {
+   "name": "Makrofag",
+   "sub": "makrofag tkankowy · fagocyt",
+   "desc": "Powolny, żarłoczny strażnik tkanki. Pożera drobnoustroje, martwe komórki i zużyte krwinki, a cytokinami wzywa neutrofile. Fagocytozę odkrył Ilja Miecznikow (Nobel 1908).",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 20–25 µm"
+    ],
+    [
+     "Pełzanie",
+     "≈ 1–3 µm/min"
+    ],
+    [
+     "Zadania",
+     "fagocytoza, eferocytoza, gojenie"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Macrophage",
+   "sub": "tissue macrophage · phagocyte",
+   "desc": "A slow, voracious guardian of tissue. It eats microbes, dead cells and worn-out blood cells, and calls in neutrophils with cytokines. Phagocytosis was discovered by Ilya Mechnikov (Nobel 1908).",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 20–25 µm"
+    ],
+    [
+     "Crawling",
+     "≈ 1–3 µm/min"
+    ],
+    [
+     "Jobs",
+     "phagocytosis, efferocytosis, healing"
+    ]
+   ]
+  },
+  "photo": "macrophage.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Cytology_of_a_macrophage.png"
+ },
+ "fibroblast": {
+  "pl": {
+   "name": "Fibroblast",
+   "sub": "komórka tkanki łącznej",
+   "desc": "Wrzecionowata komórka, która wytwarza kolagen i całą macierz tkanki łącznej. Pełznie wzdłuż włókien, a gdy dotknie innego fibroblastu – zatrzymuje się i zawraca (hamowanie kontaktowe).",
+   "facts": [
+    [
+     "Długość",
+     "≈ 50–100 µm z wypustkami"
+    ],
+    [
+     "Wytwarza",
+     "kolagen, elastynę, proteoglikany"
+    ],
+    [
+     "Rola",
+     "gojenie ran, blizny"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Fibroblast",
+   "sub": "connective-tissue cell",
+   "desc": "A spindle-shaped cell that makes collagen and the whole connective-tissue matrix. It crawls along fibres and, when it touches another fibroblast, stops and turns away (contact inhibition).",
+   "facts": [
+    [
+     "Length",
+     "≈ 50–100 µm with processes"
+    ],
+    [
+     "Makes",
+     "collagen, elastin, proteoglycans"
+    ],
+    [
+     "Role",
+     "wound healing, scars"
+    ]
+   ]
+  },
+  "photo": "fibroblast.jpg",
+  "credit": "Pinky9697 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Fibroblast_cells_under_microscope_20x.jpg"
+ },
+ "adipocyte": {
+  "pl": {
+   "name": "Komórka tłuszczowa",
+   "sub": "adipocyt",
+   "desc": "Komórka prawie w całości wypełniona jedną kroplą tłuszczu; jądro zepchnięte na brzeg. To magazyn energii i gruczoł wydzielający hormony (np. leptynę).",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 50–150 µm"
+    ],
+    [
+     "Tłuszcz",
+     "≈ 90% objętości"
+    ],
+    [
+     "Hormony",
+     "leptyna, adiponektyna"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Fat cell",
+   "sub": "adipocyte",
+   "desc": "A cell almost entirely filled with a single fat droplet, with the nucleus pushed to the edge. It stores energy and secretes hormones (e.g. leptin).",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 50–150 µm"
+    ],
+    [
+     "Fat",
+     "≈ 90% of the volume"
+    ],
+    [
+     "Hormones",
+     "leptin, adiponectin"
+    ]
+   ]
+  },
+  "photo": "adipocyte.jpg",
+  "credit": "autor nieznany · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Yellow_adipose_tissue_in_paraffin_section_-_lipids_washed_out.jpg"
+ },
+ "mastcell": {
+  "pl": {
+   "name": "Komórka tuczna",
+   "sub": "mastocyt",
+   "desc": "Komórka nabita ziarnistościami z histaminą. Pobudzona wyrzuca je (degranulacja): naczynia się rozszerzają i napływają leukocyty. Odpowiada też za objawy alergii.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 10–20 µm"
+    ],
+    [
+     "Ziarnistości",
+     "histamina, heparyna, proteazy"
+    ],
+    [
+     "Alergia",
+     "reaguje na przeciwciała IgE"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Mast cell",
+   "sub": "mastocyte",
+   "desc": "A cell packed with histamine granules. When triggered it releases them (degranulation): vessels widen and white cells pour in. It also causes allergy symptoms.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 10–20 µm"
+    ],
+    [
+     "Granules",
+     "histamine, heparin, proteases"
+    ],
+    [
+     "Allergy",
+     "responds to IgE antibodies"
+    ]
+   ]
+  },
+  "photo": "mastcell.jpg",
+  "credit": "Vortioxetine · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Mast_cells_in_bone_marrow.jpg"
+ },
+ "candidayeast": {
+  "pl": {
+   "name": "Candida – drożdżak",
+   "sub": "Candida albicans · forma drożdżowa",
+   "desc": "Grzyb żyjący w jamie ustnej, jelitach i na skórze większości ludzi. Owalne drożdżaki można sfagocytować; niebezpieczny staje się, gdy przechodzi w strzępki.",
+   "facts": [
+    [
+     "Komórka",
+     "≈ 4–6 µm"
+    ],
+    [
+     "Nosicielstwo",
+     "większość zdrowych ludzi"
+    ],
+    [
+     "Choroba",
+     "kandydoza (pleśniawki, grzybica)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Candida – yeast",
+   "sub": "Candida albicans · yeast form",
+   "desc": "A fungus living in the mouth, gut and on the skin of most people. The oval yeast cells can be phagocytosed; it becomes dangerous when it switches to hyphae.",
+   "facts": [
+    [
+     "Cell",
+     "≈ 4–6 µm"
+    ],
+    [
+     "Carriage",
+     "most healthy people"
+    ],
+    [
+     "Disease",
+     "candidiasis (thrush)"
+    ]
+   ]
+  },
+  "photo": "candidayeast.jpg",
+  "credit": "Centers for Disease Control and Prevention · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Candida_albicans_1964.jpg"
+ },
+ "candidahypha": {
+  "pl": {
+   "name": "Candida – strzępka",
+   "sub": "Candida albicans · forma nitkowata",
+   "desc": "Długie nici grzyba, zbyt duże dla fagocytów. Toksyna kandydalizyna przebija błony; neutrofile atakują strzępki sieciami NET.",
+   "facts": [
+    [
+     "Grubość",
+     "≈ 2–4 µm"
+    ],
+    [
+     "Długość",
+     "dziesiątki–setki µm"
+    ],
+    [
+     "Toksyna",
+     "kandydalizyna (2016)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Candida – hypha",
+   "sub": "Candida albicans · filamentous form",
+   "desc": "Long fungal threads, too big for phagocytes. The toxin candidalysin punctures membranes; neutrophils fight hyphae with NETs.",
+   "facts": [
+    [
+     "Width",
+     "≈ 2–4 µm"
+    ],
+    [
+     "Length",
+     "tens to hundreds of µm"
+    ],
+    [
+     "Toxin",
+     "candidalysin (2016)"
+    ]
+   ]
+  },
+  "photo": "candidahypha.jpg",
+  "credit": "Michael R Francisco from Bongabon, Nueva Ecija Philippines · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Candida_albicans_(1000X_magnification)_(6500725393).jpg"
+ },
+ "collagen": {
+  "pl": {
+   "name": "Włókno kolagenowe",
+   "sub": "kolagen typu I · macierz zewnątrzkomórkowa",
+   "desc": "Najliczniejsze białko ssaków. Potrójne helisy łączą się we włókienka, a te we włókna mocne jak stal na rozciąganie. Tworzą trójwymiarową sieć, przez którą przeciskają się komórki.",
+   "facts": [
+    [
+     "Włókienko",
+     "≈ 50–200 nm grubości"
+    ],
+    [
+     "Włókno",
+     "≈ 1–20 µm"
+    ],
+    [
+     "Udział",
+     "ok. 25–30% białek ciała"
+    ],
+    [
+     "Budowa",
+     "powtórzenia Gly-X-Y, potrójna helisa"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Collagen fibre",
+   "sub": "type I collagen · extracellular matrix",
+   "desc": "The most abundant protein in mammals. Triple helices assemble into fibrils and those into fibres as strong in tension as steel. They form a 3D mesh that cells squeeze through.",
+   "facts": [
+    [
+     "Fibril",
+     "≈ 50–200 nm thick"
+    ],
+    [
+     "Fibre",
+     "≈ 1–20 µm"
+    ],
+    [
+     "Share",
+     "about 25–30% of body protein"
+    ],
+    [
+     "Structure",
+     "Gly-X-Y repeats, triple helix"
+    ]
+   ]
+  },
+  "photo": "collagen.jpg",
+  "credit": "Vincesherman · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Collagen_fibrils_in_rabbit_skin.jpg"
+ },
+ "net": {
+  "pl": {
+   "name": "Sieć NET",
+   "sub": "zewnątrzkomórkowa pułapka neutrofila",
+   "desc": "Neutrofil w akcie samobójczym wyrzuca swoją chromatynę (DNA z histonami) obsadzoną enzymami. Lepka sieć więzi i zabija bakterie oraz strzępki grzybów.",
+   "facts": [
+    [
+     "Skład",
+     "DNA, histony, elastaza, mieloperoksydaza"
+    ],
+    [
+     "Odkrycie",
+     "Brinkmann i in., Science 2004"
+    ],
+    [
+     "Koszt",
+     "neutrofil ginie (NEToza)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "NET",
+   "sub": "neutrophil extracellular trap",
+   "desc": "In a suicidal act a neutrophil casts out its chromatin (DNA with histones) studded with enzymes. The sticky net traps and kills bacteria and fungal hyphae.",
+   "facts": [
+    [
+     "Made of",
+     "DNA, histones, elastase, myeloperoxidase"
+    ],
+    [
+     "Discovered",
+     "Brinkmann et al., Science 2004"
+    ],
+    [
+     "Cost",
+     "the neutrophil dies (NETosis)"
+    ]
+   ]
+  },
+  "photo": "net.jpg",
+  "credit": "CHDENK · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Neutrophil_Extracellular_Trap.jpg"
+ },
+ "lysis": {
+  "pl": {
+   "name": "Rozpadająca się komórka",
+   "sub": "liza / martwica",
+   "desc": "Błona pękła, a zawartość komórki wylewa się na zewnątrz. Szczątki i sygnały „zagrożenia” (DAMP) przyciągają fagocyty, które sprzątają.",
+   "facts": [
+    [
+     "Przyczyny",
+     "toksyny, fagi, brak tlenu, uszkodzenie"
+    ],
+    [
+     "Skutek",
+     "stan zapalny, sprzątanie przez makrofagi"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Disintegrating cell",
+   "sub": "lysis / necrosis",
+   "desc": "The membrane has burst and the cell's contents spill out. The debris and 'danger' signals (DAMPs) attract phagocytes that clean up.",
+   "facts": [
+    [
+     "Causes",
+     "toxins, phages, lack of oxygen, damage"
+    ],
+    [
+     "Result",
+     "inflammation, clean-up by macrophages"
+    ]
+   ]
+  },
+  "photo": "lysis.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histopathology_of_adrenal_cortical_necrosis.jpg"
+ },
+ "paramecium": {
+  "pl": {
+   "name": "Pantofelek",
+   "sub": "Paramecium caudatum · orzęsek",
+   "desc": "Jednokomórkowiec pokryty tysiącami rzęsek bijących falą. Zagarnia bakterie do rowka gębowego; wodniczki tętniące wypompowują wodę. Po uderzeniu w przeszkodę cofa się i zmienia kierunek (reakcja unikania).",
+   "facts": [
+    [
+     "Długość",
+     "≈ 180–300 µm"
+    ],
+    [
+     "Prędkość",
+     "≈ 1 mm/s"
+    ],
+    [
+     "Pokarm",
+     "bakterie, drobne glony"
+    ],
+    [
+     "Obrona",
+     "trichocysty – wystrzeliwane igły"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Paramecium",
+   "sub": "Paramecium caudatum · ciliate",
+   "desc": "A single cell covered with thousands of cilia beating in waves. It sweeps bacteria into its oral groove; contractile vacuoles pump out water. After hitting an obstacle it backs up and turns (avoidance reaction).",
+   "facts": [
+    [
+     "Length",
+     "≈ 180–300 µm"
+    ],
+    [
+     "Speed",
+     "≈ 1 mm/s"
+    ],
+    [
+     "Food",
+     "bacteria, small algae"
+    ],
+    [
+     "Defence",
+     "trichocysts – fired needles"
+    ]
+   ]
+  },
+  "photo": "paramecium.png",
+  "credit": "Deuterostome · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Paramecium_caudatum_Ehrenberg,_1833.jpg"
+ },
+ "paramecium-bursaria": {
+  "pl": {
+   "name": "Pantofelek zielony",
+   "sub": "Paramecium bursaria · orzęsek z glonami",
+   "desc": "Pantofelek, w którego cytoplazmie żyje kilkaset glonów Chlorella. Glony dają mu cukry z fotosyntezy, a on im – schronienie i transport do światła.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 80–150 µm"
+    ],
+    [
+     "Symbionty",
+     "≈ 700 komórek Chlorella"
+    ],
+    [
+     "Relacja",
+     "symbioza (mutualizm)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Green paramecium",
+   "sub": "Paramecium bursaria · ciliate with algae",
+   "desc": "A paramecium whose cytoplasm hosts hundreds of Chlorella algae. The algae give it sugars from photosynthesis; it gives them shelter and a ride to the light.",
+   "facts": [
+    [
+     "Length",
+     "≈ 80–150 µm"
+    ],
+    [
+     "Symbionts",
+     "≈ 700 Chlorella cells"
+    ],
+    [
+     "Relationship",
+     "symbiosis (mutualism)"
+    ]
+   ]
+  },
+  "photo": "paramecium-bursaria.jpg",
+  "credit": "Cucumberkvp · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Paramecium_Bursaria.jpg"
+ },
+ "didinium": {
+  "pl": {
+   "name": "Didinium",
+   "sub": "Didinium nasutum · drapieżny orzęsek",
+   "desc": "Beczułkowaty drapieżnik z ryjkiem. Wbija w pantofelka toksycysty, paraliżuje go i połyka w całości – nawet ofiarę większą od siebie.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 60–200 µm"
+    ],
+    [
+     "Rzęski",
+     "dwa wieńce"
+    ],
+    [
+     "Ofiara",
+     "głównie pantofelki"
+    ],
+    [
+     "Głód",
+     "tworzy cystę i czeka"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Didinium",
+   "sub": "Didinium nasutum · predatory ciliate",
+   "desc": "A barrel-shaped predator with a snout. It spears a paramecium with toxicysts, paralyses it and swallows it whole – even prey larger than itself.",
+   "facts": [
+    [
+     "Length",
+     "≈ 60–200 µm"
+    ],
+    [
+     "Cilia",
+     "two girdles"
+    ],
+    [
+     "Prey",
+     "mainly paramecia"
+    ],
+    [
+     "Hunger",
+     "forms a cyst and waits"
+    ]
+   ]
+  },
+  "photo": "didinium.jpg",
+  "credit": "S. O. Mast · Public domain · Wikimedia Commons · ilustracja z 1909 r. (S.O. Mast) – brak wolnego zdjęcia",
+  "url": "https://commons.wikimedia.org/wiki/File:Didinium_nasutum_consuming_a_paramecium.jpg"
+ },
+ "chlamy": {
+  "pl": {
+   "name": "Chlamydomonas",
+   "sub": "Chlamydomonas reinhardtii · zielenica",
+   "desc": "Jednokomórkowy glon z dwiema wiciami, które biją jak ręce pływaka żabką. Czerwona plamka oczna pozwala mu płynąć do światła.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 10 µm"
+    ],
+    [
+     "Prędkość",
+     "≈ 100–120 µm/s"
+    ],
+    [
+     "Chloroplast",
+     "jeden, kubkowaty"
+    ],
+    [
+     "Znaczenie",
+     "organizm modelowy"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Chlamydomonas",
+   "sub": "Chlamydomonas reinhardtii · green alga",
+   "desc": "A single-celled alga with two flagella that beat like a breaststroke swimmer's arms. A red eyespot lets it swim towards light.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 10 µm"
+    ],
+    [
+     "Speed",
+     "≈ 100–120 µm/s"
+    ],
+    [
+     "Chloroplast",
+     "one, cup-shaped"
+    ],
+    [
+     "Importance",
+     "model organism"
+    ]
+   ]
+  },
+  "photo": "chlamy.jpg",
+  "credit": "Dartmouth Electron Microscope Facility, Dartmouth College · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Chlamydomonas6-1.jpg"
+ },
+ "loxodes": {
+  "pl": {
+   "name": "Loxodes",
+   "sub": "Loxodes magnus · orzęsek osadów",
+   "desc": "Duży, spłaszczony orzęsek żyjący w mule, gdzie jest mało tlenu. Ma pęcherzyki Müllera – narządy wyczuwające grawitację.",
+   "facts": [
+    [
+     "Długość",
+     "do ~0,6 mm"
+    ],
+    [
+     "Żyje",
+     "osady jezior i stawów"
+    ],
+    [
+     "Zmysł",
+     "grawitacja (pęcherzyki Müllera)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Loxodes",
+   "sub": "Loxodes magnus · sediment ciliate",
+   "desc": "A large, flattened ciliate living in low-oxygen mud. It has Müller vesicles – organelles that sense gravity.",
+   "facts": [
+    [
+     "Length",
+     "up to ~0.6 mm"
+    ],
+    [
+     "Lives in",
+     "lake and pond sediments"
+    ],
+    [
+     "Sense",
+     "gravity (Müller vesicles)"
+    ]
+   ]
+  },
+  "photo": "loxodes.png",
+  "credit": "Micropix · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Loxodes_sp.jpg"
+ },
+ "blepharisma": {
+  "pl": {
+   "name": "Blepharisma",
+   "sub": "Blepharisma japonicum · różowy orzęsek",
+   "desc": "Orzęsek zabarwiony na różowo przez blefaryzminę – barwnik trujący dla drapieżników i wrażliwy na światło. Przy braku pokarmu niektóre osobniki stają się kanibalami-olbrzymami.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 150–300 µm"
+    ],
+    [
+     "Barwnik",
+     "blefaryzmina"
+    ],
+    [
+     "Ciekawostka",
+     "kanibalizm i gigantyzm"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Blepharisma",
+   "sub": "Blepharisma japonicum · pink ciliate",
+   "desc": "A ciliate coloured pink by blepharismin – a pigment toxic to predators and sensitive to light. When food runs out, some become giant cannibals.",
+   "facts": [
+    [
+     "Length",
+     "≈ 150–300 µm"
+    ],
+    [
+     "Pigment",
+     "blepharismin"
+    ],
+    [
+     "Curiosity",
+     "cannibalism and gigantism"
+    ]
+   ]
+  },
+  "photo": "blepharisma.jpg",
+  "credit": "Frank Fox · CC BY-SA 3.0 de · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Mikrofoto.de-Blepharisma_japonicum_15.jpg"
+ },
+ "euglena": {
+  "pl": {
+   "name": "Klejnotka",
+   "sub": "Euglena gracilis · wiciowiec fotosyntetyzujący",
+   "desc": "Zielony wiciowiec: fotosyntetyzuje jak roślina, a w ciemności wchłania pokarm jak zwierzę. Plamka oczna i fotoreceptor kierują go do umiarkowanego światła; potrafi też pełzać, zmieniając kształt (metabolia).",
+   "facts": [
+    [
+     "Długość",
+     "≈ 50–85 µm"
+    ],
+    [
+     "Prędkość",
+     "≈ 50–100 µm/s"
+    ],
+    [
+     "Zapas",
+     "paramylon"
+    ],
+    [
+     "Ruch",
+     "jedna długa wić"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Euglena",
+   "sub": "Euglena gracilis · photosynthetic flagellate",
+   "desc": "A green flagellate: it photosynthesises like a plant and in darkness absorbs food like an animal. An eyespot and photoreceptor steer it to moderate light; it can also crawl by changing shape (metaboly).",
+   "facts": [
+    [
+     "Length",
+     "≈ 50–85 µm"
+    ],
+    [
+     "Speed",
+     "≈ 50–100 µm/s"
+    ],
+    [
+     "Storage",
+     "paramylon"
+    ],
+    [
+     "Motion",
+     "one long flagellum"
+    ]
+   ]
+  },
+  "photo": "euglena.jpg",
+  "credit": "naturalismus · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Euglena_gracilis.jpg"
+ },
+ "spirostomum": {
+  "pl": {
+   "name": "Spirostomum",
+   "sub": "Spirostomum ambiguum · orzęsek robakowaty",
+   "desc": "Olbrzymi, robakowaty orzęsek widoczny gołym okiem. W kilka milisekund kurczy się do ułamka długości – to jeden z najszybszych ruchów w biologii – i wysyła falę toksyn ostrzegającą sąsiadów.",
+   "facts": [
+    [
+     "Długość",
+     "do kilku mm"
+    ],
+    [
+     "Skurcz",
+     "≈ 5 ms"
+    ],
+    [
+     "Mechanizm",
+     "sieć centryny, nie aktyna-miozyna"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Spirostomum",
+   "sub": "Spirostomum ambiguum · worm-like ciliate",
+   "desc": "A giant, worm-like ciliate visible to the naked eye. In a few milliseconds it contracts to a fraction of its length – one of the fastest movements in biology – and releases toxins that warn its neighbours.",
+   "facts": [
+    [
+     "Length",
+     "up to several mm"
+    ],
+    [
+     "Contraction",
+     "≈ 5 ms"
+    ],
+    [
+     "Mechanism",
+     "centrin network, not actin–myosin"
+    ]
+   ]
+  },
+  "photo": "spirostomum.jpg",
+  "credit": "Viktoria Hyzhniak · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Spirostomum_ambiguum.jpg"
+ },
+ "stentor": {
+  "pl": {
+   "name": "Trębacz",
+   "sub": "Stentor coeruleus · orzęsek osiadły",
+   "desc": "Orzęsek w kształcie trąbki, niebieski od barwnika stentoryny. Wirem rzęsek wciąga pokarm, a dotknięty kurczy się – przy powtarzanych bodźcach „przyzwyczaja się” (habituacja). Odtwarza całe ciało nawet z małego kawałka.",
+   "facts": [
+    [
+     "Długość",
+     "do ~1–2 mm"
+    ],
+    [
+     "Barwnik",
+     "stentoryna"
+    ],
+    [
+     "Zdolność",
+     "regeneracja, habituacja"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Trumpet animalcule",
+   "sub": "Stentor coeruleus · sessile ciliate",
+   "desc": "A trumpet-shaped ciliate, blue from the pigment stentorin. It draws food in with a ciliary vortex, contracts when touched and, with repeated stimuli, 'gets used to it' (habituation). It regrows its whole body even from a small piece.",
+   "facts": [
+    [
+     "Length",
+     "up to ~1–2 mm"
+    ],
+    [
+     "Pigment",
+     "stentorin"
+    ],
+    [
+     "Abilities",
+     "regeneration, habituation"
+    ]
+   ]
+  },
+  "photo": "stentor.jpg",
+  "credit": "Flupke59 · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Stentor_coeruleus_extended.jpg"
+ },
+ "coleps": {
+  "pl": {
+   "name": "Coleps",
+   "sub": "Coleps hirtus · orzęsek w pancerzu",
+   "desc": "Beczułka okryta płytkami z węglanu wapnia. Poluje stadami: toksycystami i „gryzieniem” rozrywa inne orzęski i zjada padlinę.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 40–65 µm"
+    ],
+    [
+     "Pancerz",
+     "płytki wapienne"
+    ],
+    [
+     "Dieta",
+     "orzęski, glony, padlina"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Coleps",
+   "sub": "Coleps hirtus · armoured ciliate",
+   "desc": "A little barrel covered with calcium-carbonate plates. It hunts in packs: with toxicysts and 'biting' it tears apart other ciliates and scavenges carrion.",
+   "facts": [
+    [
+     "Length",
+     "≈ 40–65 µm"
+    ],
+    [
+     "Armour",
+     "calcareous plates"
+    ],
+    [
+     "Diet",
+     "ciliates, algae, carrion"
+    ]
+   ]
+  },
+  "photo": "coleps.png",
+  "credit": "Treinisch · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Coleps_hirtus_viridis.jpg"
+ },
+ "euplotes": {
+  "pl": {
+   "name": "Euplotes",
+   "sub": "Euplotes · orzęsek chodzący",
+   "desc": "Płaski orzęsek, który zamiast pływać chodzi po podłożu na cirrach – pęczkach zlepionych rzęsek, działających jak nóżki.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 80–200 µm"
+    ],
+    [
+     "Ruch",
+     "chodzenie na cirrach"
+    ],
+    [
+     "Pokarm",
+     "bakterie, glony"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Euplotes",
+   "sub": "Euplotes · walking ciliate",
+   "desc": "A flat ciliate that, instead of swimming, walks on the surface on cirri – bundles of fused cilia that work like legs.",
+   "facts": [
+    [
+     "Length",
+     "≈ 80–200 µm"
+    ],
+    [
+     "Motion",
+     "walking on cirri"
+    ],
+    [
+     "Food",
+     "bacteria, algae"
+    ]
+   ]
+  },
+  "photo": "euplotes.jpg",
+  "credit": "ValeSer23 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:AZM_Euplotes_vanleeuwenhoeki.tif"
+ },
+ "tetrahymena": {
+  "pl": {
+   "name": "Tetrahymena",
+   "sub": "Tetrahymena thermophila · orzęsek modelowy",
+   "desc": "Mały orzęsek, który przyniósł dwie Nagrody Nobla: tu odkryto rybozymy (Cech, 1989) oraz telomerazę chroniącą końce chromosomów (Blackburn i Greider, 2009).",
+   "facts": [
+    [
+     "Długość",
+     "≈ 50 µm"
+    ],
+    [
+     "Pokarm",
+     "bakterie"
+    ],
+    [
+     "Nagrody Nobla",
+     "1989 i 2009"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Tetrahymena",
+   "sub": "Tetrahymena thermophila · model ciliate",
+   "desc": "A small ciliate that led to two Nobel Prizes: ribozymes were discovered in it (Cech, 1989), and telomerase, which protects chromosome ends (Blackburn and Greider, 2009).",
+   "facts": [
+    [
+     "Length",
+     "≈ 50 µm"
+    ],
+    [
+     "Food",
+     "bacteria"
+    ],
+    [
+     "Nobel Prizes",
+     "1989 and 2009"
+    ]
+   ]
+  },
+  "photo": "tetrahymena.jpg",
+  "credit": "see source · CC BY 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Tetrahymena_thermophila.png"
+ },
+ "bodo": {
+  "pl": {
+   "name": "Bodo",
+   "sub": "Bodo saltans · wiciowiec",
+   "desc": "Maleńki wiciowiec z dwiema wiciami, który podskakuje w wodzie i zjada bakterie. To krewny świdrowców – też ma kinetoplast, olbrzymie DNA mitochondrium.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 4–8 µm"
+    ],
+    [
+     "Pokarm",
+     "bakterie"
+    ],
+    [
+     "Krewni",
+     "Trypanosoma (kinetoplastydy)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bodo",
+   "sub": "Bodo saltans · flagellate",
+   "desc": "A tiny flagellate with two flagella that hops through the water eating bacteria. It is a relative of trypanosomes – it also has a kinetoplast, a giant mass of mitochondrial DNA.",
+   "facts": [
+    [
+     "Length",
+     "≈ 4–8 µm"
+    ],
+    [
+     "Food",
+     "bacteria"
+    ],
+    [
+     "Relatives",
+     "Trypanosoma (kinetoplastids)"
+    ]
+   ]
+  },
+  "photo": "bodo.jpg",
+  "credit": "Picturepest · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bodo_saltans_-_400x_(13895749563).jpg"
+ },
+ "nematode": {
+  "pl": {
+   "name": "Nicień",
+   "sub": "Nematoda · obleniec",
+   "desc": "Nitkowaty robak, który pływa, wyginając ciało falą (ok. 2 razy na sekundę). Nicień C. elegans to jeden z najważniejszych organizmów modelowych – dorosły ma dokładnie 959 komórek somatycznych.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 1 mm (C. elegans)"
+    ],
+    [
+     "Ruch",
+     "fala wygięć ~2 Hz"
+    ],
+    [
+     "Pokarm",
+     "bakterie"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Nematode",
+   "sub": "Nematoda · roundworm",
+   "desc": "A threadlike worm that swims by bending its body in a wave (about twice a second). The nematode C. elegans is a key model organism – the adult has exactly 959 somatic cells.",
+   "facts": [
+    [
+     "Length",
+     "≈ 1 mm (C. elegans)"
+    ],
+    [
+     "Motion",
+     "bending wave ~2 Hz"
+    ],
+    [
+     "Food",
+     "bacteria"
+    ]
+   ]
+  },
+  "photo": "nematode.jpg",
+  "credit": "The original uploader was Kbradnam at English Wikipedia. (O… · CC BY-SA 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Adult_Caenorhabditis_elegans.jpg"
+ },
+ "oscillatoria": {
+  "pl": {
+   "name": "Drgalnia",
+   "sub": "Oscillatoria · sinica nitkowata",
+   "desc": "Nitka komórek sinicy, która sunie po podłożu i kołysze końcem. Sinice wytwarzają tlen w fotosyntezie – ich przodkowie utlenili atmosferę Ziemi.",
+   "facts": [
+    [
+     "Grubość nitki",
+     "≈ 4–10 µm"
+    ],
+    [
+     "Ruch",
+     "ślizg (gliding)"
+    ],
+    [
+     "Energia",
+     "fotosynteza tlenowa"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Oscillatoria",
+   "sub": "filamentous cyanobacterium",
+   "desc": "A filament of cyanobacterial cells that glides along surfaces and sways its tip. Cyanobacteria make oxygen by photosynthesis – their ancestors oxygenated Earth's atmosphere.",
+   "facts": [
+    [
+     "Filament width",
+     "≈ 4–10 µm"
+    ],
+    [
+     "Motion",
+     "gliding"
+    ],
+    [
+     "Energy",
+     "oxygenic photosynthesis"
+    ]
+   ]
+  },
+  "photo": "oscillatoria.jpg",
+  "credit": "Wiedehopf20 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Oscillatoria_filaments.jpg"
+ },
+ "helio": {
+  "pl": {
+   "name": "Słonecznica",
+   "sub": "Actinosphaerium · promienionóżka",
+   "desc": "Kulka z promieniście sterczącymi, sztywnymi nibynóżkami (aksopodiami) usztywnionymi mikrotubulami. Ofiara, która ich dotknie, przykleja się i zostaje wciągnięta.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 0,2–1 mm"
+    ],
+    [
+     "Wypustki",
+     "aksopodia z mikrotubulami"
+    ],
+    [
+     "Pokarm",
+     "orzęski, wrotki, glony"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Sun animalcule",
+   "sub": "Actinosphaerium · heliozoan",
+   "desc": "A ball with rigid, radiating projections (axopodia) stiffened by microtubules. Prey that touches them sticks and is drawn in.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 0.2–1 mm"
+    ],
+    [
+     "Projections",
+     "axopodia with microtubules"
+    ],
+    [
+     "Food",
+     "ciliates, rotifers, algae"
+    ]
+   ]
+  },
+  "photo": "helio.jpg",
+  "credit": "Bob Blaylock (talk) · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Actinophryid.jpg"
+ },
+ "lacrymaria": {
+  "pl": {
+   "name": "Łza łabędzia",
+   "sub": "Lacrymaria olor · orzęsek drapieżny",
+   "desc": "Orzęsek z niezwykle rozciągliwą „szyją”, która wysuwa się wielokrotnie dalej niż długość ciała i przeszukuje wodę w poszukiwaniu ofiar.",
+   "facts": [
+    [
+     "Ciało",
+     "≈ 100 µm"
+    ],
+    [
+     "Szyja",
+     "do 7–30× długości ciała"
+    ],
+    [
+     "Pokarm",
+     "inne orzęski"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Tear of the swan",
+   "sub": "Lacrymaria olor · predatory ciliate",
+   "desc": "A ciliate with an extraordinarily extensible 'neck' that reaches many times its body length and sweeps the water for prey.",
+   "facts": [
+    [
+     "Body",
+     "≈ 100 µm"
+    ],
+    [
+     "Neck",
+     "up to 7–30× body length"
+    ],
+    [
+     "Food",
+     "other ciliates"
+    ]
+   ]
+  },
+  "photo": "lacrymaria.jpg",
+  "credit": "Picturepest · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Lacrymaria_olor_(8122155639).jpg"
+ },
+ "daphnia": {
+  "pl": {
+   "name": "Rozwielitka",
+   "sub": "Daphnia · wioślarka",
+   "desc": "Maleńki skorupiak z przezroczystym pancerzem – widać bijące serce i jelito. Filtruje glony, bakterie i orzęski; latem rozmnaża się bez samców (partenogeneza).",
+   "facts": [
+    [
+     "Długość",
+     "≈ 1–5 mm"
+    ],
+    [
+     "Pokarm",
+     "glony, bakterie, orzęski"
+    ],
+    [
+     "Rozmnażanie",
+     "partenogeneza"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Water flea",
+   "sub": "Daphnia · cladoceran",
+   "desc": "A tiny crustacean with a see-through shell – you can see its beating heart and gut. It filters algae, bacteria and ciliates; in summer it reproduces without males (parthenogenesis).",
+   "facts": [
+    [
+     "Length",
+     "≈ 1–5 mm"
+    ],
+    [
+     "Food",
+     "algae, bacteria, ciliates"
+    ],
+    [
+     "Reproduction",
+     "parthenogenesis"
+    ]
+   ]
+  },
+  "photo": "daphnia.png",
+  "credit": "(Photo: Paul Hebert) · CC BY 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Daphnia_pulex.png"
+ },
+ "volvox": {
+  "pl": {
+   "name": "Toczek",
+   "sub": "Volvox · kolonia zielenic",
+   "desc": "Kula z tysięcy komórek podobnych do Chlamydomonas, które wiciami toczą ją przez wodę. W środku rosną kolonie potomne. Jeden z pierwszych przykładów podziału na komórki rozrodcze i somatyczne.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 0,1–1 mm"
+    ],
+    [
+     "Komórki",
+     "setki – dziesiątki tysięcy"
+    ],
+    [
+     "Rozmnażanie",
+     "kolonie potomne w środku"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Volvox",
+   "sub": "Volvox · green-alga colony",
+   "desc": "A sphere of thousands of Chlamydomonas-like cells whose flagella roll it through the water. Daughter colonies grow inside. An early example of splitting into germ and body cells.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 0.1–1 mm"
+    ],
+    [
+     "Cells",
+     "hundreds to tens of thousands"
+    ],
+    [
+     "Reproduction",
+     "daughter colonies inside"
+    ]
+   ]
+  },
+  "photo": "volvox.png",
+  "credit": "Matthew Herron · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Volvox_aureus.jpg"
+ },
+ "detritus": {
+  "pl": {
+   "name": "Detrytus",
+   "sub": "szczątki organiczne",
+   "desc": "Kłaczki rozkładającej się materii – obumarłych roślin, glonów i zwierząt – obrośnięte bakteriami. Podstawa sieci pokarmowej w stawie i kryjówka dla drobnych organizmów.",
+   "facts": [
+    [
+     "Skład",
+     "martwa materia + bakterie i grzyby"
+    ],
+    [
+     "Rola",
+     "pokarm, kryjówka"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Detritus",
+   "sub": "organic debris",
+   "desc": "Flakes of decaying matter – dead plants, algae and animals – overgrown with bacteria. The base of the pond food web and a hiding place for small organisms.",
+   "facts": [
+    [
+     "Made of",
+     "dead matter + bacteria and fungi"
+    ],
+    [
+     "Role",
+     "food, shelter"
+    ]
+   ]
+  }
+ },
+ "diatom": {
+  "pl": {
+   "name": "Okrzemka",
+   "sub": "Navicula · glon w szklanym pancerzyku",
+   "desc": "Glon zamknięty w pancerzyku z krzemionki – dwóch pasujących do siebie połówkach jak pudełko. Sunie po podłożu, wydzielając śluz przez szczelinę (rafę).",
+   "facts": [
+    [
+     "Długość",
+     "≈ 10–100 µm"
+    ],
+    [
+     "Pancerzyk",
+     "krzemionka (szkło)"
+    ],
+    [
+     "Znaczenie",
+     "ok. 20% fotosyntezy na Ziemi"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Diatom",
+   "sub": "Navicula · alga in a glass shell",
+   "desc": "An alga enclosed in a silica shell – two matching halves like a box. It glides along surfaces by secreting mucilage through a slit (raphe).",
+   "facts": [
+    [
+     "Length",
+     "≈ 10–100 µm"
+    ],
+    [
+     "Shell",
+     "silica (glass)"
+    ],
+    [
+     "Importance",
+     "about 20% of Earth's photosynthesis"
+    ]
+   ]
+  },
+  "photo": "diatom.jpg",
+  "credit": "zookanthos · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Navicula_oblonga_115647672.jpg"
+ },
+ "cosmarium": {
+  "pl": {
+   "name": "Desmidia",
+   "sub": "Cosmarium · zielenica",
+   "desc": "Glon z dwóch symetrycznych półkomórek połączonych przewężeniem. Desmidie lubią czyste, lekko kwaśne wody torfowisk.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 20–100 µm"
+    ],
+    [
+     "Budowa",
+     "dwie półkomórki"
+    ],
+    [
+     "Żyje",
+     "torfowiska, czyste stawy"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Desmid",
+   "sub": "Cosmarium · green alga",
+   "desc": "An alga made of two symmetrical half-cells joined by a narrow isthmus. Desmids like clean, slightly acidic bog water.",
+   "facts": [
+    [
+     "Size",
+     "≈ 20–100 µm"
+    ],
+    [
+     "Structure",
+     "two half-cells"
+    ],
+    [
+     "Lives in",
+     "bogs, clean ponds"
+    ]
+   ]
+  },
+  "photo": "cosmarium.jpg",
+  "credit": "Berezovska · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Algae_Cosmarium.jpg"
+ },
+ "closterium": {
+  "pl": {
+   "name": "Desmidia półksiężycowata",
+   "sub": "Closterium · zielenica",
+   "desc": "Glon w kształcie półksiężyca. W wakuolach na obu końcach drgają kryształki (m.in. siarczanu baru).",
+   "facts": [
+    [
+     "Długość",
+     "≈ 100–500 µm"
+    ],
+    [
+     "Ciekawostka",
+     "drgające kryształy w wakuolach"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Crescent desmid",
+   "sub": "Closterium · green alga",
+   "desc": "A crescent-shaped alga. In vacuoles at both ends tiny crystals (including barium sulfate) jiggle.",
+   "facts": [
+    [
+     "Length",
+     "≈ 100–500 µm"
+    ],
+    [
+     "Curiosity",
+     "jiggling crystals in vacuoles"
+    ]
+   ]
+  },
+  "photo": "closterium.jpg",
+  "credit": "derekkeats · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:The_desmid,_Clostarium.jpg"
+ },
+ "floc": {
+  "pl": {
+   "name": "Kłaczek bakterii",
+   "sub": "agregat bakterii w śluzie",
+   "desc": "Skupisko bakterii sklejonych wydzielanym przez nie śluzem (EPS). Dla orzęsków i ameb to gotowy posiłek.",
+   "facts": [
+    [
+     "Rozmiar",
+     "kilka – kilkadziesiąt µm"
+    ],
+    [
+     "Spoiwo",
+     "polisacharydy, białka, DNA"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bacterial floc",
+   "sub": "bacterial aggregate in slime",
+   "desc": "A clump of bacteria glued together by the slime they secrete (EPS). A ready meal for ciliates and amoebae.",
+   "facts": [
+    [
+     "Size",
+     "a few to tens of µm"
+    ],
+    [
+     "Glue",
+     "polysaccharides, proteins, DNA"
+    ]
+   ]
+  }
+ },
+ "amoeba": {
+  "pl": {
+   "name": "Ameba",
+   "sub": "Amoeba proteus · pełzak",
+   "desc": "Komórka bez stałego kształtu, która pełznie, wypuszczając nibynóżki. Otacza pokarm i zamyka go w wodniczce; wodniczka tętniąca usuwa nadmiar wody.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 200–800 µm"
+    ],
+    [
+     "Ruch",
+     "nibynóżki, kilka µm/s"
+    ],
+    [
+     "Pokarm",
+     "orzęski, glony, bakterie"
+    ],
+    [
+     "Rozmnażanie",
+     "podział na dwie"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Amoeba",
+   "sub": "Amoeba proteus",
+   "desc": "A cell with no fixed shape that crawls by extending pseudopods. It surrounds food and closes it in a vacuole; a contractile vacuole removes excess water.",
+   "facts": [
+    [
+     "Size",
+     "≈ 200–800 µm"
+    ],
+    [
+     "Motion",
+     "pseudopods, a few µm/s"
+    ],
+    [
+     "Food",
+     "ciliates, algae, bacteria"
+    ],
+    [
+     "Reproduction",
+     "splits in two"
+    ]
+   ]
+  },
+  "photo": "amoeba.png",
+  "credit": "SmallRex · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Amoeba_proteus_locomotive_form.jpg"
+ },
+ "rotifer": {
+  "pl": {
+   "name": "Wrotek",
+   "sub": "Philodina · wrotek bdelloidalny",
+   "desc": "Wielokomórkowe zwierzę mniejsze od niektórych jednokomórkowców. Dwa wieńce rzęsek wyglądają jak kręcące się kółka i wciągają pokarm. Wrotki bdelloidalne od dziesiątek milionów lat rozmnażają się bez samców i przeżywają całkowite wyschnięcie.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 300–450 µm"
+    ],
+    [
+     "Szczęki",
+     "mastaks mieli pokarm"
+    ],
+    [
+     "Przetrwanie",
+     "anhydrobioza"
+    ],
+    [
+     "Ruch",
+     "pełzanie jak pijawka"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Rotifer",
+   "sub": "Philodina · bdelloid rotifer",
+   "desc": "A multicellular animal smaller than some single-celled organisms. Two ciliary crowns look like spinning wheels and draw food in. Bdelloid rotifers have reproduced without males for tens of millions of years and survive complete drying.",
+   "facts": [
+    [
+     "Length",
+     "≈ 300–450 µm"
+    ],
+    [
+     "Jaws",
+     "the mastax grinds food"
+    ],
+    [
+     "Survival",
+     "anhydrobiosis"
+    ],
+    [
+     "Motion",
+     "inchworm crawling"
+    ]
+   ]
+  },
+  "photo": "rotifer.jpg",
+  "credit": "Juan Carlos Fonseca Mata · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Philodina_sp._(Class%CB%90_Bdelloidea)_-_Rotifera.jpg"
+ },
+ "vorticella": {
+  "pl": {
+   "name": "Wirczyk",
+   "sub": "Vorticella · orzęsek na trzonku",
+   "desc": "Dzwoneczek na sprężystym trzonku. Przy dotknięciu trzonek w milisekundy zwija się w sprężynkę – napędza go białkowa sprężyna (spazmonem) zasilana jonami wapnia, bez ATP.",
+   "facts": [
+    [
+     "Dzwonek",
+     "≈ 50–100 µm"
+    ],
+    [
+     "Skurcz",
+     "kilka milisekund"
+    ],
+    [
+     "Napęd",
+     "spazmina + Ca²⁺"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Vorticella",
+   "sub": "Vorticella · stalked ciliate",
+   "desc": "A little bell on an elastic stalk. When touched the stalk coils into a spring in milliseconds – powered by a protein spring (spasmoneme) driven by calcium ions, not ATP.",
+   "facts": [
+    [
+     "Bell",
+     "≈ 50–100 µm"
+    ],
+    [
+     "Contraction",
+     "a few milliseconds"
+    ],
+    [
+     "Drive",
+     "spasmin + Ca²⁺"
+    ]
+   ]
+  },
+  "photo": "vorticella.jpg",
+  "credit": "Bwiltz · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Vorticella_1.jpg"
+ },
+ "spirocell": {
+  "pl": {
+   "name": "Skrętnica",
+   "sub": "Spirogyra · zielenica nitkowata",
+   "desc": "Nitka walcowatych komórek, w których chloroplasty skręcają się w spiralne wstęgi. Tworzy zielone „waty” w stawach.",
+   "facts": [
+    [
+     "Grubość nitki",
+     "≈ 10–100 µm"
+    ],
+    [
+     "Chloroplast",
+     "spiralna wstęga"
+    ],
+    [
+     "Rozmnażanie",
+     "koniugacja nitek"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Spirogyra",
+   "sub": "filamentous green alga",
+   "desc": "A thread of cylindrical cells in which the chloroplasts wind into spiral ribbons. It forms green 'cotton' mats in ponds.",
+   "facts": [
+    [
+     "Filament width",
+     "≈ 10–100 µm"
+    ],
+    [
+     "Chloroplast",
+     "spiral ribbon"
+    ],
+    [
+     "Reproduction",
+     "conjugation between threads"
+    ]
+   ]
+  },
+  "photo": "spirocell.jpg",
+  "credit": "Wiedehopf20 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:The_freshwater_alga_Spirogyra.jpg"
+ },
+ "tardigrade": {
+  "pl": {
+   "name": "Niesporczak",
+   "sub": "Hypsibius exemplaris · Tardigrada",
+   "desc": "Ośmionogi „miś wodny” chodzący jak owad. Wysysa glony sztyletami. Gdy mech wysycha, zwija się w beczułkę i przechodzi w anhydrobiozę – niesporczaki przeżyły nawet ekspozycję na próżnię kosmiczną.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 250 µm"
+    ],
+    [
+     "Chód",
+     "≈ 163 µm/s (pół długości ciała na s)"
+    ],
+    [
+     "Przetrwanie",
+     "beczułka – lata bez wody"
+    ],
+    [
+     "Nogi",
+     "4 pary z pazurkami"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Tardigrade",
+   "sub": "Hypsibius exemplaris · Tardigrada",
+   "desc": "An eight-legged 'water bear' that walks like an insect. It sucks out algae with stylets. When the moss dries it curls into a tun and enters anhydrobiosis – tardigrades have even survived exposure to the vacuum of space.",
+   "facts": [
+    [
+     "Length",
+     "≈ 250 µm"
+    ],
+    [
+     "Walking",
+     "≈ 163 µm/s (half a body length per s)"
+    ],
+    [
+     "Survival",
+     "tun – years without water"
+    ],
+    [
+     "Legs",
+     "4 pairs with claws"
+    ]
+   ]
+  },
+  "photo": "tardigrade.png",
+  "credit": "Willow Gabriel, Goldstein Lab · CC BY-SA 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Hypsibiusdujardini.jpg"
+ },
+ "milnesium": {
+  "pl": {
+   "name": "Niesporczak drapieżny",
+   "sub": "Milnesium · Tardigrada",
+   "desc": "Duży niesporczak z szerokim otworem gębowym. Poluje na wrotki, nicienie i mniejsze niesporczaki, przebijając ich oskórek sztyletami.",
+   "facts": [
+    [
+     "Długość",
+     "do ~0,7 mm"
+    ],
+    [
+     "Ofiary",
+     "wrotki, nicienie, niesporczaki"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Predatory tardigrade",
+   "sub": "Milnesium · Tardigrada",
+   "desc": "A large tardigrade with a wide mouth. It hunts rotifers, nematodes and smaller tardigrades, piercing their cuticle with stylets.",
+   "facts": [
+    [
+     "Length",
+     "up to ~0.7 mm"
+    ],
+    [
+     "Prey",
+     "rotifers, nematodes, tardigrades"
+    ]
+   ]
+  },
+  "photo": "milnesium.jpg",
+  "credit": "Hoddyfool · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Milnesium_tardigradum.jpg"
+ },
+ "mossleaf": {
+  "pl": {
+   "name": "Listek mchu",
+   "sub": "Bryophyta · mech",
+   "desc": "Blaszka z jednej warstwy komórek z chloroplastami i żeberkiem pośrodku. Między listkami utrzymuje się cienka błonka wody – świat niesporczaków, wrotków i nicieni.",
+   "facts": [
+    [
+     "Grubość",
+     "jedna warstwa komórek"
+    ],
+    [
+     "Rola",
+     "zatrzymuje wodę"
+    ],
+    [
+     "Mieszkańcy",
+     "niesporczaki, wrotki, nicienie"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Moss leaf",
+   "sub": "Bryophyta · moss",
+   "desc": "A blade one cell layer thick, with chloroplasts and a midrib. A thin film of water stays between the leaves – the world of tardigrades, rotifers and nematodes.",
+   "facts": [
+    [
+     "Thickness",
+     "one cell layer"
+    ],
+    [
+     "Role",
+     "holds water"
+    ],
+    [
+     "Inhabitants",
+     "tardigrades, rotifers, nematodes"
+    ]
+   ]
+  },
+  "photo": "mossleaf.jpg",
+  "credit": "Des_Callaghan · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bryum_capillare_leaf_cells.jpg"
+ },
+ "exuvia": {
+  "pl": {
+   "name": "Wylinka z jajami",
+   "sub": "zrzucony oskórek niesporczaka",
+   "desc": "Niesporczak rośnie, linijąc. Samica Hypsibius składa jaja do starego oskórka, który zostaje jak kołyska; młode wykluwają się po kilku dniach.",
+   "facts": [
+    [
+     "Jaja",
+     "zwykle kilka"
+    ],
+    [
+     "Rozmnażanie",
+     "partenogeneza"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Moult with eggs",
+   "sub": "shed tardigrade cuticle",
+   "desc": "A tardigrade grows by moulting. A Hypsibius female lays eggs inside her old cuticle, which stays behind like a cradle; the young hatch after a few days.",
+   "facts": [
+    [
+     "Eggs",
+     "usually a few"
+    ],
+    [
+     "Reproduction",
+     "parthenogenesis"
+    ]
+   ]
+  },
+  "photo": "exuvia.jpg",
+  "credit": "Bob Blaylock · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:TardigradeEggsInShedCuticle.jpg"
+ },
+ "chlorella": {
+  "pl": {
+   "name": "Chlorella",
+   "sub": "Chlorella · zielenica jednokomórkowa",
+   "desc": "Kulisty glon pełen chlorofilu, jeden z najpospolitszych na świecie. Pokarm niesporczaków i symbiont pantofelka zielonego.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 2–10 µm"
+    ],
+    [
+     "Energia",
+     "fotosynteza"
+    ],
+    [
+     "Rozmnażanie",
+     "autospory"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Chlorella",
+   "sub": "Chlorella · unicellular green alga",
+   "desc": "A spherical alga full of chlorophyll, one of the commonest in the world. Food for tardigrades and a symbiont of the green paramecium.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 2–10 µm"
+    ],
+    [
+     "Energy",
+     "photosynthesis"
+    ],
+    [
+     "Reproduction",
+     "autospores"
+    ]
+   ]
+  },
+  "photo": "chlorella.jpg",
+  "credit": "ja:User:NEON / User:NEON_ja · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Chlorella_vulgaris_NIES2170.jpg"
+ },
+ "dictycell": {
+  "pl": {
+   "name": "Ameba społeczna",
+   "sub": "Dictyostelium discoideum",
+   "desc": "Ameba z leśnej ściółki. Dopóki są bakterie, żyje samotnie i dzieli się; w głodzie komórki wysyłają fale cAMP, zbiegają się w tysiące i tworzą wspólny organizm.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 10 µm"
+    ],
+    [
+     "Sygnał",
+     "cykliczny AMP"
+    ],
+    [
+     "Pełzanie",
+     "≈ 8–16 µm/min"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Social amoeba",
+   "sub": "Dictyostelium discoideum",
+   "desc": "An amoeba from forest leaf litter. While bacteria last it lives alone and divides; when starving the cells send out cAMP waves, stream together in thousands and form a joint organism.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 10 µm"
+    ],
+    [
+     "Signal",
+     "cyclic AMP"
+    ],
+    [
+     "Crawling",
+     "≈ 8–16 µm/min"
+    ]
+   ]
+  }
+ },
+ "mound": {
+  "pl": {
+   "name": "Agregat",
+   "sub": "kopczyk Dictyostelium",
+   "desc": "Zbiorowisko do ~100 000 ameb, które zeszły się na sygnał cAMP. Z czubka kopczyka powstanie ślimak.",
+   "facts": [
+    [
+     "Komórki",
+     "do ~100 000"
+    ],
+    [
+     "Następny etap",
+     "ślimak"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Aggregate",
+   "sub": "Dictyostelium mound",
+   "desc": "A gathering of up to ~100,000 amoebae that came together on a cAMP signal. A slug will form from the mound's tip.",
+   "facts": [
+    [
+     "Cells",
+     "up to ~100,000"
+    ],
+    [
+     "Next stage",
+     "the slug"
+    ]
+   ]
+  },
+  "photo": "mound.jpg",
+  "credit": "Bruno in Columbus · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dictyostelium_Late_Aggregation_1.JPG"
+ },
+ "slug": {
+  "pl": {
+   "name": "Ślimak (pseudoplazmodium)",
+   "sub": "Dictyostelium discoideum",
+   "desc": "Tysiące ameb pełznących razem jak jeden organizm, w pochwie ze śluzu. Kieruje się do światła i ciepła, szukając miejsca na owocnik.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 1–2 mm"
+    ],
+    [
+     "Kierunek",
+     "światło, ciepło"
+    ],
+    [
+     "Przód",
+     "przyszły trzonek"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Slug (pseudoplasmodium)",
+   "sub": "Dictyostelium discoideum",
+   "desc": "Thousands of amoebae crawling together as one organism in a slime sheath. It heads towards light and warmth, looking for a place to fruit.",
+   "facts": [
+    [
+     "Length",
+     "≈ 1–2 mm"
+    ],
+    [
+     "Direction",
+     "light, warmth"
+    ],
+    [
+     "Front",
+     "future stalk"
+    ]
+   ]
+  },
+  "photo": "slug.jpg",
+  "credit": "Tyler J Larsen · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dictyostelium_discoideum_slug_1.tif"
+ },
+ "fruitbody": {
+  "pl": {
+   "name": "Owocnik",
+   "sub": "Dictyostelium · trzonek i zarodnie",
+   "desc": "Ok. 20% komórek ginie, budując trzonek z celulozy, a reszta zostaje zarodnikami na szczycie. Altruizm na poziomie komórek – komórki trzonka pomagają spokrewnionym zarodnikom.",
+   "facts": [
+    [
+     "Wysokość",
+     "≈ 1–2 mm"
+    ],
+    [
+     "Trzonek",
+     "≈ 20% komórek (giną)"
+    ],
+    [
+     "Zarodniki",
+     "przetrwają suszę"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Fruiting body",
+   "sub": "Dictyostelium · stalk and spore head",
+   "desc": "About 20% of the cells die building a cellulose stalk, while the rest become spores on top. Altruism at the cell level – stalk cells help related spores.",
+   "facts": [
+    [
+     "Height",
+     "≈ 1–2 mm"
+    ],
+    [
+     "Stalk",
+     "≈ 20% of cells (they die)"
+    ],
+    [
+     "Spores",
+     "survive drought"
+    ]
+   ]
+  },
+  "photo": "fruitbody.jpg",
+  "credit": "Bruno in Columbus · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Dictyostelium_Fruiting_Bodies.JPG"
+ },
+ "sperm": {
+  "pl": {
+   "name": "Plemnik",
+   "sub": "Homo sapiens · gameta męska",
+   "desc": "Komórka z głową pełną DNA ojca, wstawką z mitochondriami i długą witką bijącą ~15–25 razy na sekundę. Z ~200 mln plemników do komórki jajowej dociera najwyżej kilkaset.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 55 µm (główka 4,5 µm)"
+    ],
+    [
+     "Prędkość",
+     "≈ 25–60 µm/s"
+    ],
+    [
+     "DNA",
+     "haploidalny zestaw (23 chromosomy)"
+    ],
+    [
+     "Życie",
+     "do ~5 dni w drogach rodnych"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Sperm cell",
+   "sub": "Homo sapiens · male gamete",
+   "desc": "A cell with a head full of the father's DNA, a midpiece of mitochondria and a long tail beating ~15–25 times a second. Out of ~200 million sperm, at most a few hundred reach the egg.",
+   "facts": [
+    [
+     "Length",
+     "≈ 55 µm (head 4.5 µm)"
+    ],
+    [
+     "Speed",
+     "≈ 25–60 µm/s"
+    ],
+    [
+     "DNA",
+     "haploid set (23 chromosomes)"
+    ],
+    [
+     "Lifespan",
+     "up to ~5 days in the female tract"
+    ]
+   ]
+  },
+  "photo": "sperm.jpg",
+  "credit": "Enver Kerem Dirican · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Human_Spermatozoa,_Scanning_Electron_Micrograph.jpg"
+ },
+ "oocyte": {
+  "pl": {
+   "name": "Komórka jajowa",
+   "sub": "oocyt II rzędu · Homo sapiens",
+   "desc": "Największa komórka ludzkiego ciała, widoczna prawie gołym okiem. Otacza ją osłonka przejrzysta i wzgórek jajonośny. Po wniknięciu jednego plemnika osłonka twardnieje.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 110–120 µm"
+    ],
+    [
+     "Osłonka",
+     "≈ 13–15 µm (ZP1–ZP4)"
+    ],
+    [
+     "Czas",
+     "zdolna do zapłodnienia ~12–24 h"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Egg cell",
+   "sub": "secondary oocyte · Homo sapiens",
+   "desc": "The largest cell in the human body, almost visible to the naked eye. It is surrounded by the zona pellucida and the cumulus. Once one sperm enters, the zona hardens.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 110–120 µm"
+    ],
+    [
+     "Zona",
+     "≈ 13–15 µm (ZP1–ZP4)"
+    ],
+    [
+     "Window",
+     "fertilisable for ~12–24 h"
+    ]
+   ]
+  },
+  "photo": "oocyte.jpg",
+  "credit": "ZEISS Microscopy from Germany · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Oocyte_with_Zona_pellucida_(27771482282).jpg"
+ },
+ "tumorcell": {
+  "pl": {
+   "name": "Komórka nowotworowa",
+   "sub": "rak (carcinoma)",
+   "desc": "Komórka nabłonka, która przez mutacje wymknęła się kontroli podziałów. Ma duże, nieregularne jądro z wyraźnymi jąderkami. Może przejść EMT, wędrować, wnikać do naczyń i tworzyć przerzuty.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 15–20 µm"
+    ],
+    [
+     "Cykl",
+     "≈ 1–2 doby"
+    ],
+    [
+     "Przerzuty",
+     "zdecydowana większość krążących komórek ginie"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cancer cell",
+   "sub": "carcinoma",
+   "desc": "An epithelial cell that escaped the control of division through mutations. It has a large irregular nucleus with prominent nucleoli. It can undergo EMT, migrate, enter vessels and form metastases.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 15–20 µm"
+    ],
+    [
+     "Cycle",
+     "≈ 1–2 days"
+    ],
+    [
+     "Metastasis",
+     "the vast majority of circulating cells die"
+    ]
+   ]
+  },
+  "photo": "tumorcell.jpg",
+  "credit": "Catfaster · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:HeLa_Cells_Culture_Phase_Contrast_1_v1.jpg"
+ },
+ "ctl": {
+  "pl": {
+   "name": "Limfocyt T cytotoksyczny",
+   "sub": "limfocyt T CD8⁺",
+   "desc": "Zabójca komórek: rozpoznaje obcy fragment białka na MHC-I, tworzy synapsę i wstrzykuje perforynę z granzymami. Pojedyncze trafienie rzadko zabija – uszkodzenia się sumują.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 7–10 µm"
+    ],
+    [
+     "Rozpoznaje",
+     "antygen na MHC-I"
+    ],
+    [
+     "Hamulec",
+     "PD-1 / PD-L1"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cytotoxic T cell",
+   "sub": "CD8⁺ T lymphocyte",
+   "desc": "A cell killer: it recognises a foreign protein fragment on MHC-I, forms a synapse and injects perforin with granzymes. A single hit rarely kills – the damage adds up.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 7–10 µm"
+    ],
+    [
+     "Recognises",
+     "antigen on MHC-I"
+    ],
+    [
+     "Brake",
+     "PD-1 / PD-L1"
+    ]
+   ]
+  },
+  "photo": "ctl.jpg",
+  "credit": "The National Institutes of Health · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Killer_T_cells_surround_a_cancer_cell.png"
+ },
+ "nk": {
+  "pl": {
+   "name": "Komórka NK",
+   "sub": "naturalny zabójca",
+   "desc": "Limfocyt odporności wrodzonej. Zabija komórki, na których brakuje cząsteczek MHC-I („brak swojego”) – tak wyłapuje komórki zakażone wirusem i nowotworowe.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 10–12 µm"
+    ],
+    [
+     "Zasada",
+     "„brak swojego” (1990)"
+    ],
+    [
+     "We krwi",
+     "ok. 5–15% limfocytów"
+    ]
+   ]
+  },
+  "en": {
+   "name": "NK cell",
+   "sub": "natural killer",
+   "desc": "An innate-immunity lymphocyte. It kills cells that lack MHC-I molecules ('missing self') – that is how it catches virus-infected and cancer cells.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 10–12 µm"
+    ],
+    [
+     "Principle",
+     "'missing self' (1990)"
+    ],
+    [
+     "In blood",
+     "about 5–15% of lymphocytes"
+    ]
+   ]
+  },
+  "photo": "nk.png",
+  "credit": "NIAID · CC BY 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Human_Natural_Killer_Cell_-_51630111330.jpg"
+ },
+ "trypanosome": {
+  "pl": {
+   "name": "Świdrowiec",
+   "sub": "Trypanosoma brucei · pasożyt krwi",
+   "desc": "Wiciowiec wywołujący śpiączkę afrykańską, przenoszony przez muchę tse-tse. Płaszcz jednego białka VSG co pewien czas wymienia na inny, więc przeciwciała nie nadążają.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 20–30 µm"
+    ],
+    [
+     "Podział",
+     "co ~6 h"
+    ],
+    [
+     "Płaszcz",
+     "~10 mln cząsteczek VSG"
+    ],
+    [
+     "Geny VSG",
+     "ok. 2000"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Trypanosome",
+   "sub": "Trypanosoma brucei · blood parasite",
+   "desc": "A flagellate that causes African sleeping sickness, carried by the tsetse fly. From time to time it swaps its coat of a single VSG protein for another, so antibodies cannot keep up.",
+   "facts": [
+    [
+     "Length",
+     "≈ 20–30 µm"
+    ],
+    [
+     "Division",
+     "every ~6 h"
+    ],
+    [
+     "Coat",
+     "~10 million VSG molecules"
+    ],
+    [
+     "VSG genes",
+     "about 2000"
+    ]
+   ]
+  },
+  "photo": "trypanosome.jpg",
+  "credit": "Photo Credit: Content Providers: CDC/Dr. Myron G. Schultz · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Trypanosoma_sp._PHIL_613_lores_(cropped).jpg"
+ },
+ "kupffer": {
+  "pl": {
+   "name": "Komórka Kupffera",
+   "sub": "makrofag osiadły wątroby",
+   "desc": "Makrofag wyściełający naczynia zatokowe wątroby. Wyłapuje z krwi bakterie, zużyte krwinki i pasożyty oznaczone przeciwciałami lub dopełniaczem.",
+   "facts": [
+    [
+     "Miejsce",
+     "zatoki wątroby"
+    ],
+    [
+     "Zadanie",
+     "filtr krwi"
+    ],
+    [
+     "Udział",
+     "największa pula makrofagów w ciele"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Kupffer cell",
+   "sub": "resident liver macrophage",
+   "desc": "A macrophage lining the liver's sinusoids. It catches bacteria, worn-out blood cells and parasites tagged with antibodies or complement from the blood.",
+   "facts": [
+    [
+     "Location",
+     "liver sinusoids"
+    ],
+    [
+     "Job",
+     "blood filter"
+    ],
+    [
+     "Share",
+     "the body's largest macrophage pool"
+    ]
+   ]
+  },
+  "photo": "kupffer.jpg",
+  "credit": "Nephron · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Kupffer_cells_high_mag_cropped.jpg"
+ },
+ "nanobot": {
+  "pl": {
+   "name": "Nanobot",
+   "sub": "maszyna – obiekt fikcyjny",
+   "desc": "Tryb eksploracji. Takich robotów jeszcze nie ma – to wyobrażenie. Prawdziwe mikroroboty (np. napędzane polem magnetycznym) mają zwykle co najmniej kilka mikrometrów.",
+   "facts": [
+    [
+     "Status",
+     "fikcja naukowa"
+    ],
+    [
+     "Laser",
+     "tylko w grze"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Nanobot",
+   "sub": "machine – fictional object",
+   "desc": "The exploration mode. Such robots do not exist yet – it is imagination. Real microrobots (e.g. driven by magnetic fields) are usually at least several micrometres in size.",
+   "facts": [
+    [
+     "Status",
+     "science fiction"
+    ],
+    [
+     "Laser",
+     "game only"
+    ]
+   ]
+  }
+ },
+ "tem": {
+  "pl": {
+   "name": "Obraz z mikroskopu elektronowego",
+   "sub": "TEM · transmisyjny mikroskop elektronowy",
+   "desc": "Zamiast światła – wiązka elektronów, dlatego widać obiekty tysiące razy mniejsze niż w mikroskopie świetlnym, np. pojedyncze wirusy. Preparat leży w próżni; barwy dodaje się komputerowo.",
+   "facts": [
+    [
+     "Rozdzielczość",
+     "poniżej 1 nm"
+    ],
+    [
+     "Barwienie",
+     "negatywne – sole metali ciężkich"
+    ],
+    [
+     "Kolory",
+     "sztuczne (fałszywe barwy)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Electron microscope image",
+   "sub": "TEM · transmission electron microscope",
+   "desc": "An electron beam instead of light, so objects thousands of times smaller than in a light microscope become visible – single viruses, for example. The sample sits in a vacuum; colours are added by computer.",
+   "facts": [
+    [
+     "Resolution",
+     "below 1 nm"
+    ],
+    [
+     "Staining",
+     "negative – heavy-metal salts"
+    ],
+    [
+     "Colours",
+     "artificial (false colour)"
+    ]
+   ]
+  },
+  "photo": "tem.jpg",
+  "credit": "Gannu03 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Transmission_electron_microscope_(2).jpg"
+ },
+ "biofilm": {
+  "pl": {
+   "name": "Biofilm",
+   "sub": "wspólnota bakterii w macierzy",
+   "desc": "Bakterie przyklejone do powierzchni i zatopione w wydzielanym śluzie (EPS) z kanalikami na wodę. W biofilmie bakterie są wielokrotnie bardziej odporne na antybiotyki.",
+   "facts": [
+    [
+     "Macierz",
+     "polisacharydy, białka, DNA"
+    ],
+    [
+     "Tolerancja",
+     "do ~1000× więcej antybiotyku"
+    ],
+    [
+     "Przykłady",
+     "płytka nazębna, kamień w rurach"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Biofilm",
+   "sub": "bacterial community in a matrix",
+   "desc": "Bacteria stuck to a surface and embedded in secreted slime (EPS) with water channels. In a biofilm bacteria are many times more resistant to antibiotics.",
+   "facts": [
+    [
+     "Matrix",
+     "polysaccharides, proteins, DNA"
+    ],
+    [
+     "Tolerance",
+     "up to ~1000× more antibiotic"
+    ],
+    [
+     "Examples",
+     "dental plaque, pipe scale"
+    ]
+   ]
+  },
+  "photo": "biofilm.jpg",
+  "credit": "Krzysztof A. Zacharski · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Mixed-culture_biofilm.jpg"
+ },
+ "venule": {
+  "pl": {
+   "name": "Żyłka pozawłośniczkowa",
+   "sub": "naczynie krwionośne",
+   "desc": "Najmniejsze żyły zaraz za naczyniami włosowatymi. Tu leukocyty toczą się po ścianie, przylegają i przeciskają się do tkanki (diapedeza). Krew płynie ok. 0,5–2 mm/s.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 10–50 µm"
+    ],
+    [
+     "Ściana",
+     "śródbłonek + pericyty"
+    ],
+    [
+     "Zadanie",
+     "wyjście leukocytów do tkanki"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Post-capillary venule",
+   "sub": "blood vessel",
+   "desc": "The smallest veins right after the capillaries. Here white cells roll along the wall, stick and squeeze into the tissue (diapedesis). Blood flows at about 0.5–2 mm/s.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 10–50 µm"
+    ],
+    [
+     "Wall",
+     "endothelium + pericytes"
+    ],
+    [
+     "Job",
+     "exit of white cells into tissue"
+    ]
+   ]
+  },
+  "photo": "venule.jpg",
+  "credit": "Doc. RNDr. Josef Reischig, CSc. · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Venule_(238_12A)_With_a_vein_valve;_cross-section;_human.jpg"
+ },
+ "endothelium": {
+  "pl": {
+   "name": "Śródbłonek",
+   "sub": "ściana naczynia",
+   "desc": "Pojedyncza warstwa płaskich komórek wyściełająca wszystkie naczynia. Decyduje, co przechodzi z krwi do tkanki; w zapaleniu wystawia cząsteczki, na których „hamują” leukocyty.",
+   "facts": [
+    [
+     "Grubość",
+     "≈ 0,2–2 µm"
+    ],
+    [
+     "Powierzchnia",
+     "setki m² w całym ciele"
+    ],
+    [
+     "Cząsteczki",
+     "selektyny, integryny, VE-kadheryna"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Endothelium",
+   "sub": "vessel wall",
+   "desc": "A single layer of flat cells lining every vessel. It decides what passes from blood into tissue; in inflammation it displays molecules on which white cells 'brake'.",
+   "facts": [
+    [
+     "Thickness",
+     "≈ 0.2–2 µm"
+    ],
+    [
+     "Area",
+     "hundreds of m² in the whole body"
+    ],
+    [
+     "Molecules",
+     "selectins, integrins, VE-cadherin"
+    ]
+   ]
+  },
+  "photo": "endothelium.jpg",
+  "credit": "BigLew99 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:HUVECs.jpg"
+ },
+ "interstitium": {
+  "pl": {
+   "name": "Tkanka łączna",
+   "sub": "przestrzeń śródmiąższowa",
+   "desc": "Przestrzeń między komórkami wypełniona żelem z kwasu hialuronowego i proteoglikanów, poprzecinanym włóknami kolagenu i elastyny. Płyn tkankowy przesącza się przez nią ~0,1–1 µm/s.",
+   "facts": [
+    [
+     "Włókna",
+     "kolagen, elastyna"
+    ],
+    [
+     "Żel",
+     "kwas hialuronowy, proteoglikany"
+    ],
+    [
+     "Mieszkańcy",
+     "fibroblasty, makrofagi, mastocyty"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Connective tissue",
+   "sub": "interstitial space",
+   "desc": "The space between cells filled with a gel of hyaluronan and proteoglycans, crossed by collagen and elastin fibres. Tissue fluid seeps through it at ~0.1–1 µm/s.",
+   "facts": [
+    [
+     "Fibres",
+     "collagen, elastin"
+    ],
+    [
+     "Gel",
+     "hyaluronan, proteoglycans"
+    ],
+    [
+     "Residents",
+     "fibroblasts, macrophages, mast cells"
+    ]
+   ]
+  },
+  "photo": "interstitium.jpg",
+  "credit": "Berkshire Community College Bioscience Image Library · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Connective_Tissue_Loose_Aerolar_(41743649782).jpg"
+ },
+ "sprout": {
+  "pl": {
+   "name": "Kiełek naczynia",
+   "sub": "angiogeneza",
+   "desc": "Nowe naczynie wyrastające z istniejącego. Prowadzi je komórka szczytowa z filopodiami, która podąża za VEGF z niedotlenionych komórek. Guzy wykorzystują to, by się odżywiać.",
+   "facts": [
+    [
+     "Sygnał",
+     "VEGF (z niedotlenienia, HIF-1α)"
+    ],
+    [
+     "Tempo",
+     "≈ 0,2 mm na dobę (rogówka królika)"
+    ],
+    [
+     "Odkrywca",
+     "Judah Folkman, 1971"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Vessel sprout",
+   "sub": "angiogenesis",
+   "desc": "A new vessel growing out of an existing one. It is led by a tip cell with filopodia that follows VEGF from oxygen-starved cells. Tumours exploit this to feed themselves.",
+   "facts": [
+    [
+     "Signal",
+     "VEGF (from hypoxia, HIF-1α)"
+    ],
+    [
+     "Rate",
+     "≈ 0.2 mm per day (rabbit cornea)"
+    ],
+    [
+     "Pioneer",
+     "Judah Folkman, 1971"
+    ]
+   ]
+  },
+  "photo": "sprout.jpg",
+  "credit": "Piotr Cywoniuk, Foundation of Research and Science Developm… · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Formation_of_the_new_blood_vessels.jpg"
+ },
+ "capillary": {
+  "pl": {
+   "name": "Naczynie włosowate",
+   "sub": "kapilara · najmniejsze naczynie krwionośne",
+   "desc": "Rurka z jednej warstwy komórek śródbłonka, tak wąska, że erytrocyty przeciskają się przez nią gęsiego, wygięte w „spadochron”. Tu krew oddaje tlen i odbiera dwutlenek węgla. Gęsta sieć kapilar sprawia, że żadna komórka zdrowej tkanki nie leży daleko od krwi; w litym guzie komórki ściskają kapilary i przepływ ustaje.",
+   "facts": [
+    [
+     "Średnica",
+     "≈ 5–8 µm"
+    ],
+    [
+     "Ściana",
+     "śródbłonek + pericyty"
+    ],
+    [
+     "Zasięg tlenu",
+     "≈ 100–200 µm od naczynia"
+    ],
+    [
+     "Przepływ",
+     "≈ 0,3–1 mm/s"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Capillary",
+   "sub": "the smallest blood vessel",
+   "desc": "A tube made of a single layer of endothelial cells, so narrow that red blood cells squeeze through in single file, bent into a 'parachute'. Here blood gives up oxygen and takes up carbon dioxide. The dense capillary network keeps every cell of healthy tissue close to blood; in a solid tumour, cells squeeze capillaries shut and flow stops.",
+   "facts": [
+    [
+     "Diameter",
+     "≈ 5–8 µm"
+    ],
+    [
+     "Wall",
+     "endothelium + pericytes"
+    ],
+    [
+     "Oxygen reach",
+     "≈ 100–200 µm from the vessel"
+    ],
+    [
+     "Flow",
+     "≈ 0.3–1 mm/s"
+    ]
+   ]
+  }
+ },
+ "caf": {
+  "pl": {
+   "name": "Fibroblast związany z nowotworem (CAF)",
+   "sub": "miofibroblast α-SMA⁺ · zrąb guza",
+   "desc": "Fibroblast przestawiony przez komórki raka: większy, z grubymi włóknami naprężeniowymi. Otacza guz i odkłada gęsty, sztywny kolagen (desmoplazja), porządkuje jego włókna w „szyny”, po których wędrują komórki raka, i często sam prowadzi ich inwazję.",
+   "facts": [
+    [
+     "Znacznik",
+     "α-SMA, FAP"
+    ],
+    [
+     "Robi",
+     "kolagen, sztywny zrąb, czynniki wzrostu"
+    ],
+    [
+     "Skutek",
+     "ułatwia inwazję, utrudnia wejście limfocytom T"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cancer-associated fibroblast (CAF)",
+   "sub": "α-SMA⁺ myofibroblast · tumour stroma",
+   "desc": "A fibroblast reprogrammed by cancer cells: larger, with thick stress fibres. It surrounds the tumour and lays down dense, stiff collagen (desmoplasia), aligns the fibres into 'rails' that cancer cells migrate along, and often leads their invasion itself.",
+   "facts": [
+    [
+     "Marker",
+     "α-SMA, FAP"
+    ],
+    [
+     "Makes",
+     "collagen, stiff stroma, growth factors"
+    ],
+    [
+     "Effect",
+     "helps invasion, keeps T cells out"
+    ]
+   ]
+  },
+  "photo": "fibroblast.jpg",
+  "credit": "Pinky9697 · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Fibroblast_cells_under_microscope_20x.jpg"
+ },
+ "necrosis": {
+  "pl": {
+   "name": "Komórka martwicza",
+   "sub": "martwica (necrosis)",
+   "desc": "Komórka, która zginęła z braku tlenu. Najpierw pęcznieje, potem jej błona pęka, a jądro rozpada się na okruchy (kariorreksja) albo blednie (karioliza). Zostaje blady „cień” komórki. W większych guzach środek, najdalej od naczyń, zamienia się w pole martwicy.",
+   "facts": [
+    [
+     "Przyczyna",
+     "anoksja, ≳ 150–200 µm od drożnego naczynia"
+    ],
+    [
+     "Wygląd",
+     "blady cień, okruchy chromatyny"
+    ],
+    [
+     "Skutek",
+     "zapalenie – w przeciwieństwie do apoptozy"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Necrotic cell",
+   "sub": "necrosis",
+   "desc": "A cell that died from lack of oxygen. First it swells, then its membrane ruptures and the nucleus breaks into fragments (karyorrhexis) or fades away (karyolysis). A pale 'ghost' of the cell remains. In larger tumours the centre, farthest from vessels, turns into a field of necrosis.",
+   "facts": [
+    [
+     "Cause",
+     "anoxia, ≳ 150–200 µm from an open vessel"
+    ],
+    [
+     "Look",
+     "pale ghost, chromatin fragments"
+    ],
+    [
+     "Effect",
+     "inflammation – unlike apoptosis"
+    ]
+   ]
+  },
+  "photo": "lysis.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histopathology_of_adrenal_cortical_necrosis.jpg"
+ },
+ "apoptotic-body": {
+  "pl": {
+   "name": "Ciałka apoptotyczne",
+   "sub": "apoptoza · programowana śmierć komórki",
+   "desc": "Tak kończy komórka, która uruchomiła program samobójczy (np. p53 w niedotlenieniu albo po ataku limfocytu T lub NK): obkurcza się, jej chromatyna zbija się w gęste grudki, a komórka rozpada na otoczone błoną kulki. Makrofagi zjadają je w ciągu godzin, bez zapalenia.",
+   "facts": [
+    [
+     "Wielkość",
+     "≈ 1–5 µm"
+    ],
+    [
+     "Sygnał „zjedz mnie”",
+     "fosfatydyloseryna na powierzchni"
+    ],
+    [
+     "Sprzątanie",
+     "eferocytoza – makrofagi"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Apoptotic bodies",
+   "sub": "apoptosis · programmed cell death",
+   "desc": "The end of a cell that switched on its suicide programme (e.g. p53 under hypoxia, or after an attack by a T or NK cell): it shrinks, its chromatin condenses into dense clumps and the cell breaks up into membrane-bound beads. Macrophages eat them within hours, without inflammation.",
+   "facts": [
+    [
+     "Size",
+     "≈ 1–5 µm"
+    ],
+    [
+     "'Eat me' signal",
+     "phosphatidylserine on the surface"
+    ],
+    [
+     "Clearance",
+     "efferocytosis – macrophages"
+    ]
+   ]
+  }
+ },
+ "squamous": {
+  "pl": {
+   "name": "Komórka nabłonka pochwy",
+   "sub": "złuszczona komórka nabłonka wielowarstwowego płaskiego",
+   "desc": "Pochwę wyściela nabłonek wielowarstwowy płaski, którego górne warstwy stale się złuszczają. W płynie pochwy leżą więc duże, płaskie, wielokątne komórki z małym, zbitym jądrem. Są pełne glikogenu, z którego pałeczki kwasu mlekowego robią kwas mlekowy – stąd kwaśne pH pochwy.",
+   "facts": [
+    [
+     "Wielkość",
+     "≈ 40–60 µm, płaska"
+    ],
+    [
+     "Jądro",
+     "małe, zbite (pyknotyczne)"
+    ],
+    [
+     "Zawiera",
+     "glikogen – pokarm pałeczek kwasu mlekowego"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Vaginal epithelial cell",
+   "sub": "shed cell of stratified squamous epithelium",
+   "desc": "The vagina is lined by stratified squamous epithelium whose top layers are constantly shed. Its fluid therefore holds large, flat, polygonal cells with a small, dense nucleus. They are full of glycogen, which lactobacilli turn into lactic acid – hence the acidic vaginal pH.",
+   "facts": [
+    [
+     "Size",
+     "≈ 40–60 µm, flat"
+    ],
+    [
+     "Nucleus",
+     "small, dense (pyknotic)"
+    ],
+    [
+     "Contains",
+     "glycogen – food for lactobacilli"
+    ]
+   ]
+  }
+ },
+ "lactobacillus": {
+  "pl": {
+   "name": "Pałeczki kwasu mlekowego",
+   "sub": "Lactobacillus (np. L. crispatus, L. iners) · flora pochwy",
+   "desc": "Nieruchome, Gram-dodatnie pałeczki, które dominują w zdrowej pochwie. Fermentują cukry z glikogenu w kwas mlekowy i utrzymują pH ≈ 4, a to chroni przed bakteriami chorobotwórczymi i grzybami. Po stosunku pH na kilka godzin rośnie, a potem pałeczki znów je obniżają.",
+   "facts": [
+    [
+     "Rozmiar",
+     "≈ 2–4 × 0,8 µm"
+    ],
+    [
+     "Ruch",
+     "brak – tylko ruchy Browna"
+    ],
+    [
+     "Robi",
+     "kwas mlekowy, pH ≈ 3,8–4,5"
+    ],
+    [
+     "Znaczenie",
+     "„dobra flora” pochwy"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Lactobacilli",
+   "sub": "Lactobacillus (e.g. L. crispatus, L. iners) · vaginal flora",
+   "desc": "Non-motile Gram-positive rods that dominate the healthy vagina. They ferment sugars from glycogen into lactic acid and keep the pH near 4, which protects against pathogenic bacteria and fungi. After intercourse the pH rises for a few hours, then the lactobacilli lower it again.",
+   "facts": [
+    [
+     "Size",
+     "≈ 2–4 × 0.8 µm"
+    ],
+    [
+     "Movement",
+     "none – Brownian motion only"
+    ],
+    [
+     "Makes",
+     "lactic acid, pH ≈ 3.8–4.5"
+    ],
+    [
+     "Role",
+     "the 'good flora' of the vagina"
+    ]
+   ]
+  }
+ },
+ "semen-coagulum": {
+  "pl": {
+   "name": "Skrzep nasienia",
+   "sub": "semenogeliny · upłynnienie przez PSA",
+   "desc": "Tuż po wytrysku nasienie krzepnie w galaretę: białka z pęcherzyków nasiennych (semenogeliny) tworzą sieć, w której plemniki poruszają się z trudem. Enzym prostaty PSA tnie tę sieć i nasienie się upłynnia – zwykle w ciągu kilkunastu minut.",
+   "facts": [
+    [
+     "Krzepnie",
+     "w ~1 min po wytrysku"
+    ],
+    [
+     "Upłynnia się",
+     "zwykle w ~15 min (WHO: najpóźniej po 60 min)"
+    ],
+    [
+     "Enzym",
+     "PSA – swoisty antygen sterczowy"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Semen coagulum",
+   "sub": "semenogelins · liquefaction by PSA",
+   "desc": "Right after ejaculation semen clots into a gel: proteins from the seminal vesicles (semenogelins) form a network in which sperm can barely move. The prostate enzyme PSA cuts this network and the semen liquefies – usually within about fifteen minutes.",
+   "facts": [
+    [
+     "Clots",
+     "~1 min after ejaculation"
+    ],
+    [
+     "Liquefies",
+     "usually in ~15 min (WHO: within 60 min)"
+    ],
+    [
+     "Enzyme",
+     "PSA – prostate-specific antigen"
+    ]
+   ]
+  }
+ },
+ "pond-water": {
+  "pl": {
+   "name": "Woda w stawie",
+   "sub": "słodkowodne mikrośrodowisko",
+   "desc": "Kropla wody ze stawu to cały ekosystem: bakterie, glony, pierwotniaki i drobne zwierzęta. W 1 ml żyje zwykle około miliona bakterii.",
+   "facts": [
+    [
+     "Bakterie",
+     "≈ 10⁶ w 1 ml"
+    ],
+    [
+     "Lepkość",
+     "≈ 1 mPa·s (20 °C)"
+    ],
+    [
+     "Dla mikrobów",
+     "świat bez bezwładności (niska liczba Reynoldsa)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Pond water",
+   "sub": "freshwater microhabitat",
+   "desc": "A drop of pond water is a whole ecosystem: bacteria, algae, protists and tiny animals. One millilitre usually holds about a million bacteria.",
+   "facts": [
+    [
+     "Bacteria",
+     "≈ 10⁶ per ml"
+    ],
+    [
+     "Viscosity",
+     "≈ 1 mPa·s (20 °C)"
+    ],
+    [
+     "For microbes",
+     "a world without inertia (low Reynolds number)"
+    ]
+   ]
+  },
+  "photo": "pond-water.jpg",
+  "credit": "Kittycatcrunchie · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Hay_Infusion_from_Cape_Water_Source_(x400).jpg"
+ },
+ "bacteria-cloud": {
+  "pl": {
+   "name": "Chmura bakterii",
+   "sub": "zagęszczenie bakterii w wodzie",
+   "desc": "Miejsce, gdzie bakterie namnożyły się przy rozkładającej się materii. Dla pantofelków i innych orzęsków to stołówka – zjadają tysiące bakterii na godzinę.",
+   "facts": [
+    [
+     "Źródło",
+     "rozkład materii organicznej"
+    ],
+    [
+     "Zjadacze",
+     "orzęski, wiciowce, wrotki"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bacterial cloud",
+   "sub": "dense patch of bacteria in water",
+   "desc": "A spot where bacteria multiplied around decaying matter. For paramecia and other ciliates it is a canteen – they eat thousands of bacteria per hour.",
+   "facts": [
+    [
+     "Source",
+     "decomposing organic matter"
+    ],
+    [
+     "Eaters",
+     "ciliates, flagellates, rotifers"
+    ]
+   ]
+  },
+  "photo": "bacteria-cloud.jpg",
+  "credit": "Doc. RNDr. Josef Reischig, CSc. · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Bacteria_(259_05).jpg"
+ },
+ "lemna": {
+  "pl": {
+   "name": "Cień rzęsy wodnej",
+   "sub": "Lemna · pływająca roślina",
+   "desc": "Liście rzęsy wodnej unoszą się na powierzchni i rzucają cień. Dla glonów i klejnotek to miejsce ze słabszym światłem – czasem ratunek przed zbyt silnym słońcem.",
+   "facts": [
+    [
+     "Liść rzęsy",
+     "≈ 2–5 mm"
+    ],
+    [
+     "Światło",
+     "cień obniża natężenie wielokrotnie"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Duckweed shade",
+   "sub": "Lemna · floating plant",
+   "desc": "Duckweed leaves float on the surface and cast shade. For algae and euglenas it is a spot with weaker light – sometimes a refuge from too strong sun.",
+   "facts": [
+    [
+     "Duckweed leaf",
+     "≈ 2–5 mm"
+    ],
+    [
+     "Light",
+     "shade cuts intensity many times"
+    ]
+   ]
+  },
+  "photo": "lemna.jpg",
+  "credit": "Kostka Martin · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Lemna_minor_plants.jpg"
+ },
+ "moss-water": {
+  "pl": {
+   "name": "Błonka wody w mchu",
+   "sub": "mikrosiedlisko poduszki mchu",
+   "desc": "Cienka warstwa wody między listkami mchu. Gdy wysycha, niesporczaki, wrotki i nicienie wpadają w anhydrobiozę i czekają na deszcz.",
+   "facts": [
+    [
+     "Grubość",
+     "mikrometry – milimetry"
+    ],
+    [
+     "Zagrożenie",
+     "wysychanie w ciągu godzin"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Water film in moss",
+   "sub": "moss-cushion microhabitat",
+   "desc": "A thin layer of water between moss leaves. When it dries, tardigrades, rotifers and nematodes enter anhydrobiosis and wait for rain.",
+   "facts": [
+    [
+     "Thickness",
+     "micrometres to millimetres"
+    ],
+    [
+     "Threat",
+     "drying within hours"
+    ]
+   ]
+  },
+  "photo": "moss-water.jpg",
+  "credit": "Roger Jones · CC BY-SA 2.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Cushion_Moss_-_geograph.org.uk_-_2501012.jpg"
+ },
+ "agar": {
+  "pl": {
+   "name": "Agar",
+   "sub": "podłoże hodowlane",
+   "desc": "Galareta z krasnorostów, na której w laboratorium hoduje się mikroby. Ameby społeczne pełzają po jej powierzchni i zjadają rosnące na niej bakterie.",
+   "facts": [
+    [
+     "Źródło",
+     "krasnorosty (agaroza)"
+    ],
+    [
+     "Topnienie",
+     "≈ 85 °C"
+    ],
+    [
+     "Zastygnięcie",
+     "≈ 32–40 °C"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Agar",
+   "sub": "culture medium",
+   "desc": "A jelly made from red seaweed on which microbes are grown in the lab. Social amoebae crawl on its surface and eat the bacteria growing on it.",
+   "facts": [
+    [
+     "Source",
+     "red algae (agarose)"
+    ],
+    [
+     "Melts at",
+     "≈ 85 °C"
+    ],
+    [
+     "Sets at",
+     "≈ 32–40 °C"
+    ]
+   ]
+  },
+  "photo": "agar.jpg",
+  "credit": "autor nieznany · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Agar_plate_with_colonies.jpg"
+ },
+ "klebsiella": {
+  "pl": {
+   "name": "Murawa bakterii",
+   "sub": "Klebsiella aerogenes · pokarm ameb",
+   "desc": "Gęsty kożuch bakterii na agarze. W laboratoriach ameby Dictyostelium karmi się zwykle bakterią Klebsiella; tam, gdzie je zjadły, zostają jaśniejsze „łysinki”.",
+   "facts": [
+    [
+     "Bakteria",
+     "pałeczka ≈ 1–2 µm"
+    ],
+    [
+     "Gęstość",
+     "≈ 1 komórka na µm²"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Bacterial lawn",
+   "sub": "Klebsiella aerogenes · amoeba food",
+   "desc": "A dense carpet of bacteria on agar. In labs Dictyostelium amoebae are usually fed on Klebsiella; where they have eaten them, clearer 'plaques' remain.",
+   "facts": [
+    [
+     "Bacterium",
+     "rod ≈ 1–2 µm"
+    ],
+    [
+     "Density",
+     "≈ 1 cell per µm²"
+    ]
+   ]
+  },
+  "photo": "klebsiella.jpg",
+  "credit": "Trance Gemini · CC BY-SA 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Myxo_eats_through_bacterial_lawn.jpg"
+ },
+ "vagina": {
+  "pl": {
+   "name": "Pochwa",
+   "sub": "drogi rodne kobiety",
+   "desc": "Pałeczki kwasu mlekowego (Lactobacillus) utrzymują tu kwaśne pH ok. 4, które chroni przed zakażeniami, ale szybko zabija plemniki. Nasienie buforuje kwas tylko przez kilka minut.",
+   "facts": [
+    [
+     "pH",
+     "≈ 3,8–4,5"
+    ],
+    [
+     "Nabłonek",
+     "wielowarstwowy płaski"
+    ],
+    [
+     "Plemniki",
+     "większość ginie tutaj"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Vagina",
+   "sub": "female reproductive tract",
+   "desc": "Lactic-acid bacteria (Lactobacillus) keep the pH here around 4, which protects against infection but quickly kills sperm. Semen buffers the acid only for a few minutes.",
+   "facts": [
+    [
+     "pH",
+     "≈ 3.8–4.5"
+    ],
+    [
+     "Lining",
+     "stratified squamous epithelium"
+    ],
+    [
+     "Sperm",
+     "most die here"
+    ]
+   ]
+  },
+  "photo": "vagina.jpg",
+  "credit": "Jpogi at English Wikipedia · Public domain · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Vagina_(mucosa).JPG"
+ },
+ "cervix": {
+  "pl": {
+   "name": "Szyjka macicy i śluz",
+   "sub": "kanał szyjki",
+   "desc": "W okresie owulacji śluz jest wodnisty i zasadowy, a nici mucyny układają się w kanaliki prowadzące plemniki. W bocznych kryptach plemniki mogą czekać godzinami.",
+   "facts": [
+    [
+     "Śluz",
+     "mucyny, ~95–98% wody"
+    ],
+    [
+     "Krypty",
+     "rezerwuar plemników"
+    ],
+    [
+     "Poza owulacją",
+     "gęsty czop – bariera"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cervix and mucus",
+   "sub": "cervical canal",
+   "desc": "Around ovulation the mucus is watery and alkaline, and mucin strands form channels that guide sperm. In side crypts sperm can wait for hours.",
+   "facts": [
+    [
+     "Mucus",
+     "mucins, ~95–98% water"
+    ],
+    [
+     "Crypts",
+     "sperm reservoir"
+    ],
+    [
+     "Outside ovulation",
+     "a thick plug – a barrier"
+    ]
+   ]
+  },
+  "photo": "cervix.jpg",
+  "credit": "User:Acaparadora · CC BY-SA 2.5 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Cervical_mucus1.jpg"
+ },
+ "uterus": {
+  "pl": {
+   "name": "Jama macicy",
+   "sub": "macica",
+   "desc": "Skurcze mięśniówki w okresie okołoowulacyjnym niosą plemniki falą ku jajowodom – szybciej, niż same by dopłynęły. Błona śluzowa to endometrium.",
+   "facts": [
+    [
+     "Długość macicy",
+     "≈ 7–8 cm"
+    ],
+    [
+     "Transport",
+     "perystaltyka w minutach"
+    ],
+    [
+     "Obrona",
+     "neutrofile w świetle"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Uterine cavity",
+   "sub": "uterus",
+   "desc": "Around ovulation, contractions of the muscle wall carry sperm in waves towards the tubes – faster than they could swim. The lining is the endometrium.",
+   "facts": [
+    [
+     "Uterus length",
+     "≈ 7–8 cm"
+    ],
+    [
+     "Transport",
+     "peristalsis within minutes"
+    ],
+    [
+     "Defence",
+     "neutrophils in the lumen"
+    ]
+   ]
+  },
+  "photo": "uterus.jpg",
+  "credit": "Douglas A. Gibson, Ioannis Simitsidellis, Frances Collins a… · CC BY 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histology_of_proliferative_endometrium.jpg"
+ },
+ "oviduct": {
+  "pl": {
+   "name": "Jajowód",
+   "sub": "trąbka Fallopiusza",
+   "desc": "Kanał z nabłonkiem z rzęskami, które pędzą płyn ku macicy. W wąskiej cieśni plemniki czekają przyklejone do nabłonka, a w szerokiej bańce dochodzi do zapłodnienia.",
+   "facts": [
+    [
+     "Długość",
+     "≈ 10–12 cm"
+    ],
+    [
+     "Odcinki",
+     "cieśń, bańka, lejek"
+    ],
+    [
+     "Zapłodnienie",
+     "w bańce"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Oviduct",
+   "sub": "Fallopian tube",
+   "desc": "A canal lined with ciliated epithelium that drives fluid towards the uterus. In the narrow isthmus sperm wait bound to the lining; fertilisation happens in the wide ampulla.",
+   "facts": [
+    [
+     "Length",
+     "≈ 10–12 cm"
+    ],
+    [
+     "Parts",
+     "isthmus, ampulla, infundibulum"
+    ],
+    [
+     "Fertilisation",
+     "in the ampulla"
+    ]
+   ]
+  },
+  "photo": "oviduct.jpg",
+  "credit": "Mikael Häggström, M.D. Author info - Reusing images- Confli… · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Histology_of_ciliated_columnar_epithelium_of_the_fallopian_tube.jpg"
+ },
+ "cumulus": {
+  "pl": {
+   "name": "Wzgórek jajonośny",
+   "sub": "cumulus oophorus",
+   "desc": "Tysiące komórek w galaretowatej macierzy kwasu hialuronowego otaczających komórkę jajową. Wydzielają progesteron, który przyspiesza plemniki (CatSper).",
+   "facts": [
+    [
+     "Macierz",
+     "kwas hialuronowy"
+    ],
+    [
+     "Sygnał",
+     "progesteron"
+    ],
+    [
+     "Przejście",
+     "hialuronidaza plemnika"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cumulus",
+   "sub": "cumulus oophorus",
+   "desc": "Thousands of cells in a jelly-like hyaluronan matrix surrounding the egg. They release progesterone, which boosts sperm (CatSper).",
+   "facts": [
+    [
+     "Matrix",
+     "hyaluronan"
+    ],
+    [
+     "Signal",
+     "progesterone"
+    ],
+    [
+     "Passage",
+     "sperm hyaluronidase"
+    ]
+   ]
+  },
+  "photo": "cumulus.jpg",
+  "credit": "Prue Talbot and Karen Riveles in Reproductive Biology and E… · CC BY 3.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Hamster_Oviduct.JPG"
+ },
+ "blood-plasma": {
+  "pl": {
+   "name": "Osocze krwi",
+   "sub": "płynna część krwi",
+   "desc": "Żółtawa ciecz, w której płyną krwinki. To ok. 55% objętości krwi: woda z białkami (albuminy, przeciwciała, fibrynogen), solami, cukrem i hormonami.",
+   "facts": [
+    [
+     "Udział",
+     "≈ 55% krwi"
+    ],
+    [
+     "Woda",
+     "≈ 92%"
+    ],
+    [
+     "Przeciwciała",
+     "tu krążą IgM i IgG"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Blood plasma",
+   "sub": "liquid part of blood",
+   "desc": "The yellowish fluid in which blood cells travel. About 55% of blood volume: water with proteins (albumin, antibodies, fibrinogen), salts, sugar and hormones.",
+   "facts": [
+    [
+     "Share",
+     "≈ 55% of blood"
+    ],
+    [
+     "Water",
+     "≈ 92%"
+    ],
+    [
+     "Antibodies",
+     "IgM and IgG circulate here"
+    ]
+   ]
+  },
+  "photo": "blood-plasma.jpg",
+  "credit": "Andykatib · CC0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Plasma_bag,_9_April_2024.jpg"
+ },
+ "tsetse": {
+  "pl": {
+   "name": "Mucha tse-tse",
+   "sub": "Glossina · kłujka",
+   "desc": "Afrykańska mucha żywiąca się krwią (obie płcie). Kłujką rozcina skórę i ssie krew z powstałej „kałuży”, przy okazji zabierając lub przekazując świdrowce.",
+   "facts": [
+    [
+     "Długość muchy",
+     "≈ 6–14 mm"
+    ],
+    [
+     "Przenosi",
+     "Trypanosoma brucei"
+    ],
+    [
+     "Rozród",
+     "rodzi pojedyncze larwy"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Tsetse fly",
+   "sub": "Glossina · proboscis",
+   "desc": "An African blood-feeding fly (both sexes). With its proboscis it cuts the skin and sucks blood from the resulting 'pool', picking up or passing on trypanosomes.",
+   "facts": [
+    [
+     "Fly length",
+     "≈ 6–14 mm"
+    ],
+    [
+     "Transmits",
+     "Trypanosoma brucei"
+    ],
+    [
+     "Breeding",
+     "gives birth to single larvae"
+    ]
+   ]
+  },
+  "photo": "tsetse.png",
+  "credit": "Estefanía Alonso Gómez · CC BY-SA 4.0 · Wikimedia Commons",
+  "url": "https://commons.wikimedia.org/wiki/File:Glossina_morsitans_morsitans_(white_paper).jpeg"
+ },
+ "cortneuron": {
+  "pl": {
+   "name": "Młody neuron piramidowy",
+   "sub": "neuron wędrujący · Mus musculus",
+   "desc": "Neuron kory w drodze na swoje miejsce. Najpierw jest wielobiegunowy: wolno błądzi i wysuwa oraz chowa cienkie neuryty. Potem przechodzi w dwubiegunowy – obejmuje włókno gleju promienistego, wysuwa ku oponie wypustkę wiodącą, a jądro skacze za nią. Z tyłu zostawia akson.",
+   "facts": [
+    [
+     "Ciało",
+     "≈ 8–10 µm"
+    ],
+    [
+     "Faza wielobiegunowa",
+     "średnio 4,4 µm/h (Tabata i Nakajima 2003)"
+    ],
+    [
+     "Lokomocja po glej",
+     "średnio ~9–12 µm/h"
+    ],
+    [
+     "Droga z E15,5",
+     "~3 doby do szczytu płytki (FlashTag – Yoshinaga i in. 2021)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Young pyramidal neuron",
+   "sub": "migrating neuron · Mus musculus",
+   "desc": "A cortical neuron on its way to its final position. It is multipolar at first: it wanders slowly and extends and retracts thin neurites. Then it becomes bipolar – it wraps around a radial glial fibre, extends a leading process towards the pia and its nucleus jumps after it. It leaves the axon behind.",
+   "facts": [
+    [
+     "Soma",
+     "≈ 8–10 µm"
+    ],
+    [
+     "Multipolar phase",
+     "4.4 µm/h on average (Tabata & Nakajima 2003)"
+    ],
+    [
+     "Locomotion on glia",
+     "~9–12 µm/h on average"
+    ],
+    [
+     "Journey from E15.5",
+     "~3 days to the top of the plate (FlashTag – Yoshinaga et al. 2021)"
+    ]
+   ]
+  }
+ },
+ "ipc": {
+  "pl": {
+   "name": "Progenitor pośredni (Tbr2⁺)",
+   "sub": "komórka progenitorowa podstawna",
+   "desc": "Córka komórki gleju promienistego, która odrywa się od powierzchni komory i w strefie podkomorowej zwykle dzieli się raz, symetrycznie – na dwa neurony. Z takich progenitorów pochodzi większość neuronów projekcyjnych kory.",
+   "facts": [
+    [
+     "Wielkość",
+     "≈ 9–10 µm"
+    ],
+    [
+     "Znacznik",
+     "czynnik transkrypcyjny Tbr2 (Eomes)"
+    ],
+    [
+     "Podział",
+     "symetryczny, na dwa neurony (Noctor i in. 2004)"
+    ],
+    [
+     "Znaczenie",
+     "większość neuronów wszystkich warstw (Kowalczyk i in. 2009)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Intermediate progenitor (Tbr2⁺)",
+   "sub": "basal progenitor cell",
+   "desc": "A daughter of a radial glial cell that detaches from the ventricular surface and, in the subventricular zone, usually divides once, symmetrically – into two neurons. Most cortical projection neurons come from such progenitors.",
+   "facts": [
+    [
+     "Size",
+     "≈ 9–10 µm"
+    ],
+    [
+     "Marker",
+     "transcription factor Tbr2 (Eomes)"
+    ],
+    [
+     "Division",
+     "symmetric, into two neurons (Noctor et al. 2004)"
+    ],
+    [
+     "Importance",
+     "most neurons of all layers (Kowalczyk et al. 2009)"
+    ]
+   ]
+  }
+ },
+ "radial-glia": {
+  "pl": {
+   "name": "Glej promienisty",
+   "sub": "komórki macierzyste kory i rusztowanie wędrówki",
+   "desc": "Ciało leży w strefie komorowej, a jedna długa wypustka sięga od komory aż do opony miękkiej. Te komórki są zarazem komórkami macierzystymi (dzielą się przy komorze) i szynami, po których neurony wędrują ku korze. Po urodzeniu przekształcają się w astrocyty.",
+   "facts": [
+    [
+     "Włókno",
+     "od komory do opony – w E16 ~0,5 mm"
+    ],
+    [
+     "Cykl komórkowy",
+     "18,4 h w E16 (Takahashi i in. 1995)"
+    ],
+    [
+     "Wędrówka po glej",
+     "odkryta u małp (Rakic 1972)"
+    ],
+    [
+     "Los",
+     "astrocyty (Schmechel i Rakic 1979)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Radial glia",
+   "sub": "cortical stem cells and migration scaffold",
+   "desc": "The cell body sits in the ventricular zone and a single long process reaches from the ventricle all the way to the pia. These cells are both stem cells (dividing at the ventricle) and rails along which neurons migrate to the cortex. After birth they turn into astrocytes.",
+   "facts": [
+    [
+     "Fibre",
+     "from ventricle to pia – ~0.5 mm at E16"
+    ],
+    [
+     "Cell cycle",
+     "18.4 h at E16 (Takahashi et al. 1995)"
+    ],
+    [
+     "Glia-guided migration",
+     "discovered in monkeys (Rakic 1972)"
+    ],
+    [
+     "Fate",
+     "astrocytes (Schmechel & Rakic 1979)"
+    ]
+   ]
+  }
+ },
+ "cp-neuron": {
+  "pl": {
+   "name": "Neuron płytki korowej",
+   "sub": "młody neuron, który dotarł na miejsce",
+   "desc": "Płytka korowa rośnie od środka na zewnątrz: najstarsze neurony (warstwy VI i V) leżą najgłębiej, a każdy nowy mija je i osiada tuż pod strefą brzeżną. Z płytki powstaną warstwy II–VI kory.",
+   "facts": [
+    [
+     "Ułożenie",
+     "od środka na zewnątrz (Angevine i Sidman 1961)"
+    ],
+    [
+     "Kolumny",
+     "neurony z jednego klonu leżą w kolumnie (Yu i in. 2009)"
+    ],
+    [
+     "Śmierć naturalna",
+     "~12% neuronów pobudzających ginie w P2–P5 (Wong i in. 2018)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cortical plate neuron",
+   "sub": "a young neuron that has arrived",
+   "desc": "The cortical plate grows inside-out: the oldest neurons (layers VI and V) lie deepest, and each new one passes them and settles just below the marginal zone. The plate will become cortical layers II–VI.",
+   "facts": [
+    [
+     "Arrangement",
+     "inside-out (Angevine & Sidman 1961)"
+    ],
+    [
+     "Columns",
+     "neurons of one clone lie in a column (Yu et al. 2009)"
+    ],
+    [
+     "Natural death",
+     "~12% of excitatory neurons die at P2–P5 (Wong et al. 2018)"
+    ]
+   ]
+  }
+ },
+ "subplate-neuron": {
+  "pl": {
+   "name": "Neuron podpłytki",
+   "sub": "jedne z najwcześniej urodzonych neuronów kory",
+   "desc": "Tworzy przejściową warstwę pod płytką korową i przyjmuje pierwsze aksony ze wzgórza. Na komórkach wielobiegunowych tuż pod podpłytką tworzy przejściowe synapsy glutaminianergiczne – ich sygnał (receptory NMDA) przełącza je w wędrówkę po gleju.",
+   "facts": [
+    [
+     "Synapsy",
+     "przejściowe, na komórkach wielobiegunowych (Ohtaka-Maruyama i in. 2018)"
+    ],
+    [
+     "Los",
+     "wiele ginie po urodzeniu, część zostaje jako warstwa VIb"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Subplate neuron",
+   "sub": "among the earliest-born cortical neurons",
+   "desc": "It forms a transient layer below the cortical plate and receives the first axons from the thalamus. On multipolar cells just below the subplate it forms transient glutamatergic synapses – their signal (NMDA receptors) switches them to glia-guided migration.",
+   "facts": [
+    [
+     "Synapses",
+     "transient, on multipolar cells (Ohtaka-Maruyama et al. 2018)"
+    ],
+    [
+     "Fate",
+     "many die after birth, some remain as layer VIb"
+    ]
+   ]
+  }
+ },
+ "cajal-retzius": {
+  "pl": {
+   "name": "Komórka Cajala–Retziusa",
+   "sub": "neuron strefy brzeżnej",
+   "desc": "Duży, poziomy neuron strefy brzeżnej z grubą wypustką biegnącą wzdłuż powierzchni kory. Wydziela relinę – sygnał, który każe wędrującym neuronom zakończyć drogę translokacją końcową i osiąść tuż pod strefą brzeżną.",
+   "facts": [
+    [
+     "Położenie",
+     "strefa brzeżna – przyszła warstwa I"
+    ],
+    [
+     "Sygnał",
+     "relina → Dab1 w neuronach (Sekine i in. 2011)"
+    ],
+    [
+     "Los",
+     "w większości zanikają po urodzeniu"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cajal–Retzius cell",
+   "sub": "marginal-zone neuron",
+   "desc": "A large horizontal neuron of the marginal zone with a thick process running along the cortical surface. It secretes reelin – the signal that makes migrating neurons finish with terminal translocation and settle just below the marginal zone.",
+   "facts": [
+    [
+     "Location",
+     "marginal zone – future layer I"
+    ],
+    [
+     "Signal",
+     "reelin → Dab1 in neurons (Sekine et al. 2011)"
+    ],
+    [
+     "Fate",
+     "mostly disappear after birth"
+    ]
+   ]
+  }
+ },
+ "meninges": {
+  "pl": {
+   "name": "Opony mózgowe",
+   "sub": "opona miękka i pajęczynówka",
+   "desc": "Błony okrywające mózg. Opona miękka przylega do kory: na jej błonie podstawnej kończą się stopki włókien gleju promienistego, a w niej biegną naczynia, z których w głąb kory wnikają naczynia promieniste. Między półkulami opony wypełniają szczelinę międzypółkulową.",
+   "facts": [
+    [
+     "Warstwy",
+     "opona miękka, pajęczynówka, opona twarda"
+    ],
+    [
+     "Komórki",
+     "płaskie fibroblasty opon"
+    ],
+    [
+     "Dla kory",
+     "błona podstawna dla gleju i naczynia"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Meninges",
+   "sub": "pia mater and arachnoid",
+   "desc": "The membranes covering the brain. The pia lies against the cortex: the endfeet of radial glial fibres end on its basement membrane, and its vessels send radial vessels deep into the cortex. Between the hemispheres the meninges fill the interhemispheric fissure.",
+   "facts": [
+    [
+     "Layers",
+     "pia, arachnoid, dura"
+    ],
+    [
+     "Cells",
+     "flat meningeal fibroblasts"
+    ],
+    [
+     "For the cortex",
+     "basement membrane for glia, and vessels"
+    ]
+   ]
+  }
+ },
+ "cortex-vessel": {
+  "pl": {
+   "name": "Naczynie kory zarodka",
+   "sub": "splot okołokomorowy i naczynia promieniste",
+   "desc": "Rozwijająca się kora jest dobrze unaczyniona: na powierzchni leży splot opony miękkiej, nad strefą komorową – splot okołokomorowy, a łączą je naczynia promieniste. W skrawku splot widać jako odcinki naczyń z przerwami – sieć biegnie też w głąb.",
+   "facts": [
+    [
+     "Sploty",
+     "opony miękkiej i okołokomorowy (Vasudevan i in. 2008)"
+    ],
+    [
+     "Znaczenie",
+     "tlen i składniki odżywcze dla dzielących się progenitorów"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Embryonic cortical vessel",
+   "sub": "periventricular plexus and radial vessels",
+   "desc": "The developing cortex is well vascularised: the pial plexus lies on the surface, the periventricular plexus above the ventricular zone, and radial vessels connect them. In a slice the plexus appears as vessel segments with gaps – the network also runs in depth.",
+   "facts": [
+    [
+     "Plexuses",
+     "pial and periventricular (Vasudevan et al. 2008)"
+    ],
+    [
+     "Role",
+     "oxygen and nutrients for dividing progenitors"
+    ]
+   ]
+  }
+ },
+ "cortex-mz": {
+  "pl": {
+   "name": "Strefa brzeżna",
+   "sub": "przyszła warstwa I kory",
+   "desc": "Najbardziej zewnętrzna, uboga w komórki warstwa kory. Leżą tu komórki Cajala–Retziusa i gęsta sieć włókien; tu kotwiczą wypustki wiodące neuronów przed translokacją końcową. Strefą brzeżną wędrują też stycznie interneurony.",
+   "facts": [
+    [
+     "Komórki",
+     "Cajala–Retziusa, interneurony"
+    ],
+    [
+     "Sygnał",
+     "relina"
+    ],
+    [
+     "Przyszłość",
+     "warstwa I"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Marginal zone",
+   "sub": "future cortical layer I",
+   "desc": "The outermost, cell-poor layer of the cortex. Cajal–Retzius cells and a dense fibre network lie here; leading processes of neurons anchor here before terminal translocation. Interneurons also migrate tangentially through the marginal zone.",
+   "facts": [
+    [
+     "Cells",
+     "Cajal–Retzius, interneurons"
+    ],
+    [
+     "Signal",
+     "reelin"
+    ],
+    [
+     "Future",
+     "layer I"
+    ]
+   ]
+  }
+ },
+ "cortex-cp": {
+  "pl": {
+   "name": "Płytka korowa",
+   "sub": "przyszła kora właściwa (warstwy II–VI)",
+   "desc": "Gęsto upakowane młode neurony ułożone w promieniste kolumny. W najwyższej, niedojrzałej części (strefa PCZ, ~50 µm) neurony kończą wędrówkę translokacją końcową – dlatego każdy nowy neuron osiada nad starszymi.",
+   "facts": [
+    [
+     "Strefa PCZ",
+     "≈ 50 µm (Sekine i in. 2011)"
+    ],
+    [
+     "Cała ściana kory w E16,5",
+     "≈ 480 µm (Tonosaki i in. 2023)"
+    ],
+    [
+     "Ułożenie",
+     "od środka na zewnątrz"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Cortical plate",
+   "sub": "future cortex proper (layers II–VI)",
+   "desc": "Densely packed young neurons arranged in radial columns. In the uppermost, immature part (the PCZ, ~50 µm) neurons finish migrating by terminal translocation – which is why each new neuron settles above the older ones.",
+   "facts": [
+    [
+     "PCZ",
+     "≈ 50 µm (Sekine et al. 2011)"
+    ],
+    [
+     "Whole cortical wall at E16.5",
+     "≈ 480 µm (Tonosaki et al. 2023)"
+    ],
+    [
+     "Arrangement",
+     "inside-out"
+    ]
+   ]
+  }
+ },
+ "cortex-sp": {
+  "pl": {
+   "name": "Podpłytka",
+   "sub": "przejściowa warstwa pod płytką korową",
+   "desc": "Cienka warstwa neuronów podpłytki i pęczków włókien. Pod nią komórki wielobiegunowe dostają synapsy od neuronów podpłytki i przechodzą w wędrówkę po gleju; w części kory neurony „czekają” tu dłużej przed wejściem do płytki (Yoshinaga i in. 2021).",
+   "facts": [
+    [
+     "Komórki",
+     "neurony podpłytki"
+    ],
+    [
+     "Rola",
+     "przełącznik wędrówki (Ohtaka-Maruyama i in. 2018)"
+    ],
+    [
+     "Po urodzeniu",
+     "w dużej części zanika"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Subplate",
+   "sub": "transient layer below the cortical plate",
+   "desc": "A thin layer of subplate neurons and fibre bundles. Below it multipolar cells receive synapses from subplate neurons and switch to glia-guided migration; in parts of the cortex neurons 'wait' here longer before entering the plate (Yoshinaga et al. 2021).",
+   "facts": [
+    [
+     "Cells",
+     "subplate neurons"
+    ],
+    [
+     "Role",
+     "migration switch (Ohtaka-Maruyama et al. 2018)"
+    ],
+    [
+     "After birth",
+     "largely disappears"
+    ]
+   ]
+  }
+ },
+ "cortex-iz": {
+  "pl": {
+   "name": "Strefa pośrednia",
+   "sub": "przyszła istota biała",
+   "desc": "Pęczki aksonów biegnące stycznie – w dolnej części aksony pionierskie z TAG-1, wyżej aksony spoidłowe zmierzające ku linii środkowej. Między nimi wędrują neurony wielobiegunowe i dwubiegunowe, a w dolnej części płynie strumień interneuronów.",
+   "facts": [
+    [
+     "TAG-1",
+     "kontakt z tymi aksonami tworzy akson neuronu (Namba i in. 2014)"
+    ],
+    [
+     "MAZ",
+     "strefa gromadzenia komórek wielobiegunowych"
+    ],
+    [
+     "Przyszłość",
+     "istota biała pod korą"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Intermediate zone",
+   "sub": "future white matter",
+   "desc": "Tangential axon bundles – TAG-1 pioneer axons in the lower part, callosal axons heading for the midline higher up. Multipolar and bipolar neurons migrate between them, and a stream of interneurons flows in the lower part.",
+   "facts": [
+    [
+     "TAG-1",
+     "contact with these axons makes a neuron's axon (Namba et al. 2014)"
+    ],
+    [
+     "MAZ",
+     "multipolar cell accumulation zone"
+    ],
+    [
+     "Future",
+     "white matter below the cortex"
+    ]
+   ]
+  }
+ },
+ "cortex-svz": {
+  "pl": {
+   "name": "Strefa podkomorowa",
+   "sub": "strefa podziałów progenitorów pośrednich",
+   "desc": "Warstwa nad strefą komorową, w której dzielą się progenitory pośrednie (Tbr2⁺) – każdy zwykle na dwa neurony. Biegnie przez nią splot naczyń okołokomorowych, a mikroglej pochłania tu część progenitorów.",
+   "facts": [
+    [
+     "Podziały",
+     "symetryczne, na dwa neurony (Noctor i in. 2004)"
+    ],
+    [
+     "Mikroglej",
+     "fagocytuje progenitory pod koniec neurogenezy (Cunningham i in. 2013)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Subventricular zone",
+   "sub": "where intermediate progenitors divide",
+   "desc": "A layer above the ventricular zone where intermediate progenitors (Tbr2⁺) divide – each usually into two neurons. The periventricular vascular plexus runs through it, and microglia engulf some of the progenitors here.",
+   "facts": [
+    [
+     "Divisions",
+     "symmetric, into two neurons (Noctor et al. 2004)"
+    ],
+    [
+     "Microglia",
+     "phagocytose progenitors near the end of neurogenesis (Cunningham et al. 2013)"
+    ]
+   ]
+  }
+ },
+ "cortex-vz": {
+  "pl": {
+   "name": "Strefa komorowa",
+   "sub": "nabłonek wielorzędowy gleju promienistego",
+   "desc": "Warstwa komórek gleju promienistego wyścielająca komorę. Ich jądra wędrują w rytmie cyklu komórkowego: faza S przy podstawnym brzegu strefy, mitoza zawsze przy powierzchni komory. Stąd pochodzą wszystkie neurony pobudzające kory.",
+   "facts": [
+    [
+     "Cykl komórkowy",
+     "8,1 h w E11 → 18,4 h w E16 (Takahashi i in. 1995)"
+    ],
+    [
+     "Wędrówka jądra",
+     "śródfazowa (INM)"
+    ],
+    [
+     "Mitozy",
+     "przy powierzchni komory"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Ventricular zone",
+   "sub": "pseudostratified radial glial epithelium",
+   "desc": "The layer of radial glial cells lining the ventricle. Their nuclei move with the cell cycle: S phase at the basal edge of the zone, mitosis always at the ventricular surface. All excitatory cortical neurons come from here.",
+   "facts": [
+    [
+     "Cell cycle",
+     "8.1 h at E11 → 18.4 h at E16 (Takahashi et al. 1995)"
+    ],
+    [
+     "Nuclear movement",
+     "interkinetic (INM)"
+    ],
+    [
+     "Mitoses",
+     "at the ventricular surface"
+    ]
+   ]
+  }
+ },
+ "ventricle": {
+  "pl": {
+   "name": "Komora boczna",
+   "sub": "płyn mózgowo-rdzeniowy",
+   "desc": "Jama wypełniona płynem mózgowo-rdzeniowym. Przy jej powierzchni dzielą się komórki gleju promienistego – to początek każdej linii neuronów kory. Do komory wstrzykuje się barwnik FlashTag albo plazmid przy elektroporacji in utero.",
+   "facts": [
+    [
+     "Wypełnia",
+     "płyn mózgowo-rdzeniowy"
+    ],
+    [
+     "FlashTag",
+     "znakuje komórki dzielące się przy komorze (Govindan i in. 2018)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Lateral ventricle",
+   "sub": "cerebrospinal fluid",
+   "desc": "A cavity filled with cerebrospinal fluid. Radial glial cells divide at its surface – the start of every cortical neuron lineage. FlashTag dye or a plasmid for in utero electroporation is injected into the ventricle.",
+   "facts": [
+    [
+     "Contains",
+     "cerebrospinal fluid"
+    ],
+    [
+     "FlashTag",
+     "labels cells dividing at the ventricle (Govindan et al. 2018)"
+    ]
+   ]
+  }
+ },
+ "lge": {
+  "pl": {
+   "name": "Wyniosłość zwojowa boczna",
+   "sub": "dno komory – zawiązek prążkowia",
+   "desc": "Wypukłość dna komory bocznej. Razem z wyniosłością przyśrodkową i ogoniastą wytwarza neurony hamujące (GABA); interneurony kory pochodzą głównie z wyniosłości przyśrodkowej i ogoniastej i wędrują do kory stycznie.",
+   "facts": [
+    [
+     "Przyszłość",
+     "prążkowie"
+    ],
+    [
+     "Neurony",
+     "hamujące (GABA)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Lateral ganglionic eminence",
+   "sub": "floor of the ventricle – striatal anlage",
+   "desc": "A bulge on the floor of the lateral ventricle. Together with the medial and caudal eminences it produces inhibitory (GABA) neurons; cortical interneurons come mainly from the medial and caudal eminences and migrate tangentially into the cortex.",
+   "facts": [
+    [
+     "Future",
+     "striatum"
+    ],
+    [
+     "Neurons",
+     "inhibitory (GABA)"
+    ]
+   ]
+  }
+ },
+ "indusium-griseum": {
+  "pl": {
+   "name": "Szare pokrywające",
+   "sub": "indusium griseum",
+   "desc": "Cienka warstwa istoty szarej nad ciałem modzelowatym. Jej glej wydziela Slit2 i razem z klinem glejowym zamyka aksonom drogę poza ciałem modzelowatym (Shu i Richards 2001).",
+   "facts": [
+    [
+     "Sygnał",
+     "Slit2 (odpychanie, receptory Robo)"
+    ],
+    [
+     "Położenie",
+     "nad ciałem modzelowatym"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Indusium griseum",
+   "sub": "gray matter above the corpus callosum",
+   "desc": "A thin layer of gray matter above the corpus callosum. Its glia secrete Slit2 and, together with the glial wedge, keep axons from straying outside the corpus callosum (Shu & Richards 2001).",
+   "facts": [
+    [
+     "Signal",
+     "Slit2 (repulsion, Robo receptors)"
+    ],
+    [
+     "Location",
+     "above the corpus callosum"
+    ]
+   ]
+  }
+ },
+ "glial-wedge": {
+  "pl": {
+   "name": "Klin glejowy",
+   "sub": "glial wedge",
+   "desc": "Klinowata grupa komórek gleju promienistego pod ciałem modzelowatym, przy grzbietowo-przyśrodkowym rogu komory. Wydziela Slit2 – aksony z receptorami Robo omijają ją i skręcają ku linii środkowej (Shu i Richards 2001).",
+   "facts": [
+    [
+     "Sygnał",
+     "Slit2 → Robo1/2 na aksonach"
+    ],
+    [
+     "Skutek",
+     "stożek wzrostu zapada się i cofa"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Glial wedge",
+   "sub": "midline guidepost glia",
+   "desc": "A wedge-shaped group of radial glial cells below the corpus callosum, at the dorsomedial corner of the ventricle. It secretes Slit2 – axons with Robo receptors avoid it and turn towards the midline (Shu & Richards 2001).",
+   "facts": [
+    [
+     "Signal",
+     "Slit2 → Robo1/2 on axons"
+    ],
+    [
+     "Effect",
+     "the growth cone collapses and retracts"
+    ]
+   ]
+  }
+ },
+ "corpus-callosum": {
+  "pl": {
+   "name": "Ciało modzelowate",
+   "sub": "największe spoidło mózgu",
+   "desc": "Aksony neuronów kory (głównie warstw II/III i V) przechodzące do drugiej półkuli. Pierwsze przechodzą aksony pionierskie z kory obręczy (E15,5), a aksony kory nowej płyną wzdłuż nich. Drogę wyznaczają glej linii środkowej (Slit2) i netryna-1.",
+   "facts": [
+    [
+     "Pionierzy",
+     "kora obręczy (Koester i O'Leary 1994; Rash i Richards 2001)"
+    ],
+    [
+     "Prowadzenie",
+     "Slit2 z gleju, netryna-1/DCC (Fothergill i in. 2014)"
+    ],
+    [
+     "Aksony II/III u myszy",
+     "przechodzą ok. P3 z kory czuciowej (Wang i in. 2007)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Corpus callosum",
+   "sub": "the brain's largest commissure",
+   "desc": "Axons of cortical neurons (mainly layers II/III and V) crossing to the other hemisphere. Pioneer axons from the cingulate cortex cross first (E15.5) and neocortical axons follow them. Midline glia (Slit2) and netrin-1 set the path.",
+   "facts": [
+    [
+     "Pioneers",
+     "cingulate cortex (Koester & O'Leary 1994; Rash & Richards 2001)"
+    ],
+    [
+     "Guidance",
+     "Slit2 from glia, netrin-1/DCC (Fothergill et al. 2014)"
+    ],
+    [
+     "Layer II/III axons in mice",
+     "cross around P3 from somatosensory cortex (Wang et al. 2007)"
+    ]
+   ]
+  }
+ },
+ "septum": {
+  "pl": {
+   "name": "Przegroda",
+   "sub": "okolica pod ciałem modzelowatym",
+   "desc": "Obszar między komorami bocznymi, poniżej ciała modzelowatego – w zarodku gęsta tkanka nerwowa. Aksony spoidłowe przechodzą nad nią, w ciele modzelowatym.",
+   "facts": [
+    [
+     "Położenie",
+     "pod ciałem modzelowatym, między komorami"
+    ],
+    [
+     "Dla aksonów",
+     "nieprzekraczalna – droga biegnie wyżej"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Septum",
+   "sub": "region below the corpus callosum",
+   "desc": "The region between the lateral ventricles, below the corpus callosum – dense neural tissue in the embryo. Callosal axons pass above it, through the corpus callosum.",
+   "facts": [
+    [
+     "Location",
+     "below the corpus callosum, between the ventricles"
+    ],
+    [
+     "For axons",
+     "impassable – the path runs higher"
+    ]
+   ]
+  }
+ },
+ "interneuron": {
+  "pl": {
+   "name": "Interneuron (GABA)",
+   "sub": "neuron hamujący w wędrówce stycznej",
+   "desc": "Neuron hamujący urodzony w wyniosłości zwojowej przyśrodkowej lub ogoniastej. Do kory idzie stycznie, strumieniami w strefie brzeżnej i dolnej strefie pośredniej. Ma rozgałęzioną wypustkę wiodącą – jądro wchodzi do jednej gałęzi, a pozostałe się cofają.",
+   "facts": [
+    [
+     "Prędkość w żywym zarodku",
+     "12 ± 6 µm/h (Yanagida i in. 2012)"
+    ],
+    [
+     "Pochodzenie",
+     "wyniosłości zwojowe MGE i CGE"
+    ],
+    [
+     "Śmierć naturalna",
+     "~30% ginie w P5–P10 (Wong i in. 2018)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Interneuron (GABA)",
+   "sub": "tangentially migrating inhibitory neuron",
+   "desc": "An inhibitory neuron born in the medial or caudal ganglionic eminence. It reaches the cortex tangentially, in streams in the marginal zone and the lower intermediate zone. Its leading process is branched – the nucleus enters one branch and the others retract.",
+   "facts": [
+    [
+     "Speed in living embryos",
+     "12 ± 6 µm/h (Yanagida et al. 2012)"
+    ],
+    [
+     "Origin",
+     "MGE and CGE"
+    ],
+    [
+     "Natural death",
+     "~30% die at P5–P10 (Wong et al. 2018)"
+    ]
+   ]
+  }
+ },
+ "microglia": {
+  "pl": {
+   "name": "Mikroglej",
+   "sub": "makrofagi mózgu",
+   "desc": "Komórki odpornościowe mózgu, pochodzące z woreczka żółtkowego. W korze zarodka są rozproszone w strefie komorowej, podkomorowej i pośredniej. Pochłaniają komórki apoptotyczne i część progenitorów, a ich rozmieszczenie wpływa na rozwój połączeń.",
+   "facts": [
+    [
+     "Rozmieszczenie",
+     "VZ, SVZ i IZ (Hattori i Miyata 2018)"
+    ],
+    [
+     "Fagocytoza",
+     "komórki apoptotyczne i progenitory (Cunningham i in. 2013)"
+    ],
+    [
+     "Połączenia",
+     "wpływ na wzrost aksonów (Squarzoni i in. 2014)"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Microglia",
+   "sub": "the brain's macrophages",
+   "desc": "The brain's immune cells, derived from the yolk sac. In the embryonic cortex they are scattered in the ventricular, subventricular and intermediate zones. They engulf apoptotic cells and some progenitors, and their distribution affects wiring.",
+   "facts": [
+    [
+     "Distribution",
+     "VZ, SVZ and IZ (Hattori & Miyata 2018)"
+    ],
+    [
+     "Phagocytosis",
+     "apoptotic cells and progenitors (Cunningham et al. 2013)"
+    ],
+    [
+     "Wiring",
+     "influence axon outgrowth (Squarzoni et al. 2014)"
+    ]
+   ]
+  }
+ },
+ "growthcone": {
+  "pl": {
+   "name": "Stożek wzrostu aksonu",
+   "sub": "ruchoma końcówka rosnącego aksonu",
+   "desc": "Blaszka (lamellipodium) i palczaste filopodia badają otoczenie: stożek skręca ku sygnałom przyciągającym i zapada się przed odpychającymi (np. Slit2). W drodze przez istotę białą jest duży i ruchliwy, w korze docelowej – zwarty i wolniejszy.",
+   "facts": [
+    [
+     "Prędkość",
+     "~37 µm/h przed linią środkową, ~55 µm/h za nią (Hutchins i in. 2011)"
+    ],
+    [
+     "W korze docelowej",
+     "o połowę wolniej niż w drodze (Halloran i Kalil 1994)"
+    ],
+    [
+     "Zapadnięcie",
+     "Slit2 → Robo"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Axon growth cone",
+   "sub": "the motile tip of a growing axon",
+   "desc": "A veil (lamellipodium) and finger-like filopodia probe the surroundings: the cone turns towards attractive cues and collapses in front of repulsive ones (e.g. Slit2). In the white-matter tract it is large and motile; in the target cortex compact and slower.",
+   "facts": [
+    [
+     "Speed",
+     "~37 µm/h before the midline, ~55 µm/h after (Hutchins et al. 2011)"
+    ],
+    [
+     "In target cortex",
+     "half the tract speed (Halloran & Kalil 1994)"
+    ],
+    [
+     "Collapse",
+     "Slit2 → Robo"
+    ]
+   ]
+  }
+ },
+ "pyknotic-cell": {
+  "pl": {
+   "name": "Neuron w apoptozie",
+   "sub": "piknoza · naturalna śmierć neuronów",
+   "desc": "Komórka, która uruchomiła program apoptozy: obkurcza się, jej chromatyna zbija się w ciemne grudki i rozpada. W korze myszy między P2 a P5 ginie tak ~12% neuronów pobudzających, a szczyt apoptozy przypada ok. P5–P6. Aktywność elektryczna chroni neurony.",
+   "facts": [
+    [
+     "Skala",
+     "~12% neuronów pobudzających (Wong i in. 2018)"
+    ],
+    [
+     "Ochrona",
+     "aktywność elektryczna (Blanquie i in. 2017)"
+    ],
+    [
+     "Sprzątanie",
+     "mikroglej, w ciągu godzin"
+    ]
+   ]
+  },
+  "en": {
+   "name": "Apoptotic neuron",
+   "sub": "pyknosis · natural neuronal death",
+   "desc": "A cell that has switched on the apoptosis programme: it shrinks, its chromatin condenses into dark clumps and falls apart. In the mouse cortex ~12% of excitatory neurons die this way between P2 and P5, with apoptosis peaking around P5–P6. Electrical activity protects neurons.",
+   "facts": [
+    [
+     "Scale",
+     "~12% of excitatory neurons (Wong et al. 2018)"
+    ],
+    [
+     "Protection",
+     "electrical activity (Blanquie et al. 2017)"
+    ],
+    [
+     "Clearance",
+     "microglia, within hours"
+    ]
+   ]
+  }
+ }
+}
